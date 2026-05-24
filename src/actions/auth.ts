@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongoose";
+import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
 import { User } from "@/lib/db/models";
 import { createSession, deleteSession } from "@/lib/auth/session";
 import { loginSchema, registerSchema } from "@/lib/validations/finance";
@@ -41,12 +42,21 @@ export async function registerAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await User.create({ email, username, passwordHash, name });
+
+  let user;
+  try {
+    [user] = await withTransaction(async (session) =>
+      User.create([{ email, username, passwordHash, name }], { session })
+    );
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
 
   await createSession({
     userId: user._id.toString(),
     email: user.email,
     username: user.username,
+    onboardingCompleted: false,
   });
 
   redirect("/onboarding");
@@ -86,6 +96,7 @@ export async function loginAction(
     userId: user._id.toString(),
     email: user.email,
     username: user.username,
+    onboardingCompleted: user.onboardingCompleted,
   });
 
   if (!user.onboardingCompleted) {

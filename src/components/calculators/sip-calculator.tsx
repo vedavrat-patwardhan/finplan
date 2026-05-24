@@ -40,7 +40,7 @@ interface SIPCalculatorProps {
 }
 
 export function SIPCalculator({ defaults }: SIPCalculatorProps) {
-  const [monthly, setMonthly] = useState(defaults?.monthlyInvestment ?? 10000);
+  const [monthly, setMonthly] = useState(defaults?.monthlyInvestment ?? 5000);
   const [rate, setRate] = useState(defaults?.expectedReturn ?? 12);
   const [years, setYears] = useState(10);
   const [stepUp, setStepUp] = useState(10);
@@ -71,6 +71,7 @@ export function SIPCalculator({ defaults }: SIPCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setMonthly(Number(e.target.value)))
             }
+            placeholder="e.g. 5000"
           />
         </div>
         <div className="space-y-2">
@@ -81,6 +82,7 @@ export function SIPCalculator({ defaults }: SIPCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setRate(Number(e.target.value)))
             }
+            placeholder="e.g. 12"
           />
         </div>
         <div className="space-y-2">
@@ -91,6 +93,7 @@ export function SIPCalculator({ defaults }: SIPCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setYears(Number(e.target.value)))
             }
+            placeholder="e.g. 10"
           />
         </div>
         <div className="space-y-2">
@@ -101,6 +104,7 @@ export function SIPCalculator({ defaults }: SIPCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setStepUp(Number(e.target.value)))
             }
+            placeholder="e.g. 10"
           />
         </div>
       </div>

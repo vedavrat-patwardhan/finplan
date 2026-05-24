@@ -36,6 +36,19 @@ export function formatMonthYear(date: Date): string {
   }).format(date);
 }
 
+/** "emergency_fund" → "Emergency fund", "emergency fund" → "Emergency fund" */
+export function formatLabel(value: string): string {
+  const words = value.replace(/_/g, " ").trim().split(/\s+/);
+  if (words.length === 0) return value;
+  return (
+    words[0]!.charAt(0).toUpperCase() +
+    words[0]!.slice(1).toLowerCase() +
+    (words.length > 1
+      ? " " + words.slice(1).map((w) => w.toLowerCase()).join(" ")
+      : "")
+  );
+}
+
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
   result.setMonth(result.getMonth() + months);

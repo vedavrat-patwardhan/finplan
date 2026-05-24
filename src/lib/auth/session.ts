@@ -16,10 +16,11 @@ export interface SessionPayload extends JWTPayload {
   userId: string;
   email: string;
   username: string;
+  onboardingCompleted: boolean;
 }
 
 export async function createSession(payload: SessionPayload) {
-  const token = await new SignJWT(payload)
+  const token = await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(EXPIRY)
@@ -52,6 +53,12 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+}
+
+export async function refreshSession(updates: Partial<SessionPayload>) {
+  const session = await getSession();
+  if (!session) return;
+  await createSession({ ...session, ...updates });
 }
 
 export async function requireSession(): Promise<SessionPayload> {

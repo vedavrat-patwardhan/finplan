@@ -46,6 +46,7 @@ export function ScenarioModeler({ baseSurplus }: ScenarioModelerProps) {
               onChange={(e) =>
                 startTransition(() => setIncomeDelta(Number(e.target.value)))
               }
+              placeholder="e.g. 10000"
             />
           </div>
           <div className="space-y-2">
@@ -55,6 +56,7 @@ export function ScenarioModeler({ baseSurplus }: ScenarioModelerProps) {
               onChange={(e) =>
                 startTransition(() => setExpenseDelta(Number(e.target.value)))
               }
+              placeholder="e.g. 5000"
             />
           </div>
           <div className="space-y-2">
@@ -64,6 +66,7 @@ export function ScenarioModeler({ baseSurplus }: ScenarioModelerProps) {
               onChange={(e) =>
                 startTransition(() => setInvestmentDelta(Number(e.target.value)))
               }
+              placeholder="e.g. 3000"
             />
           </div>
         </div>

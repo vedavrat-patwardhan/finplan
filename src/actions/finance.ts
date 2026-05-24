@@ -2,7 +2,7 @@
 
 import mongoose from "mongoose";
 import { revalidatePath } from "next/cache";
-import { connectDB } from "@/lib/db/mongoose";
+import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
 import {
   User,
   IncomeSource,
@@ -11,7 +11,7 @@ import {
   InsurancePolicy,
   LifeGoal,
 } from "@/lib/db/models";
-import { requireSession } from "@/lib/auth/session";
+import { requireSession, refreshSession } from "@/lib/auth/session";
 import {
   profileSchema,
   incomeSchema,
@@ -24,8 +24,9 @@ import {
 import {
   DEFAULT_EXPENSE_TEMPLATES,
   DEFAULT_INVESTMENT_TEMPLATES,
-  DEFAULT_GOAL_TEMPLATES,
+  ONBOARDING_GOAL_OPTIONS,
 } from "@/lib/finance/constants";
+import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { addMonths } from "@/lib/format";
 import type { ActionResult } from "./auth";
 
@@ -63,8 +64,14 @@ export async function updateProfileAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  await connectDB();
-  await User.findByIdAndUpdate(session.userId, parsed.data);
+  try {
+    await withTransaction(async (dbSession) => {
+      await User.findByIdAndUpdate(session.userId, parsed.data, { session: dbSession });
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   revalidatePath("/settings");
   return { success: true };
@@ -81,16 +88,35 @@ export async function createIncomeAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  await connectDB();
-  await IncomeSource.create({ ...parsed.data, userId: userObjectId(session.userId) });
+  try {
+    await withTransaction(async (dbSession) => {
+      await IncomeSource.create(
+        [{ ...parsed.data, userId: userObjectId(session.userId) }],
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
 
 export async function deleteIncomeAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
-  await connectDB();
-  await IncomeSource.deleteOne({ _id: id, userId: userObjectId(session.userId) });
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await IncomeSource.deleteOne(
+        { _id: id, userId: userObjectId(session.userId) },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
@@ -109,16 +135,35 @@ export async function createExpenseAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  await connectDB();
-  await Expense.create({ ...parsed.data, userId: userObjectId(session.userId) });
+  try {
+    await withTransaction(async (dbSession) => {
+      await Expense.create(
+        [{ ...parsed.data, userId: userObjectId(session.userId) }],
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
 
 export async function deleteExpenseAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
-  await connectDB();
-  await Expense.deleteOne({ _id: id, userId: userObjectId(session.userId) });
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await Expense.deleteOne(
+        { _id: id, userId: userObjectId(session.userId) },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
@@ -134,16 +179,35 @@ export async function createInvestmentAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  await connectDB();
-  await Investment.create({ ...parsed.data, userId: userObjectId(session.userId) });
+  try {
+    await withTransaction(async (dbSession) => {
+      await Investment.create(
+        [{ ...parsed.data, userId: userObjectId(session.userId) }],
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
 
 export async function deleteInvestmentAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
-  await connectDB();
-  await Investment.deleteOne({ _id: id, userId: userObjectId(session.userId) });
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await Investment.deleteOne(
+        { _id: id, userId: userObjectId(session.userId) },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
@@ -159,16 +223,35 @@ export async function createInsuranceAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  await connectDB();
-  await InsurancePolicy.create({ ...parsed.data, userId: userObjectId(session.userId) });
+  try {
+    await withTransaction(async (dbSession) => {
+      await InsurancePolicy.create(
+        [{ ...parsed.data, userId: userObjectId(session.userId) }],
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
 
 export async function deleteInsuranceAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
-  await connectDB();
-  await InsurancePolicy.deleteOne({ _id: id, userId: userObjectId(session.userId) });
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await InsurancePolicy.deleteOne(
+        { _id: id, userId: userObjectId(session.userId) },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
@@ -186,20 +269,41 @@ export async function createGoalAction(
 
   const { notes, ...data } = parsed.data;
 
-  await connectDB();
-  await LifeGoal.create({
-    ...data,
-    assumptions: { notes },
-    userId: userObjectId(session.userId),
-  });
+  try {
+    await withTransaction(async (dbSession) => {
+      await LifeGoal.create(
+        [
+          {
+            ...data,
+            assumptions: { notes },
+            userId: userObjectId(session.userId),
+          },
+        ],
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
 
 export async function deleteGoalAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
-  await connectDB();
-  await LifeGoal.deleteOne({ _id: id, userId: userObjectId(session.userId) });
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await LifeGoal.deleteOne(
+        { _id: id, userId: userObjectId(session.userId) },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
   revalidateFinance();
   return { success: true };
 }
@@ -212,74 +316,151 @@ export async function completeOnboardingAction(
 
   const expenseTemplates = formData.getAll("expenseTemplates") as string[];
   const investmentTemplates = formData.getAll("investmentTemplates") as string[];
-  const goalTemplates = formData.getAll("goalTemplates") as string[];
+  const goalOptions = formData.getAll("goalOptions") as string[];
+  const skipIncome = formData.get("skipIncome") === "true";
 
   const parsed = onboardingSchema.safeParse({
     name: formData.get("name"),
-    monthlyTakeHome: formData.get("monthlyTakeHome"),
-    salaryAmount: formData.get("salaryAmount"),
+    annualInHandSalary: formData.get("annualInHandSalary"),
+    annualInHandBonus: formData.get("annualInHandBonus"),
+    taxRegime: formData.get("taxRegime") ?? "new",
+    skipIncome,
     selectedExpenseTemplates: expenseTemplates,
     selectedInvestmentTemplates: investmentTemplates,
-    selectedGoalTemplates: goalTemplates,
+    selectedGoalOptions: goalOptions,
   });
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  const { name, monthlyTakeHome, salaryAmount, selectedExpenseTemplates, selectedInvestmentTemplates, selectedGoalTemplates } = parsed.data;
+  const {
+    name,
+    annualInHandSalary = 0,
+    annualInHandBonus = 0,
+    taxRegime,
+    selectedExpenseTemplates,
+    selectedInvestmentTemplates,
+    selectedGoalOptions,
+  } = parsed.data;
   const userId = userObjectId(session.userId);
 
-  await connectDB();
+  let monthlyTakeHome = 0;
+  let packageBreakdown = null;
 
-  await User.findByIdAndUpdate(session.userId, {
-    name,
-    monthlyTakeHome,
-    onboardingCompleted: true,
-  });
-
-  await IncomeSource.create({
-    userId,
-    name: "Primary Salary",
-    type: "salary",
-    amount: salaryAmount,
-    frequency: "monthly",
-  });
-
-  for (const key of selectedExpenseTemplates) {
-    const idx = parseInt(key, 10);
-    const template = DEFAULT_EXPENSE_TEMPLATES[idx];
-    if (template) {
-      await Expense.create({ userId, ...template });
-    }
+  if (!skipIncome && (annualInHandSalary > 0 || annualInHandBonus > 0)) {
+    packageBreakdown = breakdownSalaryPackage({
+      annualInHandSalary,
+      annualInHandBonus,
+      taxRegime,
+    });
+    monthlyTakeHome = packageBreakdown.monthlyInHandSalary;
   }
 
-  for (const key of selectedInvestmentTemplates) {
-    const idx = parseInt(key, 10);
-    const template = DEFAULT_INVESTMENT_TEMPLATES[idx];
-    if (template) {
-      await Investment.create({ userId, ...template, startDate: new Date() });
-    }
-  }
+  try {
+    await withTransaction(async (dbSession) => {
+      await User.findByIdAndUpdate(
+        session.userId,
+        {
+          name,
+          monthlyTakeHome,
+          annualInHandSalary,
+          annualInHandBonus,
+          taxRegime,
+          onboardingCompleted: true,
+        },
+        { session: dbSession }
+      );
 
-  for (const key of selectedGoalTemplates) {
-    const idx = parseInt(key, 10);
-    const template = DEFAULT_GOAL_TEMPLATES[idx];
-    if (template) {
-      await LifeGoal.create({
-        userId,
-        title: template.title,
-        goalType: template.goalType,
-        targetAmount: template.targetAmount,
-        targetDate: addMonths(new Date(), template.monthsFromNow),
-        currentSaved: 0,
-        monthlyContribution: 0,
-        priority: idx,
-      });
-    }
+      if (packageBreakdown) {
+        if (annualInHandSalary > 0) {
+          await IncomeSource.create(
+            [
+              {
+                userId,
+                name: "Monthly Salary (in-hand)",
+                type: "salary",
+                amount: packageBreakdown.monthlyInHandSalary,
+                frequency: "monthly",
+                isNetAmount: true,
+                grossAmount: packageBreakdown.estimatedGrossSalary / 12,
+                estimatedTax: packageBreakdown.estimatedSalaryTax / 12,
+                notes: `Annual in-hand ₹${annualInHandSalary.toLocaleString("en-IN")} · FY 2025-26 ${taxRegime} regime`,
+              },
+            ],
+            { session: dbSession }
+          );
+        }
+        if (annualInHandBonus > 0) {
+          await IncomeSource.create(
+            [
+              {
+                userId,
+                name: "Annual Bonus (in-hand)",
+                type: "bonus",
+                amount: annualInHandBonus,
+                frequency: "yearly",
+                isNetAmount: true,
+                grossAmount: packageBreakdown.estimatedGrossBonus,
+                estimatedTax: packageBreakdown.estimatedBonusTax,
+                notes: "After TDS at payment · not spread monthly",
+              },
+            ],
+            { session: dbSession }
+          );
+        }
+      }
+
+      for (const key of selectedExpenseTemplates) {
+        const idx = parseInt(key, 10);
+        const template = DEFAULT_EXPENSE_TEMPLATES[idx];
+        if (template) {
+          await Expense.create([{ userId, ...template }], { session: dbSession });
+        }
+      }
+
+      for (const key of selectedInvestmentTemplates) {
+        const idx = parseInt(key, 10);
+        const template = DEFAULT_INVESTMENT_TEMPLATES[idx];
+        if (template) {
+          await Investment.create(
+            [{ userId, ...template, startDate: new Date() }],
+            { session: dbSession }
+          );
+        }
+      }
+
+      for (const optionId of selectedGoalOptions) {
+        const option = ONBOARDING_GOAL_OPTIONS.find((o) => o.id === optionId);
+        if (option) {
+          await LifeGoal.create(
+            [
+              {
+                userId,
+                title: option.title,
+                goalType: option.goalType,
+                status: option.status,
+                targetAmount: option.targetAmount,
+                targetDate:
+                  option.status === "completed"
+                    ? new Date()
+                    : addMonths(new Date(), option.monthsFromNow),
+                currentSaved: option.status === "completed" ? option.targetAmount : 0,
+                monthlyContribution: 0,
+                priority: option.status === "completed" ? -1 : 0,
+              },
+            ],
+            { session: dbSession }
+          );
+        }
+      }
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
   }
 
   revalidateFinance();
+  await refreshSession({ onboardingCompleted: true });
   return { success: true };
 }
 

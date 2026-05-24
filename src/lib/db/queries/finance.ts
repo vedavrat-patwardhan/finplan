@@ -16,6 +16,8 @@ import {
   type UpcomingObligation,
 } from "@/lib/finance/engine";
 import type { Frequency } from "@/lib/finance/constants";
+import { PORTFOLIO_CHART_COLORS } from "@/lib/finance/constants";
+import { toMonthlyEquivalent } from "@/lib/finance/engine";
 
 function toObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
@@ -36,6 +38,9 @@ export const getUserProfile = cache(async (userId: string) => {
     username: user.username,
     name: user.name,
     monthlyTakeHome: user.monthlyTakeHome,
+    annualInHandSalary: user.annualInHandSalary ?? 0,
+    annualInHandBonus: user.annualInHandBonus ?? 0,
+    taxRegime: (user.taxRegime ?? "new") as "new" | "old",
     currency: user.currency,
     inflationRate: user.inflationRate,
     bonusSpreadMonthly: user.bonusSpreadMonthly,
@@ -56,6 +61,9 @@ export const getIncomeSources = cache(async (userId: string) => {
     type: item.type,
     amount: item.amount,
     frequency: item.frequency as Frequency,
+    isNetAmount: item.isNetAmount ?? true,
+    grossAmount: item.grossAmount,
+    estimatedTax: item.estimatedTax,
     startDate: item.startDate,
     endDate: item.endDate,
     notes: item.notes,
@@ -123,6 +131,7 @@ export const getLifeGoals = cache(async (userId: string) => {
     id: item._id.toString(),
     title: item.title,
     goalType: item.goalType,
+    status: (item.status ?? "active") as "active" | "completed",
     targetAmount: item.targetAmount,
     targetDate: item.targetDate,
     currentSaved: item.currentSaved,
@@ -133,18 +142,26 @@ export const getLifeGoals = cache(async (userId: string) => {
 });
 
 export const getMonthlySnapshot = cache(async (userId: string) => {
-  const [income, expenses, investments, insurance] = await Promise.all([
+  const [income, expenses, investments, insurance, profile] = await Promise.all([
     getIncomeSources(userId),
     getExpenses(userId),
     getInvestments(userId),
     getInsurancePolicies(userId),
+    getUserProfile(userId),
   ]);
 
+  const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
+
   return calculateMonthlySnapshot({
-    income: income.map((i) => ({ amount: i.amount, frequency: i.frequency })),
+    income: income.map((i) => ({
+      amount: i.amount,
+      frequency: i.frequency,
+      type: i.type,
+    })),
     expenses: expenses.map((e) => ({ amount: e.amount, frequency: e.frequency })),
     investments: investments.map((i) => ({ amount: i.amount, frequency: i.frequency })),
     insurance: insurance.map((i) => ({ amount: i.premium, frequency: i.frequency })),
+    bonusSpreadMonthly,
   });
 });
 
@@ -157,19 +174,33 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
 
   const inflationRate = profile?.inflationRate ?? 6;
 
-  return goals.map((goal) => ({
-    ...goal,
-    feasibility: calculateGoalFeasibility(
-      {
-        targetAmount: goal.targetAmount,
-        currentSaved: goal.currentSaved,
-        monthlyContribution: goal.monthlyContribution,
-        targetDate: new Date(goal.targetDate),
-      },
-      snapshot.netSurplus,
-      inflationRate
-    ),
-  }));
+  return goals.map((goal) => {
+    if (goal.status === "completed" || !goal.targetDate) {
+      return {
+        ...goal,
+        feasibility: {
+          monthsRemaining: 0,
+          gap: 0,
+          requiredMonthlySave: 0,
+          projectedAmount: goal.currentSaved,
+          status: "on_track" as const,
+        },
+      };
+    }
+    return {
+      ...goal,
+      feasibility: calculateGoalFeasibility(
+        {
+          targetAmount: goal.targetAmount,
+          currentSaved: goal.currentSaved,
+          monthlyContribution: goal.monthlyContribution,
+          targetDate: new Date(goal.targetDate),
+        },
+        snapshot.netSurplus,
+        inflationRate
+      ),
+    };
+  });
 });
 
 export const getUpcomingObligationsForUser = cache(
@@ -273,5 +304,72 @@ export const getCalculatorPrefill = cache(async (userId: string) => {
     inflationRate: profile?.inflationRate ?? 6,
     retirementMultiplier: profile?.retirementMultiplier ?? 25,
     goals,
+  };
+});
+
+export const getPortfolioChartData = cache(async (userId: string) => {
+  const [income, expenses, investments, insurance, snapshot, goals, profile] =
+    await Promise.all([
+      getIncomeSources(userId),
+      getExpenses(userId),
+      getInvestments(userId),
+      getInsurancePolicies(userId),
+      getMonthlySnapshot(userId),
+      getLifeGoals(userId),
+      getUserProfile(userId),
+    ]);
+
+  const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
+
+  const surplus = Math.max(0, snapshot.netSurplus);
+
+  const cashflowAllocation = [
+    { name: "Expenses", value: snapshot.fixedExpenses, color: PORTFOLIO_CHART_COLORS[1] },
+    { name: "Investments", value: snapshot.investments, color: PORTFOLIO_CHART_COLORS[2] },
+    { name: "Insurance", value: snapshot.insurance, color: PORTFOLIO_CHART_COLORS[3] },
+    { name: "Surplus", value: surplus, color: PORTFOLIO_CHART_COLORS[0] },
+  ].filter((d) => d.value > 0);
+
+  const categoryMap = new Map<string, number>();
+  for (const expense of expenses) {
+    const monthly = toMonthlyEquivalent(expense.amount, expense.frequency);
+    categoryMap.set(expense.category, (categoryMap.get(expense.category) ?? 0) + monthly);
+  }
+  const expenseByCategory = Array.from(categoryMap.entries())
+    .map(([name, value], i) => ({
+      name,
+      value,
+      color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const incomeBreakdown = income.map((item, i) => ({
+    name: item.name,
+    value: toMonthlyEquivalent(item.amount, item.frequency, {
+      type: item.type,
+      bonusSpreadMonthly,
+    }),
+    color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
+  }));
+
+  const goalProgress = goals
+    .filter((g) => g.status !== "completed" && g.targetAmount > 0)
+    .map((g, i) => ({
+      name: g.title.length > 12 ? `${g.title.slice(0, 12)}…` : g.title,
+      saved: g.currentSaved,
+      target: g.targetAmount,
+      color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
+    }));
+
+  return {
+    cashflowAllocation,
+    expenseByCategory,
+    incomeBreakdown,
+    goalProgress,
+    snapshot: {
+      grossIncome: snapshot.grossIncome,
+      netSurplus: snapshot.netSurplus,
+      savingsRate: snapshot.savingsRate,
+    },
   };
 });

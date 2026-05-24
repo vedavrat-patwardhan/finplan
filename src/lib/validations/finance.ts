@@ -9,20 +9,38 @@ import {
   INVESTMENT_TYPES,
 } from "@/lib/finance/constants";
 
-export const registerSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30)
-    .regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, and underscores only"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  name: z.string().min(1, "Name is required").max(100),
+export const loginSchema = z.object({
+  identifier: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z.string().min(1, "Email or username is required")
+  ),
+  password: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z.string().min(1, "Password is required")
+  ),
 });
 
-export const loginSchema = z.object({
-  identifier: z.string().min(1, "Email or username is required"),
-  password: z.string().min(1, "Password is required"),
+export const registerSchema = z.object({
+  email: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z.string().email("Enter a valid email")
+  ),
+  username: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(30)
+      .regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, and underscores only")
+  ),
+  password: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z.string().min(8, "Password must be at least 8 characters")
+  ),
+  name: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z.string().min(1, "Name is required").max(100)
+  ),
 });
 
 export const profileSchema = z.object({
@@ -88,11 +106,13 @@ export const goalSchema = z.object({
 
 export const onboardingSchema = z.object({
   name: z.string().min(1),
-  monthlyTakeHome: z.coerce.number().min(0),
-  salaryAmount: z.coerce.number().min(0),
+  annualInHandSalary: z.coerce.number().min(0).optional(),
+  annualInHandBonus: z.coerce.number().min(0).optional(),
+  taxRegime: z.enum(["new", "old"]).default("new"),
+  skipIncome: z.coerce.boolean().optional(),
   selectedExpenseTemplates: z.array(z.string()),
   selectedInvestmentTemplates: z.array(z.string()),
-  selectedGoalTemplates: z.array(z.string()),
+  selectedGoalOptions: z.array(z.string()),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR } from "@/lib/format";
 import { inflationAdjust, monthsUntil } from "@/lib/finance/engine";
+
+function defaultTargetDate(): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 2);
+  return date.toISOString().split("T")[0];
+}
 
 interface GoalPlannerCalculatorProps {
   defaults?: {
@@ -18,15 +24,16 @@ interface GoalPlannerCalculatorProps {
 export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) {
   const [target, setTarget] = useState(1500000);
   const [saved, setSaved] = useState(200000);
-  const [targetDate, setTargetDate] = useState(
-    new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2)
-      .toISOString()
-      .split("T")[0]
-  );
+  const [targetDate, setTargetDate] = useState("");
   const [inflation, setInflation] = useState(defaults?.inflationRate ?? 6);
   const [, startTransition] = useTransition();
 
+  useEffect(() => {
+    setTargetDate(defaultTargetDate());
+  }, []);
+
   const result = useMemo(() => {
+    if (!targetDate) return null;
     const date = new Date(targetDate);
     const months = monthsUntil(date);
     const years = months / 12;
@@ -57,6 +64,7 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
             onChange={(e) =>
               startTransition(() => setTarget(Number(e.target.value)))
             }
+            placeholder="e.g. 1500000"
           />
         </div>
         <div className="space-y-2">
@@ -66,6 +74,7 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
             onChange={(e) =>
               startTransition(() => setSaved(Number(e.target.value)))
             }
+            placeholder="e.g. 200000"
           />
         </div>
         <div className="space-y-2">
@@ -87,10 +96,12 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
             onChange={(e) =>
               startTransition(() => setInflation(Number(e.target.value)))
             }
+            placeholder="e.g. 6"
           />
         </div>
       </div>
 
+      {result ? (
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -127,6 +138,7 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
           </CardContent>
         </Card>
       </div>
+      ) : null}
     </div>
   );
 }

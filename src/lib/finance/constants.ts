@@ -94,7 +94,85 @@ export const DEFAULT_INVESTMENT_TEMPLATES = [
 ] as const;
 
 export const DEFAULT_GOAL_TEMPLATES = [
-  { title: "Marriage", goalType: "marriage", targetAmount: 1500000, monthsFromNow: 24 },
   { title: "House Down Payment", goalType: "house", targetAmount: 3000000, monthsFromNow: 60 },
   { title: "Emergency Fund", goalType: "emergency_fund", targetAmount: 600000, monthsFromNow: 12 },
+] as const;
+
+export type GoalStatus = "active" | "completed";
+
+export const ONBOARDING_GOAL_OPTIONS = [
+  {
+    id: "house",
+    title: "Buy a house",
+    description: "Down payment & home purchase",
+    goalType: "house" as const,
+    targetAmount: 3_000_000,
+    monthsFromNow: 60,
+    status: "active" as const,
+  },
+  {
+    id: "baby",
+    title: "Plan for a baby",
+    description: "Childcare & one-time costs",
+    goalType: "baby" as const,
+    targetAmount: 500_000,
+    monthsFromNow: 36,
+    status: "active" as const,
+  },
+  {
+    id: "emergency",
+    title: "Emergency fund",
+    description: "6 months of essential expenses",
+    goalType: "emergency_fund" as const,
+    targetAmount: 600_000,
+    monthsFromNow: 12,
+    status: "active" as const,
+  },
+  {
+    id: "retirement",
+    title: "Retirement corpus",
+    description: "Long-term financial independence",
+    goalType: "retirement" as const,
+    targetAmount: 50_000_000,
+    monthsFromNow: 360,
+    status: "active" as const,
+  },
+  {
+    id: "car",
+    title: "Buy a car",
+    description: "Vehicle purchase or upgrade",
+    goalType: "car" as const,
+    targetAmount: 800_000,
+    monthsFromNow: 24,
+    status: "active" as const,
+  },
+  {
+    id: "education",
+    title: "Higher education",
+    description: "Self or family education fund",
+    goalType: "education" as const,
+    targetAmount: 1_000_000,
+    monthsFromNow: 48,
+    status: "active" as const,
+  },
+  {
+    id: "married",
+    title: "Already married",
+    description: "Mark this milestone as achieved",
+    goalType: "marriage" as const,
+    targetAmount: 0,
+    monthsFromNow: 0,
+    status: "completed" as const,
+  },
+] as const;
+
+export const PORTFOLIO_CHART_COLORS = [
+  "oklch(0.55 0.12 165)",
+  "oklch(0.62 0.14 145)",
+  "oklch(0.58 0.11 185)",
+  "oklch(0.68 0.12 130)",
+  "oklch(0.52 0.10 175)",
+  "oklch(0.72 0.09 155)",
+  "oklch(0.48 0.08 165)",
+  "oklch(0.65 0.13 140)",
 ] as const;

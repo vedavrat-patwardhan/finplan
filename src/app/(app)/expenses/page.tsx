@@ -45,6 +45,7 @@ export default async function ExpensesPage({
         </div>
         <ResourceFormSheet
           title="Add expense"
+          description="Track fixed, recurring, and discretionary spending. Mark essentials to see what truly matters each month."
           triggerLabel="Add expense"
           fields={expenseFormFields}
           action={createExpenseAction}
@@ -83,7 +84,11 @@ export default async function ExpensesPage({
                     /mo
                   </p>
                 </div>
-                <DeleteButton id={item.id} action={deleteExpenseAction} />
+                <DeleteButton
+                  id={item.id}
+                  action={deleteExpenseAction}
+                  itemName={item.name}
+                />
               </div>
             </div>
           ))}

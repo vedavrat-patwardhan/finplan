@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, startTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +16,27 @@ function AuthForm({
   submitLabel,
 }: {
   action: (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
-  fields: { name: string; label: string; type: string; autoComplete?: string }[];
+  fields: {
+    name: string;
+    label: string;
+    type: string;
+    autoComplete?: string;
+    placeholder?: string;
+  }[];
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {fields.map((field) => (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>{field.label}</Label>
@@ -31,6 +45,7 @@ function AuthForm({
             name={field.name}
             type={field.type}
             autoComplete={field.autoComplete}
+            placeholder={field.placeholder}
             required
           />
         </div>
@@ -51,8 +66,8 @@ export function LoginForm() {
       action={loginAction}
       submitLabel="Sign in"
       fields={[
-        { name: "identifier", label: "Email or username", type: "text", autoComplete: "username" },
-        { name: "password", label: "Password", type: "password", autoComplete: "current-password" },
+        { name: "identifier", label: "Email or username", type: "text", autoComplete: "username", placeholder: "you@example.com" },
+        { name: "password", label: "Password", type: "password", autoComplete: "current-password", placeholder: "Your password" },
       ]}
     />
   );
@@ -64,10 +79,10 @@ export function RegisterForm() {
       action={registerAction}
       submitLabel="Create account"
       fields={[
-        { name: "name", label: "Full name", type: "text", autoComplete: "name" },
-        { name: "email", label: "Email", type: "email", autoComplete: "email" },
-        { name: "username", label: "Username", type: "text", autoComplete: "username" },
-        { name: "password", label: "Password", type: "password", autoComplete: "new-password" },
+        { name: "name", label: "Full name", type: "text", autoComplete: "name", placeholder: "Your full name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email", placeholder: "you@example.com" },
+        { name: "username", label: "Username", type: "text", autoComplete: "username", placeholder: "Choose a username" },
+        { name: "password", label: "Password", type: "password", autoComplete: "new-password", placeholder: "At least 8 characters" },
       ]}
     />
   );

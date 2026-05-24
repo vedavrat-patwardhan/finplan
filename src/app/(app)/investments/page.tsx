@@ -33,6 +33,7 @@ export default async function InvestmentsPage() {
         </div>
         <ResourceFormSheet
           title="Add investment"
+          description="Track SIPs, PPF, NPS, and other recurring commitments that shape your monthly surplus."
           triggerLabel="Add investment"
           fields={investmentFormFields}
           action={createInvestmentAction}
@@ -71,7 +72,11 @@ export default async function InvestmentsPage() {
                     /mo
                   </p>
                 </div>
-                <DeleteButton id={item.id} action={deleteInvestmentAction} />
+                <DeleteButton
+                  id={item.id}
+                  action={deleteInvestmentAction}
+                  itemName={item.name}
+                />
               </div>
             </div>
           ))}

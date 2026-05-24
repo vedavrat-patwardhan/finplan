@@ -57,6 +57,7 @@ export function RetirementCalculator({ defaults }: RetirementCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setMonthlyExpenses(Number(e.target.value)))
             }
+            placeholder="e.g. 50000"
           />
         </div>
         <div className="space-y-2">
@@ -67,6 +68,7 @@ export function RetirementCalculator({ defaults }: RetirementCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setMultiplier(Number(e.target.value)))
             }
+            placeholder="e.g. 25"
           />
         </div>
         <div className="space-y-2">
@@ -77,6 +79,7 @@ export function RetirementCalculator({ defaults }: RetirementCalculatorProps) {
             onChange={(e) =>
               startTransition(() => setYearsToRetire(Number(e.target.value)))
             }
+            placeholder="e.g. 25"
           />
         </div>
       </div>

@@ -41,6 +41,7 @@ export function EMICalculator({ defaults }: EMICalculatorProps) {
             onChange={(e) =>
               startTransition(() => setPrincipal(Number(e.target.value)))
             }
+            placeholder="e.g. 5000000"
           />
         </div>
         <div className="space-y-2">
@@ -52,6 +53,7 @@ export function EMICalculator({ defaults }: EMICalculatorProps) {
             onChange={(e) =>
               startTransition(() => setRate(Number(e.target.value)))
             }
+            placeholder="e.g. 8.5"
           />
         </div>
         <div className="space-y-2">
@@ -62,6 +64,7 @@ export function EMICalculator({ defaults }: EMICalculatorProps) {
             onChange={(e) =>
               startTransition(() => setTenure(Number(e.target.value)))
             }
+            placeholder="e.g. 240"
           />
         </div>
       </div>

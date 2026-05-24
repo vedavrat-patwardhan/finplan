@@ -33,6 +33,7 @@ export default async function InsurancePage() {
         </div>
         <ResourceFormSheet
           title="Add policy"
+          description="Track premiums, coverage, and renewal dates for term life, health, and other policies."
           triggerLabel="Add policy"
           fields={insuranceFormFields}
           action={createInsuranceAction}
@@ -85,7 +86,11 @@ export default async function InsurancePage() {
               </div>
 
               <div className="mt-4 flex justify-end">
-                <DeleteButton id={item.id} action={deleteInsuranceAction} />
+                <DeleteButton
+                  id={item.id}
+                  action={deleteInsuranceAction}
+                  itemName={item.provider}
+                />
               </div>
             </div>
           ))}

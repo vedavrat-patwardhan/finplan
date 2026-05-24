@@ -32,7 +32,14 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const mobileNavItems = navItems.slice(0, 5);
+const mobileNavItems = [
+  navItems[0],
+  navItems[1],
+  navItems[2],
+  navItems[5],
+];
+
+const moreNavItems = navItems.slice(3);
 
 function NavLink({
   href,
@@ -67,6 +74,9 @@ function NavLink({
 
 function MobileBottomNav() {
   const pathname = usePathname();
+  const moreActive = moreNavItems.some(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  );
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-background/95 pb-safe backdrop-blur md:hidden">
@@ -88,6 +98,48 @@ function MobileBottomNav() {
           </Link>
         );
       })}
+      <Sheet>
+        <SheetTrigger
+          render={
+            <button
+              type="button"
+              className={cn(
+                "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] outline-none",
+                moreActive ? "text-primary" : "text-muted-foreground"
+              )}
+            />
+          }
+        >
+          <Menu className="size-4" />
+          More
+        </SheetTrigger>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-safe pt-3">
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+          <p className="mb-3 px-1 font-heading text-base font-semibold">More</p>
+          <nav className="grid grid-cols-2 gap-2 pb-2">
+            {moreNavItems.map((item) => {
+              const Icon = item.icon;
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-3 text-sm",
+                    active
+                      ? "bg-primary/10 font-medium text-primary"
+                      : "text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
     </nav>
   );
 }

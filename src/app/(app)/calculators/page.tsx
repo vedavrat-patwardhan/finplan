@@ -1,34 +1,31 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { getCalculatorPrefill, getMonthlySnapshot } from "@/lib/db/queries/finance";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatINR } from "@/lib/format";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
-import { Calculator, Home, Target, TrendingUp, Wallet } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 const calculators = [
   {
     href: "/calculators/sip",
     title: "SIP & Lumpsum",
     description: "Future value with step-up SIP and growth projection",
-    icon: TrendingUp,
   },
   {
     href: "/calculators/emi",
     title: "EMI / Home Loan",
     description: "Monthly EMI, total interest, and affordability check",
-    icon: Home,
   },
   {
     href: "/calculators/goal-planner",
     title: "Goal Planner",
     description: "Inflation-adjusted targets and required monthly savings",
-    icon: Target,
   },
   {
     href: "/calculators/retirement",
     title: "Retirement & Insurance",
     description: "FIRE corpus and term insurance gap estimate",
-    icon: Wallet,
   },
 ];
 
@@ -50,41 +47,55 @@ export default async function CalculatorsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {calculators.map((calc) => {
-          const Icon = calc.icon;
-          return (
-            <Link key={calc.href} href={calc.href}>
-              <Card className="h-full transition-colors hover:bg-muted/30">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                    <CardTitle className="font-heading text-lg">{calc.title}</CardTitle>
-                  </div>
-                  <CardDescription>{calc.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-          );
-        })}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {calculators.map((calc) => (
+          <Link
+            key={calc.href}
+            href={calc.href}
+            className="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/25"
+          >
+            <div className="min-w-0">
+              <p className="font-heading text-lg font-semibold">{calc.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {calc.description}
+              </p>
+            </div>
+            <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+          </Link>
+        ))}
       </div>
 
       <ScenarioModeler baseSurplus={snapshot.netSurplus} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg flex items-center gap-2">
-            <Calculator className="size-5" />
-            Your pre-fill data
-          </CardTitle>
+          <CardTitle className="font-heading text-lg">Your pre-fill data</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
-          <p>Monthly income: ₹{Math.round(prefill.monthlyIncome).toLocaleString("en-IN")}</p>
-          <p>Monthly surplus: ₹{Math.round(prefill.monthlySurplus).toLocaleString("en-IN")}</p>
-          <p>Total SIP: ₹{Math.round(prefill.totalSIP).toLocaleString("en-IN")}/mo</p>
-          <p>Insurance coverage: ₹{Math.round(prefill.totalCoverage).toLocaleString("en-IN")}</p>
+        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+          <p>
+            <span className="text-muted-foreground">Monthly income</span>
+            <span className="mt-0.5 block font-medium tabular-nums">
+              {formatINR(prefill.monthlyIncome)}
+            </span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Monthly surplus</span>
+            <span className="mt-0.5 block font-medium tabular-nums">
+              {formatINR(prefill.monthlySurplus)}
+            </span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Total SIP</span>
+            <span className="mt-0.5 block font-medium tabular-nums">
+              {formatINR(prefill.totalSIP)}/mo
+            </span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Insurance coverage</span>
+            <span className="mt-0.5 block font-medium tabular-nums">
+              {formatINR(prefill.totalCoverage)}
+            </span>
+          </p>
         </CardContent>
       </Card>
     </div>

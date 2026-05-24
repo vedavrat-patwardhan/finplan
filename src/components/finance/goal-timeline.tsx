@@ -1,14 +1,15 @@
-import { formatINR, formatDate } from "@/lib/format";
+import { formatINR, formatDate, formatLabel } from "@/lib/format";
 import { FeasibilityBadge } from "@/components/finance/feasibility-badge";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import type { GoalFeasibility } from "@/lib/finance/engine";
 
 export interface GoalTimelineItem {
   id: string;
   title: string;
   goalType: string;
+  status?: "active" | "completed";
   targetAmount: number;
-  targetDate: Date | string;
+  targetDate?: Date | string | null;
   currentSaved: number;
   feasibility: GoalFeasibility;
 }
@@ -30,10 +31,12 @@ export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
       <div className="absolute left-[11px] top-3 bottom-3 w-px bg-border md:left-1/2 md:-translate-x-px" />
 
       {goals.map((goal, index) => {
-        const progress = Math.min(
-          100,
-          (goal.currentSaved / goal.targetAmount) * 100
-        );
+        const progress =
+          goal.targetAmount > 0
+            ? Math.min(100, (goal.currentSaved / goal.targetAmount) * 100)
+            : goal.status === "completed"
+              ? 100
+              : 0;
         const alignRight = index % 2 === 1;
 
         return (
@@ -51,15 +54,19 @@ export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {goal.goalType.replace("_", " ")}
+                    {formatLabel(goal.goalType)}
                   </p>
                   <h3 className="font-heading mt-1 text-lg font-semibold">
-                    {goal.title}
+                    {formatLabel(goal.title)}
                   </h3>
                 </div>
                 <FeasibilityBadge status={goal.feasibility.status} />
               </div>
 
+              {goal.status === "completed" ? (
+                <Badge className="mt-3 bg-success/15 text-success">Achieved</Badge>
+              ) : (
+                <>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Target</p>
@@ -70,7 +77,7 @@ export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
                 <div>
                   <p className="text-xs text-muted-foreground">By</p>
                   <p className="text-sm font-medium">
-                    {formatDate(goal.targetDate)}
+                    {goal.targetDate ? formatDate(goal.targetDate) : "—"}
                   </p>
                 </div>
                 <div>
@@ -89,11 +96,24 @@ export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
                 </div>
               </div>
 
-              <Progress value={progress} className="mt-4 h-1.5" />
+              <div
+                className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full bg-primary transition-[width] duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
                 {progress.toFixed(0)}% funded · {goal.feasibility.monthsRemaining}{" "}
                 months left
               </p>
+                </>
+              )}
             </div>
           </div>
         );

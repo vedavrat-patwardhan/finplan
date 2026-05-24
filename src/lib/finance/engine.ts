@@ -5,6 +5,7 @@ export interface CashflowItem {
   frequency: Frequency;
   name?: string;
   date?: Date;
+  type?: string;
 }
 
 export interface GoalInput {
@@ -45,23 +46,43 @@ const FREQUENCY_DIVISORS: Record<Frequency, number> = {
   one_time: 1,
 };
 
-export function toMonthlyEquivalent(amount: number, frequency: Frequency): number {
+export function toMonthlyEquivalent(
+  amount: number,
+  frequency: Frequency,
+  options?: { type?: string; bonusSpreadMonthly?: boolean }
+): number {
   if (frequency === "one_time") return 0;
+  if (
+    options?.type === "bonus" &&
+    frequency === "yearly" &&
+    !options.bonusSpreadMonthly
+  ) {
+    return 0;
+  }
   return amount / FREQUENCY_DIVISORS[frequency];
 }
 
-export function sumMonthly(items: CashflowItem[]): number {
+export function sumMonthly(
+  items: CashflowItem[],
+  options?: { bonusSpreadMonthly?: boolean }
+): number {
   return items.reduce(
-    (sum, item) => sum + toMonthlyEquivalent(item.amount, item.frequency),
+    (sum, item) =>
+      sum +
+      toMonthlyEquivalent(item.amount, item.frequency, {
+        type: item.type,
+        bonusSpreadMonthly: options?.bonusSpreadMonthly,
+      }),
     0
   );
 }
 
 export function calculateMonthlySnapshot(input: MonthlySnapshotInput) {
-  const grossIncome = sumMonthly(input.income);
-  const fixedExpenses = sumMonthly(input.expenses);
-  const investments = sumMonthly(input.investments);
-  const insurance = sumMonthly(input.insurance);
+  const spreadOpts = { bonusSpreadMonthly: input.bonusSpreadMonthly };
+  const grossIncome = sumMonthly(input.income, spreadOpts);
+  const fixedExpenses = sumMonthly(input.expenses, spreadOpts);
+  const investments = sumMonthly(input.investments, spreadOpts);
+  const insurance = sumMonthly(input.insurance, spreadOpts);
 
   const totalOutflow = fixedExpenses + investments + insurance;
   const netSurplus = grossIncome - totalOutflow;

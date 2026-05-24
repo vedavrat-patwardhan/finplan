@@ -11,23 +11,30 @@ function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-secret-change-me");
 }
 
-async function verifyToken(token: string) {
+interface SessionClaims {
+  onboardingCompleted?: boolean;
+}
+
+async function getSessionClaims(token: string): Promise<SessionClaims | null> {
   try {
-    await jwtVerify(token, getSecret());
-    return true;
+    const { payload } = await jwtVerify(token, getSecret());
+    return payload as SessionClaims;
   } catch {
-    return false;
+    return null;
   }
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(COOKIE_NAME)?.value;
-  const isAuthenticated = token ? await verifyToken(token) : false;
+  const session = token ? await getSessionClaims(token) : null;
+  const isAuthenticated = session !== null;
+  const onboardingCompleted = session?.onboardingCompleted !== false;
 
   const isPublicRoute = publicRoutes.includes(pathname);
   const isAuthRoute = authRoutes.includes(pathname);
-  const isProtectedRoute =
+  const isOnboardingRoute = pathname.startsWith("/onboarding");
+  const isAppRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/income") ||
     pathname.startsWith("/expenses") ||
@@ -36,11 +43,12 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/goals") ||
     pathname.startsWith("/calculators") ||
     pathname.startsWith("/cashflow") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/onboarding");
+    pathname.startsWith("/settings");
+  const isProtectedRoute = isAppRoute || isOnboardingRoute;
 
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const destination = onboardingCompleted ? "/dashboard" : "/onboarding";
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   if (isProtectedRoute && !isAuthenticated) {
@@ -49,8 +57,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (isAuthenticated && !onboardingCompleted && isAppRoute) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
+
   if (pathname === "/" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const destination = onboardingCompleted ? "/dashboard" : "/onboarding";
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   if (!isPublicRoute && !isProtectedRoute && !isAuthRoute) {

@@ -6,8 +6,9 @@ const LifeGoalSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     title: { type: String, required: true, trim: true },
     goalType: { type: String, enum: GOAL_TYPES, required: true },
+    status: { type: String, enum: ["active", "completed"], default: "active" },
     targetAmount: { type: Number, required: true, min: 0 },
-    targetDate: { type: Date, required: true },
+    targetDate: { type: Date },
     currentSaved: { type: Number, default: 0, min: 0 },
     monthlyContribution: { type: Number, default: 0, min: 0 },
     assumptions: {

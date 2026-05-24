@@ -1,10 +1,10 @@
 import { getSession } from "@/lib/auth/session";
-import { getUserProfile } from "@/lib/db/queries/finance";
+import { getUserProfile, getMonthlySnapshot } from "@/lib/db/queries/finance";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { ExportButton } from "@/components/finance/export-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TaxEstimator } from "@/components/finance/tax-estimator";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
-import { getMonthlySnapshot } from "@/lib/db/queries/finance";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -28,6 +28,13 @@ export default async function SettingsPage() {
         </div>
         <ExportButton />
       </div>
+
+      <TaxEstimator
+        defaultSalary={profile.annualInHandSalary || profile.monthlyTakeHome * 12}
+        defaultBonus={profile.annualInHandBonus}
+        defaultRegime={profile.taxRegime}
+        bonusSpreadMonthly={profile.bonusSpreadMonthly}
+      />
 
       <Card>
         <CardHeader>
