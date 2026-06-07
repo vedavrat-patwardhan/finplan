@@ -2,30 +2,30 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { getCalculatorPrefill, getMonthlySnapshot } from "@/lib/db/queries/finance";
 import { formatINR } from "@/lib/format";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
+import { PageShell, PageHeader, PageSection, MetaStat } from "@/components/layout/page-chrome";
 import { ArrowUpRight } from "lucide-react";
 
 const calculators = [
   {
     href: "/calculators/sip",
-    title: "SIP & Lumpsum",
-    description: "Future value with step-up SIP and growth projection",
+    title: "SIP & lumpsum",
+    description: "Project future value with step-up SIP and growth assumptions",
   },
   {
     href: "/calculators/emi",
-    title: "EMI / Home Loan",
-    description: "Monthly EMI, total interest, and affordability check",
+    title: "EMI & home loan",
+    description: "Monthly EMI, total interest, and affordability against your surplus",
   },
   {
     href: "/calculators/goal-planner",
-    title: "Goal Planner",
+    title: "Goal planner",
     description: "Inflation-adjusted targets and required monthly savings",
   },
   {
     href: "/calculators/retirement",
-    title: "Retirement & Insurance",
-    description: "FIRE corpus and term insurance gap estimate",
+    title: "Retirement & insurance",
+    description: "FIRE corpus estimate and term insurance gap",
   },
 ];
 
@@ -39,65 +39,62 @@ export default async function CalculatorsPage() {
   ]);
 
   return (
-    <div className="page-container space-y-8 pb-8">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Calculators</h1>
-        <p className="mt-1 text-muted-foreground">
-          Pre-filled from your profile where possible
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Calculators"
+        description="Standalone tools pre-filled from your profile where possible."
+        meta={
+          <MetaStat
+            label="Your surplus"
+            value={formatINR(prefill.monthlySurplus, { compact: true })}
+          />
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {calculators.map((calc) => (
-          <Link
-            key={calc.href}
-            href={calc.href}
-            className="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/25"
-          >
-            <div className="min-w-0">
-              <p className="font-heading text-lg font-semibold">{calc.title}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                {calc.description}
-              </p>
-            </div>
-            <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
-          </Link>
-        ))}
-      </div>
+      <PageSection title="Tools">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {calculators.map((calc) => (
+            <Link
+              key={calc.href}
+              href={calc.href}
+              className="group flex min-h-11 items-start justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/25"
+            >
+              <div className="min-w-0">
+                <p className="font-heading text-base font-semibold">{calc.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {calc.description}
+                </p>
+              </div>
+              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+            </Link>
+          ))}
+        </div>
+      </PageSection>
 
       <ScenarioModeler baseSurplus={snapshot.netSurplus} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg">Your pre-fill data</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            <span className="text-muted-foreground">Monthly income</span>
-            <span className="mt-0.5 block font-medium tabular-nums">
-              {formatINR(prefill.monthlyIncome)}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Monthly surplus</span>
-            <span className="mt-0.5 block font-medium tabular-nums">
-              {formatINR(prefill.monthlySurplus)}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Total SIP</span>
-            <span className="mt-0.5 block font-medium tabular-nums">
-              {formatINR(prefill.totalSIP)}/mo
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Insurance coverage</span>
-            <span className="mt-0.5 block font-medium tabular-nums">
+      <PageSection title="Pre-fill data" description="Pulled from your income, expenses, and investments">
+        <div className="grid gap-4 rounded-xl border border-border bg-muted/20 px-5 py-4 text-sm sm:grid-cols-2">
+          <div>
+            <p className="text-muted-foreground">Monthly income</p>
+            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.monthlyIncome)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Monthly surplus</p>
+            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.monthlySurplus)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Total SIP</p>
+            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.totalSIP)}/mo</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Insurance coverage</p>
+            <p className="mt-0.5 font-medium tabular-nums">
               {formatINR(prefill.totalCoverage)}
-            </span>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+            </p>
+          </div>
+        </div>
+      </PageSection>
+    </PageShell>
   );
 }

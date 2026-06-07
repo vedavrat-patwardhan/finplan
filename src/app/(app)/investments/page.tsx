@@ -9,7 +9,8 @@ import {
   DeleteButton,
 } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { ResourceList, ResourceRow, ResourceBadge } from "@/components/finance/resource-row";
+import { PageShell, PageHeader, MetaStat } from "@/components/layout/page-chrome";
 
 export default async function InvestmentsPage() {
   const session = await getSession();
@@ -22,66 +23,60 @@ export default async function InvestmentsPage() {
   );
 
   return (
-    <div className="page-container space-y-6 pb-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Investments</h1>
-          <p className="mt-1 text-muted-foreground">
-            SIPs, PPF, NPS, and other plans ·{" "}
-            {formatINR(monthlyTotal, { compact: true })}/mo committed
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Investments"
+        description="SIPs, PPF, NPS, and other commitments that reduce your monthly surplus."
+        meta={
+          <MetaStat
+            label="Committed"
+            value={`${formatINR(monthlyTotal, { compact: true })}/mo`}
+          />
+        }
+      >
         <ResourceFormSheet
           title="Add investment"
-          description="Track SIPs, PPF, NPS, and other recurring commitments that shape your monthly surplus."
+          description="Track recurring SIPs and contributions — they count toward your monthly outflow."
           triggerLabel="Add investment"
           fields={investmentFormFields}
           action={createInvestmentAction}
         />
-      </div>
+      </PageHeader>
 
       {items.length === 0 ? (
         <EmptyState
-          title="No investments yet"
-          description="Track your SIPs, PPF, FDs, and other recurring investment commitments."
+          title="No investments tracked"
+          description="Add your SIPs, PPF, or NPS contributions to see how they affect surplus and goals."
         />
       ) : (
-        <div className="space-y-3">
+        <ResourceList>
           {items.map((item) => (
-            <div
+            <ResourceRow
               key={item.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-4"
-            >
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <div className="mt-1 flex gap-2">
-                  <Badge variant="secondary">{item.type}</Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {item.expectedReturnPct}% expected return
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
-                  <p className="text-xs capitalize text-muted-foreground">
-                    {item.frequency.replace("_", " ")} ·{" "}
-                    {formatINR(toMonthlyEquivalent(item.amount, item.frequency), {
-                      compact: true,
-                    })}
-                    /mo
-                  </p>
-                </div>
+              title={item.name}
+              badges={<ResourceBadge>{item.type.replace("_", " ")}</ResourceBadge>}
+              subtitle={`${item.expectedReturnPct}% expected return`}
+              amount={formatINR(item.amount)}
+              amountSub={
+                <span className="capitalize">
+                  {item.frequency.replace("_", " ")} ·{" "}
+                  {formatINR(toMonthlyEquivalent(item.amount, item.frequency), {
+                    compact: true,
+                  })}
+                  /mo
+                </span>
+              }
+              actions={
                 <DeleteButton
                   id={item.id}
                   action={deleteInvestmentAction}
                   itemName={item.name}
                 />
-              </div>
-            </div>
+              }
+            />
           ))}
-        </div>
+        </ResourceList>
       )}
-    </div>
+    </PageShell>
   );
 }

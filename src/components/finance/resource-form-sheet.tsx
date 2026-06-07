@@ -65,7 +65,7 @@ export function ResourceFormSheet({
   useEffect(() => {
     if (state.success) {
       setOpen(false);
-      toast.success("Saved successfully");
+      toast.success("Changes saved");
     }
     if (state.error) {
       toast.error(state.error);
@@ -78,8 +78,12 @@ export function ResourceFormSheet({
         <Plus className="size-4" />
         {triggerLabel}
       </SheetTrigger>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="shrink-0 border-b border-border px-6 py-5 pr-14">
+      <SheetContent
+        side="bottom"
+        className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:max-h-[88dvh]"
+      >
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
           <SheetTitle className="font-heading text-xl">{title}</SheetTitle>
           {description ? (
             <SheetDescription className="text-sm leading-relaxed">
@@ -98,15 +102,15 @@ export function ResourceFormSheet({
           }}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+          <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
             {fields.map((field) => (
               <Field key={field.name} field={field} />
             ))}
           </div>
 
-          <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-6 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
-            <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
+          <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+            <Button type="submit" className="h-11 w-full" disabled={pending}>
+              {pending ? "Saving..." : "Save changes"}
             </Button>
           </SheetFooter>
         </form>
@@ -234,7 +238,7 @@ export function DeleteButton({
         type="button"
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-destructive"
+        className="min-h-11 px-3 text-muted-foreground hover:text-destructive"
         onClick={() => setOpen(true)}
       >
         {label}

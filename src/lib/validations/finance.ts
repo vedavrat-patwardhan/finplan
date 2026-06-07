@@ -13,6 +13,12 @@ import {
   LEDGER_CATEGORIES,
   DOCUMENT_TYPES,
 } from "@/lib/finance/constants";
+import {
+  accountNumberValidationMessage,
+  cardNumberValidationMessage,
+  ifscValidationMessage,
+  upiValidationMessage,
+} from "@/lib/finance/account-details";
 
 export const loginSchema = z.object({
   identifier: z.preprocess(
@@ -159,24 +165,22 @@ function refinePaymentAccount(
         path: ["holderName"],
       });
     }
-    const accountDigits = (data.accountNumber ?? "").replace(/\D/g, "");
-    if (mode === "create" && accountDigits.length < 4) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Valid account number is required",
-        path: ["accountNumber"],
-      });
-    } else if (mode === "update" && data.accountNumber && accountDigits.length < 4) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Valid account number is required",
-        path: ["accountNumber"],
-      });
+    const needsAccountNumber = mode === "create" || Boolean(data.accountNumber?.trim());
+    if (needsAccountNumber) {
+      const accountError = accountNumberValidationMessage(data.accountNumber ?? "");
+      if (accountError) {
+        ctx.addIssue({
+          code: "custom",
+          message: accountError,
+          path: ["accountNumber"],
+        });
+      }
     }
-    if (!data.ifscCode?.trim() || data.ifscCode.length < 4) {
+    const ifscError = ifscValidationMessage(data.ifscCode ?? "");
+    if (ifscError) {
       ctx.addIssue({
         code: "custom",
-        message: "IFSC code is required",
+        message: ifscError,
         path: ["ifscCode"],
       });
     }
@@ -197,19 +201,16 @@ function refinePaymentAccount(
         path: ["holderName"],
       });
     }
-    const cardDigits = (data.cardNumber ?? "").replace(/\D/g, "");
-    if (mode === "create" && cardDigits.length < 12) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Valid card number is required",
-        path: ["cardNumber"],
-      });
-    } else if (mode === "update" && data.cardNumber && cardDigits.length < 12) {
-      ctx.addIssue({
-        code: "custom",
-        message: "Valid card number is required",
-        path: ["cardNumber"],
-      });
+    const needsCardNumber = mode === "create" || Boolean(data.cardNumber?.trim());
+    if (needsCardNumber) {
+      const cardError = cardNumberValidationMessage(data.cardNumber ?? "");
+      if (cardError) {
+        ctx.addIssue({
+          code: "custom",
+          message: cardError,
+          path: ["cardNumber"],
+        });
+      }
     }
     if (!data.expiryMonth || !data.expiryYear) {
       ctx.addIssue({
@@ -220,12 +221,15 @@ function refinePaymentAccount(
     }
   }
 
-  if (data.type === "wallet" && !data.upiId?.trim()) {
-    ctx.addIssue({
-      code: "custom",
-      message: "UPI ID is required for wallets",
-      path: ["upiId"],
-    });
+  if (data.type === "wallet") {
+    const upiError = upiValidationMessage(data.upiId ?? "");
+    if (upiError) {
+      ctx.addIssue({
+        code: "custom",
+        message: upiError,
+        path: ["upiId"],
+      });
+    }
   }
 }
 

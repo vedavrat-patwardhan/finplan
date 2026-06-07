@@ -75,7 +75,7 @@ function DeleteTxButton({ id, label }: { id: string; label: string }) {
         type="button"
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-destructive"
+        className="min-h-11 px-3 text-muted-foreground hover:text-destructive"
         onClick={() => setOpen(true)}
       >
         Delete

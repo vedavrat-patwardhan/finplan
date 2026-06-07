@@ -4,7 +4,8 @@ import { ProfileForm } from "@/components/settings/profile-form";
 import { ExportButton } from "@/components/finance/export-button";
 import { TaxEstimator } from "@/components/finance/tax-estimator";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageShell, PageHeader, PageSection } from "@/components/layout/page-chrome";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -18,34 +19,37 @@ export default async function SettingsPage() {
   if (!profile) return null;
 
   return (
-    <div className="page-container space-y-8 pb-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Settings</h1>
-          <p className="mt-1 text-muted-foreground">
-            Profile, assumptions, scenarios, and export
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Settings"
+        description="Profile, tax assumptions, what-if scenarios, and data export."
+      >
         <ExportButton />
-      </div>
+      </PageHeader>
 
-      <TaxEstimator
-        defaultSalary={profile.annualInHandSalary || profile.monthlyTakeHome * 12}
-        defaultBonus={profile.annualInHandBonus}
-        defaultRegime={profile.taxRegime}
-        bonusSpreadMonthly={profile.bonusSpreadMonthly}
-      />
+      <PageSection title="Tax estimate" description="Based on your in-hand salary and chosen regime">
+        <TaxEstimator
+          defaultSalary={profile.annualInHandSalary || profile.monthlyTakeHome * 12}
+          defaultBonus={profile.annualInHandBonus}
+          defaultRegime={profile.taxRegime}
+          bonusSpreadMonthly={profile.bonusSpreadMonthly}
+        />
+      </PageSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-heading text-lg">Profile & assumptions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProfileForm profile={profile} />
-        </CardContent>
-      </Card>
+      <PageSection title="Profile & assumptions">
+        <Card>
+          <CardContent className="pt-6">
+            <ProfileForm profile={profile} />
+          </CardContent>
+        </Card>
+      </PageSection>
 
-      <ScenarioModeler baseSurplus={snapshot.netSurplus} />
-    </div>
+      <PageSection
+        title="What-if scenarios"
+        description="See how changes to income or expenses affect surplus"
+      >
+        <ScenarioModeler baseSurplus={snapshot.netSurplus} />
+      </PageSection>
+    </PageShell>
   );
 }

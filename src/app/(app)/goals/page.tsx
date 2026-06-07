@@ -2,12 +2,10 @@ import { getSession } from "@/lib/auth/session";
 import { getGoalsWithFeasibility } from "@/lib/db/queries/finance";
 import { createGoalAction, deleteGoalAction } from "@/actions/finance";
 import { goalFormFields } from "@/lib/form-fields";
-import {
-  ResourceFormSheet,
-  DeleteButton,
-} from "@/components/finance/resource-form-sheet";
+import { ResourceFormSheet, DeleteButton } from "@/components/finance/resource-form-sheet";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { EmptyState } from "@/components/finance/empty-state";
+import { PageShell, PageHeader, PageSection } from "@/components/layout/page-chrome";
 import { Badge } from "@/components/ui/badge";
 
 export default async function GoalsPage() {
@@ -19,38 +17,34 @@ export default async function GoalsPage() {
   const completedGoals = goals.filter((g) => g.status === "completed");
 
   return (
-    <div className="page-container space-y-8 pb-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Life goals</h1>
-          <p className="mt-1 text-muted-foreground">
-            Plan ahead or mark milestones you&apos;ve already achieved
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Life goals"
+        description="Marriage, house, retirement — set targets and see if your surplus can get you there."
+      >
         <ResourceFormSheet
           title="Add life goal"
-          description="Set a target amount and date, or mark a milestone you've already achieved."
+          description="Pick a milestone, set a target amount and date, and FinPlan checks feasibility against your surplus."
           triggerLabel="Add goal"
           fields={goalFormFields}
           action={createGoalAction}
         />
-      </div>
+      </PageHeader>
 
       {goals.length === 0 ? (
         <EmptyState
-          title="No goals defined"
-          description="Set target amounts and dates for your major life milestones, or mark ones you've already achieved."
+          title="No goals yet"
+          description="Add your first milestone — emergency fund, home down payment, or retirement corpus."
         />
       ) : (
         <>
-          {completedGoals.length > 0 && (
-            <section>
-              <h2 className="font-heading mb-3 text-lg font-semibold">Achieved</h2>
+          {completedGoals.length > 0 ? (
+            <PageSection title="Achieved" description="Milestones you've already reached">
               <div className="flex flex-wrap gap-2">
                 {completedGoals.map((g) => (
                   <div
                     key={g.id}
-                    className="flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-4 py-2"
+                    className="flex min-h-11 items-center gap-2 rounded-full border border-success/30 bg-success/10 px-4 py-2"
                   >
                     <Badge variant="secondary" className="bg-success/20 text-success">
                       Done
@@ -65,32 +59,23 @@ export default async function GoalsPage() {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            </PageSection>
+          ) : null}
 
           {activeGoals.length > 0 ? (
-            <section>
-              <h2 className="font-heading mb-4 text-lg font-semibold">Active goals</h2>
-              <GoalTimeline goals={activeGoals} />
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-                {activeGoals.map((g) => (
-                  <DeleteButton
-                    key={g.id}
-                    id={g.id}
-                    action={deleteGoalAction}
-                    label={`Remove ${g.title}`}
-                    itemName={g.title}
-                  />
-                ))}
-              </div>
-            </section>
+            <PageSection
+              title="Active goals"
+              description="Required monthly savings and time remaining for each milestone"
+            >
+              <GoalTimeline goals={activeGoals} deleteAction={deleteGoalAction} />
+            </PageSection>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No active goals — add new ones or mark achievements from onboarding.
+              No active goals right now — add a new one or mark achievements from onboarding.
             </p>
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }

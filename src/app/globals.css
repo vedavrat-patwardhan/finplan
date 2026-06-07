@@ -106,6 +106,49 @@
     font-family: var(--font-display), serif;
     @apply tracking-tight;
   }
+
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="combobox"],
+  label[for],
+  summary,
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  [data-slot="button"]:not(:disabled),
+  [data-slot="select-trigger"]:not(:disabled),
+  [data-slot="popover-trigger"]:not(:disabled),
+  [data-slot="sheet-trigger"]:not(:disabled),
+  [data-slot="dialog-trigger"]:not(:disabled),
+  [data-slot="dropdown-menu-trigger"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  select:disabled,
+  input:disabled {
+    cursor: not-allowed;
+  }
 }
 
 @layer utilities {
@@ -114,6 +157,15 @@
   }
   .page-container {
     @apply mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8;
+  }
+  .page-stack {
+    @apply flex flex-col gap-8 md:gap-10;
+  }
+  .list-stack {
+    @apply flex flex-col gap-3;
+  }
+  .section-break {
+    @apply pt-2 md:pt-4;
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);

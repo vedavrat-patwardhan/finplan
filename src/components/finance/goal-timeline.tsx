@@ -1,7 +1,9 @@
 import { formatINR, formatDate, formatLabel } from "@/lib/format";
 import { FeasibilityBadge } from "@/components/finance/feasibility-badge";
+import { DeleteButton } from "@/components/finance/resource-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import type { GoalFeasibility } from "@/lib/finance/engine";
+import type { ActionResult } from "@/actions/auth";
 
 export interface GoalTimelineItem {
   id: string;
@@ -14,7 +16,13 @@ export interface GoalTimelineItem {
   feasibility: GoalFeasibility;
 }
 
-export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
+export function GoalTimeline({
+  goals,
+  deleteAction,
+}: {
+  goals: GoalTimelineItem[];
+  deleteAction?: (id: string) => Promise<ActionResult>;
+}) {
   if (goals.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center">
@@ -114,6 +122,17 @@ export function GoalTimeline({ goals }: { goals: GoalTimelineItem[] }) {
               </p>
                 </>
               )}
+
+              {deleteAction ? (
+                <div className="mt-4 flex justify-end border-t border-border pt-3">
+                  <DeleteButton
+                    id={goal.id}
+                    action={deleteAction}
+                    itemName={goal.title}
+                    label="Remove goal"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         );

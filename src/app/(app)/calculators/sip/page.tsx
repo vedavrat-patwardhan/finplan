@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { getCalculatorPrefill } from "@/lib/db/queries/finance";
 import { SIPCalculator } from "@/components/calculators/sip-calculator";
+import { PageShell, PageHeader } from "@/components/layout/page-chrome";
 
 export default async function SIPCalculatorPage() {
   const session = await getSession();
@@ -9,19 +10,19 @@ export default async function SIPCalculatorPage() {
   const prefill = await getCalculatorPrefill(session.userId);
 
   return (
-    <div className="page-container space-y-6 pb-8">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">SIP Calculator</h1>
-        <p className="mt-1 text-muted-foreground">
-          Project future value with step-up SIP
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="SIP & lumpsum"
+        description="Project future value with step-up SIP — pre-filled from your investments."
+        backHref="/calculators"
+        backLabel="All calculators"
+      />
       <SIPCalculator
         defaults={{
           monthlyInvestment: prefill.totalSIP > 0 ? prefill.totalSIP : undefined,
           expectedReturn: 12,
         }}
       />
-    </div>
+    </PageShell>
   );
 }

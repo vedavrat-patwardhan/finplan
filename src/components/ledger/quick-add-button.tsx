@@ -23,7 +23,7 @@ export function QuickAddNavButton() {
     <button
       type="button"
       onClick={openQuickAdd}
-      className="relative -mt-5 flex flex-1 flex-col items-center gap-0.5 outline-none"
+      className="relative -mt-5 flex flex-1 cursor-pointer flex-col items-center gap-0.5 outline-none"
       aria-label="Add transaction"
     >
       <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">

@@ -182,7 +182,7 @@ export async function updateAccountAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  const { isDefault, ...data } = parsed.data;
+  const { isDefault, openingBalance, ...data } = parsed.data;
   const normalized = normalizeAccountPayload(data);
   const userId = userObjectId(session.userId);
 
@@ -206,7 +206,11 @@ export async function updateAccountAction(
 
       await PaymentAccount.findByIdAndUpdate(
         accountId,
-        { ...normalized, isDefault: isDefault ?? false },
+        {
+          ...normalized,
+          isDefault: isDefault ?? false,
+          currentBalance: openingBalance,
+        },
         { session: dbSession }
       );
     });

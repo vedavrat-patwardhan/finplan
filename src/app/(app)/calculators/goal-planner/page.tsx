@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { getCalculatorPrefill } from "@/lib/db/queries/finance";
 import { GoalPlannerCalculator } from "@/components/calculators/goal-planner-calculator";
+import { PageShell, PageHeader } from "@/components/layout/page-chrome";
 
 export default async function GoalPlannerPage() {
   const session = await getSession();
@@ -9,19 +10,19 @@ export default async function GoalPlannerPage() {
   const prefill = await getCalculatorPrefill(session.userId);
 
   return (
-    <div className="page-container space-y-6 pb-8">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">Goal Planner</h1>
-        <p className="mt-1 text-muted-foreground">
-          Inflation-adjusted targets for marriage, home, and more
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Goal planner"
+        description="Inflation-adjusted targets for marriage, home, and other milestones."
+        backHref="/calculators"
+        backLabel="All calculators"
+      />
       <GoalPlannerCalculator
         defaults={{
           inflationRate: prefill.inflationRate,
           monthlySurplus: prefill.monthlySurplus,
         }}
       />
-    </div>
+    </PageShell>
   );
 }

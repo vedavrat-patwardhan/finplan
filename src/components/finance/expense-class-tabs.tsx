@@ -19,7 +19,7 @@ export function ExpenseClassTabs({ activeClass }: { activeClass: string }) {
           key={tab.value}
           href={tab.value === "all" ? "/expenses" : `/expenses?class=${tab.value}`}
           className={cn(
-            "rounded-full px-4 py-1.5 text-sm transition-colors",
+            "inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 py-2 text-sm transition-colors",
             activeClass === tab.value
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground hover:bg-muted/80"

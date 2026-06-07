@@ -60,7 +60,7 @@ function NavLink({
       href={href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+        "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
           : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
@@ -85,7 +85,7 @@ function MobileBottomNav() {
       <Link
         href="/dashboard"
         className={cn(
-          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           pathname === "/dashboard" || pathname.startsWith("/dashboard/")
             ? "text-primary"
             : "text-muted-foreground"
@@ -98,7 +98,7 @@ function MobileBottomNav() {
       <Link
         href="/transactions"
         className={cn(
-          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           pathname === "/transactions" || pathname.startsWith("/transactions/")
             ? "text-primary"
             : "text-muted-foreground"
@@ -113,7 +113,7 @@ function MobileBottomNav() {
       <Link
         href="/accounts"
         className={cn(
-          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           accountsActive ? "text-primary" : "text-muted-foreground"
         )}
       >
@@ -127,7 +127,7 @@ function MobileBottomNav() {
             <button
               type="button"
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] outline-none",
+                "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px] outline-none",
                 moreActive ? "text-primary" : "text-muted-foreground"
               )}
             />
@@ -149,7 +149,7 @@ function MobileBottomNav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm",
+                    "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm",
                     active
                       ? "bg-primary/10 font-medium text-primary"
                       : "text-muted-foreground hover:bg-muted"

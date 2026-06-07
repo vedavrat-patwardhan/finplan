@@ -1,29 +1,30 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export function EmptyState({
   title,
   description,
   actionLabel,
   actionHref,
+  children,
 }: {
   title: string;
   description: string;
   actionLabel?: string;
   actionHref?: string;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
+    <div className="rounded-xl border border-dashed border-border bg-muted/15 px-6 py-12 text-center sm:py-14">
       <h3 className="font-heading text-lg font-semibold">{title}</h3>
-      <p className="prose-width mx-auto mt-2 text-sm text-muted-foreground">
+      <p className="prose-width mx-auto mt-2 text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
+      {children}
       {actionLabel && actionHref ? (
-        <Link
-          href={actionHref}
-          className="mt-6 inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-        >
+        <Button render={<Link href={actionHref} />} className="mt-6 min-h-11">
           {actionLabel}
-        </Link>
+        </Button>
       ) : null}
     </div>
   );

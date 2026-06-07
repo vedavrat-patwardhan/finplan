@@ -26,6 +26,7 @@ import { createAccountAction, updateAccountAction } from "@/actions/ledger";
 import { PAYMENT_ACCOUNT_TYPES, BANK_ACCOUNT_SUBTYPES } from "@/lib/finance/constants";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { isCardType } from "@/lib/finance/account-details";
+import { BankCombobox } from "@/components/finance/bank-combobox";
 import { Plus } from "lucide-react";
 
 const typeLabels: Record<string, string> = {
@@ -61,6 +62,7 @@ export function AccountFormSheet({
   const [state, formAction, pending] = useActionState(action, { success: false });
   const [type, setType] = useState(account?.type ?? defaultType ?? "bank");
   const [accountSubtype, setAccountSubtype] = useState(account?.accountSubtype ?? "savings");
+  const [institution, setInstitution] = useState(account?.institution ?? "");
 
   useEffect(() => {
     if (state.success) {
@@ -74,6 +76,7 @@ export function AccountFormSheet({
     if (open) {
       setType(account?.type ?? defaultType ?? "bank");
       setAccountSubtype(account?.accountSubtype ?? "savings");
+      setInstitution(account?.institution ?? "");
     }
   }, [open, account, defaultType]);
 
@@ -149,18 +152,14 @@ export function AccountFormSheet({
               </div>
 
               {!showWalletFields && type !== "cash" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="acc-institution">
-                    {showCardFields ? "Card issuer" : "Bank name"}
-                  </Label>
-                  <Input
-                    id="acc-institution"
-                    name="institution"
-                    defaultValue={account?.institution}
-                    placeholder="e.g. HDFC Bank"
-                    required
-                  />
-                </div>
+                <BankCombobox
+                  id="acc-institution"
+                  label={showCardFields ? "Card issuer" : "Bank name"}
+                  value={institution}
+                  onChange={setInstitution}
+                  placeholder="Search HDFC, SBI, ICICI..."
+                  required
+                />
               ) : null}
 
               {showBankFields ? (
@@ -199,14 +198,17 @@ export function AccountFormSheet({
                       id="acc-number"
                       name="accountNumber"
                       inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={18}
                       placeholder={
                         isEdit && account?.hasAccountNumber
                           ? "Leave blank to keep existing number"
-                          : "Full account number"
+                          : "9–18 digit account number"
                       }
                       required={!isEdit}
                       className="font-mono"
                     />
+                    <p className="text-xs text-muted-foreground">Digits only, 9 to 18 characters</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="acc-ifsc">IFSC code</Label>
@@ -216,8 +218,17 @@ export function AccountFormSheet({
                       defaultValue={account?.ifscCode}
                       placeholder="e.g. HDFC0001234"
                       required
+                      maxLength={11}
+                      autoComplete="off"
+                      spellCheck={false}
                       className="font-mono uppercase"
+                      onChange={(e) => {
+                        e.target.value = e.target.value.toUpperCase().replace(/\s/g, "");
+                      }}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      11 characters: 4-letter bank code, 0, then branch code
+                    </p>
                   </div>
                 </>
               ) : null}
@@ -240,10 +251,12 @@ export function AccountFormSheet({
                       id="card-number"
                       name="cardNumber"
                       inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={19}
                       placeholder={
                         isEdit && account?.hasCardNumber
                           ? "Leave blank to keep existing number"
-                          : "16-digit card number"
+                          : "13–16 digit card number"
                       }
                       required={!isEdit}
                       className="font-mono tracking-wider"
@@ -288,8 +301,12 @@ export function AccountFormSheet({
                     name="upiId"
                     defaultValue={account?.upiId}
                     placeholder="e.g. name@okhdfcbank"
+                    autoComplete="off"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Format: yourname@bankhandle (e.g. ved@oksbi)
+                  </p>
                 </div>
               ) : null}
 
@@ -305,14 +322,21 @@ export function AccountFormSheet({
                   id="acc-balance"
                   name="openingBalance"
                   defaultValue={account?.currentBalance ?? 0}
-                  placeholder="e.g. 25000"
+                  placeholder={
+                    isCredit
+                      ? "e.g. 15000.50 owed"
+                      : "e.g. 25000 or -5000.75"
+                  }
+                  allowNegative
                   required
                 />
-                {showCardFields && !isCredit ? (
-                  <p className="text-xs text-muted-foreground">
-                    Optional — debit cards usually share your bank balance
-                  </p>
-                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  {isCredit
+                    ? "Positive = amount owed on the card. Negative = credit balance."
+                    : showCardFields
+                      ? "Use negative if the linked account is overdrawn."
+                      : "Use negative for overdraft or lien holds."}
+                </p>
               </div>
 
               {isCredit ? (

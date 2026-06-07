@@ -9,6 +9,8 @@ import {
 } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
 import { ExpenseClassTabs } from "@/components/finance/expense-class-tabs";
+import { ResourceList, ResourceRow } from "@/components/finance/resource-row";
+import { PageShell, PageHeader, MetaStat } from "@/components/layout/page-chrome";
 import { toMonthlyEquivalent as calcMonthly } from "@/lib/finance/engine";
 
 export default async function ExpensesPage({
@@ -34,66 +36,69 @@ export default async function ExpensesPage({
   );
 
   return (
-    <div className="page-container space-y-6 pb-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-semibold">Expenses</h1>
-          <p className="mt-1 text-muted-foreground">
-            Fixed, recurring, optional, and variable outflows ·{" "}
-            {formatINR(monthlyTotal, { compact: true })}/mo total
-          </p>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="Expense budgets"
+        description="Planned monthly outflows — compare these to actual spending in your ledger."
+        meta={
+          <MetaStat
+            label="Planned total"
+            value={`${formatINR(monthlyTotal, { compact: true })}/mo`}
+          />
+        }
+      >
         <ResourceFormSheet
-          title="Add expense"
-          description="Track fixed, recurring, and discretionary spending. Mark essentials to see what truly matters each month."
-          triggerLabel="Add expense"
+          title="Add expense budget"
+          description="Rent, EMIs, subscriptions, and discretionary spending you expect each month."
+          triggerLabel="Add budget"
           fields={expenseFormFields}
           action={createExpenseAction}
         />
-      </div>
+      </PageHeader>
 
       <ExpenseClassTabs activeClass={activeClass} />
 
       {items.length === 0 ? (
         <EmptyState
-          title="No expenses in this category"
-          description="Add rent, utilities, subscriptions, and discretionary spending."
+          title={
+            activeClass === "all"
+              ? "No expense budgets yet"
+              : "Nothing in this category"
+          }
+          description="Add rent, utilities, subscriptions, and other recurring costs you plan for each month."
+          actionLabel="View actual spending"
+          actionHref="/transactions"
         />
       ) : (
-        <div className="space-y-3">
+        <ResourceList>
           {items.map((item) => (
-            <div
+            <ResourceRow
               key={item.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-4"
-            >
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-muted-foreground">
+              title={item.name}
+              subtitle={
+                <span>
                   {item.category} · {item.expenseClass} ·{" "}
                   {item.isEssential ? "Essential" : "Optional"}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {item.frequency.replace("_", " ")} ·{" "}
-                    {formatINR(calcMonthly(item.amount, item.frequency), {
-                      compact: true,
-                    })}
-                    /mo
-                  </p>
-                </div>
+                </span>
+              }
+              amount={formatINR(item.amount)}
+              amountSub={
+                <span className="capitalize">
+                  {item.frequency.replace("_", " ")} ·{" "}
+                  {formatINR(calcMonthly(item.amount, item.frequency), { compact: true })}/mo
+                </span>
+              }
+              actions={
                 <DeleteButton
                   id={item.id}
                   action={deleteExpenseAction}
                   itemName={item.name}
                 />
-              </div>
-            </div>
+              }
+            />
           ))}
-        </div>
+        </ResourceList>
       )}
-    </div>
+    </PageShell>
   );
 }
