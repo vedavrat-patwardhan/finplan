@@ -151,15 +151,74 @@ export const insuranceUpdateSchema = insuranceSchema.extend({
   id: z.string().min(1),
 });
 
+const optionalPct = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().min(0).max(100).optional()
+);
+
+const optionalMoneyField = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().min(0).optional()
+);
+
+const optionalSmallInt = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().optional()
+);
+
 export const goalSchema = z.object({
   title: z.string().min(1).max(100),
   goalType: z.enum(GOAL_TYPES),
+  targetMode: z.enum(["manual", "calculated"]).default("manual"),
   targetAmount: z.coerce.number().min(0),
   targetDate: z.coerce.date(),
   currentSaved: z.coerce.number().min(0),
   monthlyContribution: z.coerce.number().min(0),
+  inflationRate: optionalPct,
+  expectedReturnPct: optionalPct,
+  stepUpPct: optionalPct,
+  priorityTier: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? undefined : value),
+    z.coerce.number().min(1).max(3).optional()
+  ),
   priority: z.coerce.number().min(0).max(100).optional(),
   notes: z.string().max(500).optional(),
+  propertyValue: optionalMoneyField,
+  downPaymentPct: optionalPct,
+  stampDutyPct: optionalPct,
+  registrationPct: optionalPct,
+  includeClosingCosts: z
+    .preprocess(
+      (value) => value === "on" || value === "true" || value === true,
+      z.boolean().optional()
+    )
+    .optional(),
+  monthlyExpenseAtRetirement: optionalMoneyField,
+  corpusMultiplier: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? undefined : value),
+    z.coerce.number().min(1).max(50).optional()
+  ),
+  retirementAge: optionalSmallInt,
+  currentAge: optionalSmallInt,
+  monthsOfExpenses: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? undefined : value),
+    z.coerce.number().min(1).max(24).optional()
+  ),
+  monthlyExpenseBasis: optionalMoneyField,
+  yearsUntilCourse: optionalSmallInt,
+  courseDurationYears: optionalSmallInt,
+  annualCostToday: optionalMoneyField,
+  educationInflationPct: optionalPct,
+  onRoadPrice: optionalMoneyField,
+  carDownPaymentPct: optionalPct,
+  exchangeValue: optionalMoneyField,
+  estimatedBudget: optionalMoneyField,
+  oneTimeSetupCost: optionalMoneyField,
+  firstYearMonthlyCost: optionalMoneyField,
+});
+
+export const goalUpdateSchema = goalSchema.extend({
+  id: z.string().min(1),
 });
 
 export const onboardingSchema = z.object({

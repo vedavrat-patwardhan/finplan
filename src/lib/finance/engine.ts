@@ -13,6 +13,8 @@ export interface GoalInput {
   currentSaved: number;
   monthlyContribution: number;
   targetDate: Date;
+  expectedReturnPct?: number;
+  stepUpPct?: number;
 }
 
 export interface MonthlySnapshotInput {
@@ -99,6 +101,27 @@ export function calculateMonthlySnapshot(input: MonthlySnapshotInput) {
   };
 }
 
+function projectGoalSavingsWithReturns(
+  currentSaved: number,
+  monthlyContribution: number,
+  monthsRemaining: number,
+  expectedReturnPct: number,
+  stepUpPct: number
+): number {
+  let total = currentSaved;
+  let monthly = monthlyContribution;
+  const monthlyReturn = expectedReturnPct / 12 / 100;
+
+  for (let month = 0; month < monthsRemaining; month++) {
+    if (month > 0 && month % 12 === 0 && stepUpPct > 0) {
+      monthly *= 1 + stepUpPct / 100;
+    }
+    total = total * (1 + monthlyReturn) + monthly;
+  }
+
+  return total;
+}
+
 export function calculateGoalFeasibility(
   goal: GoalInput,
   monthlySurplus: number,
@@ -117,8 +140,13 @@ export function calculateGoalFeasibility(
     goal.targetAmount * Math.pow(1 + inflationRate / 100, yearsRemaining);
 
   const gap = Math.max(0, inflationAdjustedTarget - goal.currentSaved);
-  const projectedFromContributions = goal.monthlyContribution * monthsRemaining;
-  const projectedAmount = goal.currentSaved + projectedFromContributions;
+  const projectedAmount = projectGoalSavingsWithReturns(
+    goal.currentSaved,
+    goal.monthlyContribution,
+    monthsRemaining,
+    goal.expectedReturnPct ?? 0,
+    goal.stepUpPct ?? 0
+  );
 
   const requiredMonthlySave = gap / monthsRemaining;
 

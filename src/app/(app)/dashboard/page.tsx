@@ -177,7 +177,12 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : null}
-        <GoalTimeline goals={activeGoals.length > 0 ? activeGoals : goals} />
+        <GoalTimeline
+          goals={activeGoals.length > 0 ? activeGoals : goals}
+          monthlySurplus={snapshot.netSurplus}
+          defaultMonthlyExpenses={snapshot.fixedExpenses}
+          compact
+        />
       </PageSection>
 
       <PageSection title="Upcoming obligations" description="Renewals and non-monthly items in the next 90 days">

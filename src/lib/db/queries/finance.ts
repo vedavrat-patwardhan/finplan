@@ -160,10 +160,16 @@ export const getLifeGoals = cache(async (userId: string) => {
     title: item.title,
     goalType: item.goalType,
     status: (item.status ?? "active") as "active" | "completed",
+    targetMode: (item.targetMode ?? "manual") as "manual" | "calculated",
     targetAmount: item.targetAmount,
     targetDate: item.targetDate,
     currentSaved: item.currentSaved,
     monthlyContribution: item.monthlyContribution,
+    inflationRate: item.inflationRate,
+    expectedReturnPct: item.expectedReturnPct,
+    stepUpPct: item.stepUpPct,
+    priorityTier: item.priorityTier,
+    details: item.details,
     priority: item.priority,
     assumptions: item.assumptions,
   }));
@@ -200,8 +206,6 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
     getUserProfile(userId),
   ]);
 
-  const inflationRate = profile?.inflationRate ?? 6;
-
   return goals.map((goal) => {
     if (goal.status === "completed" || !goal.targetDate) {
       return {
@@ -215,6 +219,10 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
         },
       };
     }
+
+    const inflationRate =
+      goal.inflationRate ?? goal.assumptions?.inflationRate ?? profile?.inflationRate ?? 6;
+
     return {
       ...goal,
       feasibility: calculateGoalFeasibility(
@@ -223,6 +231,8 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
           currentSaved: goal.currentSaved,
           monthlyContribution: goal.monthlyContribution,
           targetDate: new Date(goal.targetDate),
+          expectedReturnPct: goal.expectedReturnPct ?? undefined,
+          stepUpPct: goal.stepUpPct ?? undefined,
         },
         snapshot.netSurplus,
         inflationRate

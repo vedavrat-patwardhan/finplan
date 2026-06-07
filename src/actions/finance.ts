@@ -22,6 +22,7 @@ import {
   insuranceSchema,
   insuranceUpdateSchema,
   goalSchema,
+  goalUpdateSchema,
   onboardingSchema,
 } from "@/lib/validations/finance";
 import {
@@ -29,6 +30,7 @@ import {
   DEFAULT_INVESTMENT_TEMPLATES,
   ONBOARDING_GOAL_OPTIONS,
 } from "@/lib/finance/constants";
+import { normalizeGoalPayload } from "@/lib/finance/normalize-goal";
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { addMonths } from "@/lib/format";
 import {
@@ -486,21 +488,49 @@ export async function createGoalAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  const { notes, ...data } = parsed.data;
+  const payload = normalizeGoalPayload(parsed.data);
 
   try {
     await withTransaction(async (dbSession) => {
       await LifeGoal.create(
-        [
-          {
-            ...data,
-            assumptions: { notes },
-            userId: userObjectId(session.userId),
-          },
-        ],
+        [{ ...payload, userId: userObjectId(session.userId) }],
         { session: dbSession }
       );
     });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  revalidateFinance();
+  return { success: true };
+}
+
+export async function updateGoalAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const parsed = goalUpdateSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message };
+  }
+
+  const { id, ...data } = parsed.data;
+  const payload = normalizeGoalPayload(data);
+
+  try {
+    const updated = await withTransaction(async (dbSession) =>
+      LifeGoal.findOneAndUpdate(
+        { _id: id, userId: userObjectId(session.userId) },
+        { $set: payload },
+        { session: dbSession, new: true }
+      )
+    );
+
+    if (!updated) {
+      return { success: false, error: "Goal not found" };
+    }
   } catch (error) {
     return { success: false, error: transactionErrorMessage(error) };
   }
