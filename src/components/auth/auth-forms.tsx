@@ -4,53 +4,74 @@ import { useActionState, startTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loginAction, registerAction, type ActionResult } from "@/actions/auth";
 
 const initialState: ActionResult = { success: false };
 
+type AuthField = {
+  name: string;
+  label: string;
+  type: string;
+  autoComplete?: string;
+  placeholder?: string;
+};
+
+function getFieldValue(form: HTMLFormElement, name: string) {
+  const field = form.querySelector<HTMLInputElement>(`[name="${name}"]`);
+  return field?.value ?? "";
+}
+
 function AuthForm({
   action,
   fields,
   submitLabel,
 }: {
-  action: (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
-  fields: {
-    name: string;
-    label: string;
-    type: string;
-    autoComplete?: string;
-    placeholder?: string;
-  }[];
+  action: (prev: ActionResult, payload: Record<string, string>) => Promise<ActionResult>;
+  fields: AuthField[];
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
+  const fieldErrors = state.fieldErrors ?? {};
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const payload = Object.fromEntries(
+      fields.map((field) => [field.name, getFieldValue(form, field.name)])
+    );
     startTransition(() => {
-      formAction(formData);
+      formAction(payload);
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {fields.map((field) => (
-        <div key={field.name} className="space-y-2">
-          <Label htmlFor={field.name}>{field.label}</Label>
-          <Input
-            id={field.name}
-            name={field.name}
-            type={field.type}
-            autoComplete={field.autoComplete}
-            placeholder={field.placeholder}
-            required
-          />
-        </div>
-      ))}
-      {state.error ? (
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      {fields.map((field) => {
+        const error = fieldErrors[field.name];
+        const inputProps = {
+          id: field.name,
+          name: field.name,
+          autoComplete: field.autoComplete,
+          placeholder: field.placeholder,
+          "aria-invalid": error ? true : undefined,
+        };
+
+        return (
+          <div key={field.name} className="space-y-2">
+            <Label htmlFor={field.name}>{field.label}</Label>
+            {field.type === "password" ? (
+              <PasswordInput {...inputProps} />
+            ) : (
+              <Input type={field.type} {...inputProps} />
+            )}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          </div>
+        );
+      })}
+      {state.error && !Object.keys(fieldErrors).length ? (
         <p className="text-sm text-destructive">{state.error}</p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>

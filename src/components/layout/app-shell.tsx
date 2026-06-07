@@ -14,14 +14,21 @@ import {
   Settings,
   LogOut,
   Menu,
+  ListOrdered,
+  Landmark,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { logoutAction } from "@/actions/auth";
+import { QuickAddNavButton } from "@/components/ledger/quick-add-button";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/transactions", label: "Ledger", icon: ListOrdered },
+  { href: "/accounts", label: "Accounts", icon: Landmark },
+  { href: "/documents", label: "Documents", icon: FileText },
   { href: "/income", label: "Income", icon: Wallet },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/investments", label: "Investments", icon: TrendingUp },
@@ -30,13 +37,6 @@ const navItems = [
   { href: "/calculators", label: "Calculators", icon: Calculator },
   { href: "/cashflow", label: "Cashflow", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
-];
-
-const mobileNavItems = [
-  navItems[0],
-  navItems[1],
-  navItems[2],
-  navItems[5],
 ];
 
 const moreNavItems = navItems.slice(3);
@@ -74,30 +74,53 @@ function NavLink({
 
 function MobileBottomNav() {
   const pathname = usePathname();
+  const accountsActive =
+    pathname === "/accounts" || pathname.startsWith("/accounts/");
   const moreActive = moreNavItems.some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-background/95 pb-safe backdrop-blur md:hidden">
-      {mobileNavItems.map((item) => {
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
-              active ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            <Icon className="size-4" />
-            {item.label}
-          </Link>
-        );
-      })}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-end border-t border-border bg-background/95 pb-safe backdrop-blur md:hidden">
+      <Link
+        href="/dashboard"
+        className={cn(
+          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          pathname === "/dashboard" || pathname.startsWith("/dashboard/")
+            ? "text-primary"
+            : "text-muted-foreground"
+        )}
+      >
+        <LayoutDashboard className="size-4" />
+        Home
+      </Link>
+
+      <Link
+        href="/transactions"
+        className={cn(
+          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          pathname === "/transactions" || pathname.startsWith("/transactions/")
+            ? "text-primary"
+            : "text-muted-foreground"
+        )}
+      >
+        <ListOrdered className="size-4" />
+        Ledger
+      </Link>
+
+      <QuickAddNavButton />
+
+      <Link
+        href="/accounts"
+        className={cn(
+          "flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          accountsActive ? "text-primary" : "text-muted-foreground"
+        )}
+      >
+        <Landmark className="size-4" />
+        Accounts
+      </Link>
+
       <Sheet>
         <SheetTrigger
           render={
@@ -126,7 +149,7 @@ function MobileBottomNav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-3 text-sm",
+                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm",
                     active
                       ? "bg-primary/10 font-medium text-primary"
                       : "text-muted-foreground hover:bg-muted"
@@ -211,7 +234,7 @@ export function AppShell({
           </Sheet>
         </header>
 
-        <main className="flex-1 pb-20 md:pb-0">{children}</main>
+        <main className="flex-1 pb-24 md:pb-0">{children}</main>
         <MobileBottomNav />
       </div>
     </div>

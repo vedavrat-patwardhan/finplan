@@ -4,6 +4,8 @@ import { connection } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getUserProfile } from "@/lib/db/queries/finance";
 import { AppShell } from "@/components/layout/app-shell";
+import { LedgerProvider } from "@/components/ledger/ledger-provider";
+import { getPaymentAccounts } from "@/lib/db/queries/ledger";
 import { Skeleton } from "@/components/ui/skeleton";
 
 async function AppLayoutContent({ children }: { children: React.ReactNode }) {
@@ -13,9 +15,16 @@ async function AppLayoutContent({ children }: { children: React.ReactNode }) {
     redirect("/login");
   }
 
-  const profile = await getUserProfile(session.userId);
+  const [profile, accounts] = await Promise.all([
+    getUserProfile(session.userId),
+    getPaymentAccounts(session.userId),
+  ]);
 
-  return <AppShell userName={profile?.name}>{children}</AppShell>;
+  return (
+    <LedgerProvider accounts={accounts}>
+      <AppShell userName={profile?.name}>{children}</AppShell>
+    </LedgerProvider>
+  );
 }
 
 function AppLayoutFallback() {

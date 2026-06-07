@@ -74,6 +74,43 @@ export type InsuranceType = (typeof INSURANCE_TYPES)[number];
 export type GoalType = (typeof GOAL_TYPES)[number];
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
+export const PAYMENT_ACCOUNT_TYPES = [
+  "bank",
+  "debit_card",
+  "credit_card",
+  "cash",
+  "wallet",
+] as const;
+
+export const BANK_ACCOUNT_SUBTYPES = ["savings", "current"] as const;
+export const TRANSACTION_TYPES = ["debit", "credit"] as const;
+export const LEDGER_CATEGORIES = [...EXPENSE_CATEGORIES, "Income", "Transfer"] as const;
+export const DOCUMENT_TYPES = [
+  "salary_slip",
+  "credit_card_bill",
+  "utility_bill",
+  "receipt",
+  "other",
+] as const;
+export const EXTRACTION_STATUSES = ["none", "pending", "ready"] as const;
+
+export type PaymentAccountType = (typeof PAYMENT_ACCOUNT_TYPES)[number];
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+export type LedgerCategory = (typeof LEDGER_CATEGORIES)[number];
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+export type ExtractionStatus = (typeof EXTRACTION_STATUSES)[number];
+
+export const QUICK_TRANSACTION_CATEGORIES = [
+  "Food",
+  "Entertainment",
+  "Shopping",
+  "Transport",
+  "Healthcare",
+  "Subscriptions",
+  "Utilities",
+  "Miscellaneous",
+] as const;
+
 export const DEFAULT_INFLATION_RATE = 6;
 export const DEFAULT_RETIREMENT_MULTIPLIER = 25;
 export const DEFAULT_INSURANCE_INCOME_MULTIPLIER = 12;

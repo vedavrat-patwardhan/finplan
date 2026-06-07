@@ -14,6 +14,7 @@ import {
   generateSIPProjection,
 } from "@/lib/finance/engine";
 import dynamic from "next/dynamic";
+import { ChartArea } from "@/components/ui/chart-area";
 
 const LineChart = dynamic(
   () => import("recharts").then((m) => m.LineChart),
@@ -24,10 +25,6 @@ const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: fals
 const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
 const CartesianGrid = dynamic(
   () => import("recharts").then((m) => m.CartesianGrid),
-  { ssr: false }
-);
-const ResponsiveContainer = dynamic(
-  () => import("recharts").then((m) => m.ResponsiveContainer),
   { ssr: false }
 );
 const Legend = dynamic(() => import("recharts").then((m) => m.Legend), { ssr: false });
@@ -130,18 +127,16 @@ export function SIPCalculator({ defaults }: SIPCalculatorProps) {
           <CardTitle className="font-heading text-base">Growth projection</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={projection}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="year" />
-                <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} />
-                <Legend />
-                <Line type="monotone" dataKey="invested" stroke="var(--chart-3)" name="Invested" dot={false} />
-                <Line type="monotone" dataKey="value" stroke="var(--chart-1)" name="Value" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartArea heightClass="h-72" initialDimension={{ width: 320, height: 288 }}>
+            <LineChart data={projection}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="year" />
+              <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} />
+              <Legend />
+              <Line type="monotone" dataKey="invested" stroke="var(--chart-3)" name="Invested" dot={false} />
+              <Line type="monotone" dataKey="value" stroke="var(--chart-1)" name="Value" dot={false} />
+            </LineChart>
+          </ChartArea>
         </CardContent>
       </Card>
     </div>

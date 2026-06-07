@@ -1,0 +1,416 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+  Banknote,
+  ChevronDown,
+  CreditCard,
+  Landmark,
+  Smartphone,
+} from "lucide-react";
+import type { ComponentType } from "react";
+import { formatINR } from "@/lib/format";
+import { AccountFormSheet } from "@/components/ledger/account-form-sheet";
+import { DeleteAccountButton } from "@/components/ledger/delete-account-button";
+import { SensitiveField } from "@/components/ledger/sensitive-field";
+import { CopyField } from "@/components/ledger/copy-field";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
+import type { PaymentAccountType } from "@/lib/finance/constants";
+import {
+  formatCardNumberDisplay,
+  formatExpiry,
+  formatMaskedAccountFromLastFour,
+  formatMaskedCardFromLastFour,
+  isCardType,
+} from "@/lib/finance/account-details";
+import { cn } from "@/lib/utils";
+
+const typeIcons: Record<PaymentAccountType, ComponentType<{ className?: string }>> = {
+  bank: Landmark,
+  debit_card: CreditCard,
+  credit_card: CreditCard,
+  cash: Banknote,
+  wallet: Smartphone,
+};
+
+function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
+  const [expanded, setExpanded] = useState(false);
+  const isCredit = account.type === "credit_card";
+  const limitUsedPct =
+    isCredit && account.creditLimit
+      ? Math.min(100, Math.round((account.currentBalance / account.creditLimit) * 100))
+      : 0;
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div
+        className={cn(
+          "relative px-5 py-5 text-primary-foreground",
+          isCredit
+            ? "bg-[linear-gradient(135deg,oklch(0.38_0.08_175),oklch(0.32_0.06_200))]"
+            : "bg-[linear-gradient(135deg,oklch(0.42_0.07_165),oklch(0.36_0.05_190))]"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-widest opacity-80">
+              {isCredit ? "Credit card" : "Debit card"}
+            </p>
+            <p className="font-heading mt-1 text-lg font-semibold">{account.name}</p>
+            <p className="text-sm opacity-80">{account.institution}</p>
+          </div>
+          {account.isDefault ? (
+            <Badge className="bg-white/15 text-white hover:bg-white/15">Default</Badge>
+          ) : null}
+        </div>
+
+        <p className="mt-6 font-mono text-lg tracking-[0.2em]">
+          {formatMaskedCardFromLastFour(account.lastFour)}
+        </p>
+
+        <div className="mt-4 flex items-end justify-between gap-4 text-sm">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider opacity-70">Cardholder</p>
+            <p className="font-medium">{account.holderName ? "••••••" : "—"}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-wider opacity-70">Expires</p>
+            <p className="font-mono font-medium">
+              {formatExpiry(account.expiryMonth, account.expiryYear) || "—"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground">
+              {isCredit ? "Outstanding" : "Balance tracked"}
+            </p>
+            <p className="font-heading text-xl font-semibold tabular-nums">
+              {formatINR(Math.abs(account.currentBalance), { compact: true })}
+            </p>
+            {isCredit && account.creditLimit ? (
+              <p className="text-xs text-muted-foreground">
+                of {formatINR(account.creditLimit, { compact: true })} limit
+              </p>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <AccountFormSheet account={account} triggerLabel="Edit" />
+            <DeleteAccountButton id={account.id} name={account.name} />
+          </div>
+        </div>
+
+        {isCredit && account.creditLimit ? (
+          <div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${limitUsedPct}%` }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{limitUsedPct}% of limit used</p>
+          </div>
+        ) : null}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-9 w-full gap-1 text-muted-foreground"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Hide" : "View"} card details
+          <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
+        </Button>
+
+        {expanded ? (
+          <div className="space-y-2 border-t border-border pt-3">
+            {account.hasCardNumber ? (
+              <SensitiveField
+                accountId={account.id}
+                field="cardNumber"
+                label="Card number"
+                maskedDisplay={formatMaskedCardFromLastFour(account.lastFour)}
+                formatRevealed={(v) => formatCardNumberDisplay(v, false)}
+              />
+            ) : null}
+            {account.holderName ? (
+              <SensitiveField
+                accountId={account.id}
+                field="holderName"
+                label="Name on card"
+                maskedDisplay="••••••••"
+                mono={false}
+              />
+            ) : null}
+            {account.expiryMonth && account.expiryYear ? (
+              <CopyField
+                label="Expiry"
+                value={formatExpiry(account.expiryMonth, account.expiryYear)}
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        <Link
+          href={`/transactions?account=${account.id}`}
+          className="inline-block text-sm text-primary underline-offset-4 hover:underline"
+        >
+          View transactions
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <article className="rounded-xl border border-border bg-card px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Landmark className="size-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium">{account.name}</p>
+              {account.isDefault ? (
+                <Badge variant="secondary" className="text-xs">
+                  Default
+                </Badge>
+              ) : null}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {account.institution}
+              {account.accountSubtype
+                ? ` · ${account.accountSubtype === "savings" ? "Savings" : "Current"}`
+                : ""}
+            </p>
+            <p className="mt-2 font-heading text-xl font-semibold tabular-nums">
+              {formatINR(account.currentBalance, { compact: true })}
+            </p>
+            <p className="font-mono text-xs text-muted-foreground">
+              {formatMaskedAccountFromLastFour(account.lastFour)}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <AccountFormSheet account={account} triggerLabel="Edit" />
+          <DeleteAccountButton id={account.id} name={account.name} />
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="mt-3 h-9 gap-1 text-muted-foreground"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {expanded ? "Hide" : "View"} account details
+        <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
+      </Button>
+
+      {expanded ? (
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
+          {account.hasAccountNumber ? (
+            <SensitiveField
+              accountId={account.id}
+              field="accountNumber"
+              label="Account number"
+              maskedDisplay={formatMaskedAccountFromLastFour(account.lastFour)}
+            />
+          ) : null}
+          {account.ifscCode ? (
+            <SensitiveField
+              accountId={account.id}
+              field="ifscCode"
+              label="IFSC"
+              maskedDisplay="••••••"
+            />
+          ) : null}
+          {account.holderName ? (
+            <SensitiveField
+              accountId={account.id}
+              field="holderName"
+              label="Account holder"
+              maskedDisplay="••••••"
+              mono={false}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      <Link
+        href={`/transactions?account=${account.id}`}
+        className="mt-3 inline-block text-sm text-primary underline-offset-4 hover:underline"
+      >
+        View transactions
+      </Link>
+    </article>
+  );
+}
+
+function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
+  const Icon = typeIcons[account.type];
+
+  return (
+    <article className="rounded-xl border border-border bg-card px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="size-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium">{account.name}</p>
+              {account.isDefault ? (
+                <Badge variant="secondary" className="text-xs">
+                  Default
+                </Badge>
+              ) : null}
+            </div>
+            {account.upiId ? (
+              <SensitiveField
+                accountId={account.id}
+                field="upiId"
+                label="UPI ID"
+                maskedDisplay="••••@••••"
+                mono={false}
+                className="mt-2"
+              />
+            ) : null}
+            <p className="mt-2 font-heading text-xl font-semibold tabular-nums">
+              {formatINR(account.currentBalance, { compact: true })}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <AccountFormSheet account={account} triggerLabel="Edit" />
+          <DeleteAccountButton id={account.id} name={account.name} />
+        </div>
+      </div>
+      <Link
+        href={`/transactions?account=${account.id}`}
+        className="mt-3 inline-block text-sm text-primary underline-offset-4 hover:underline"
+      >
+        View transactions
+      </Link>
+    </article>
+  );
+}
+
+function AccountSection({
+  title,
+  description,
+  accounts,
+  addActions,
+  emptyMessage,
+  children,
+}: {
+  title: string;
+  description: string;
+  accounts: PaymentAccountDTO[];
+  addActions?: Array<{ label: string; type: string }>;
+  emptyMessage: string;
+  children: (account: PaymentAccountDTO) => React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-lg font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {addActions?.map((action) => (
+            <AccountFormSheet
+              key={action.type}
+              triggerLabel={action.label}
+              defaultType={action.type}
+            />
+          ))}
+        </div>
+      </div>
+      {accounts.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-muted/15 px-5 py-8 text-center">
+          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">{accounts.map((acc) => children(acc))}</div>
+      )}
+    </section>
+  );
+}
+
+export function AccountsClient({ accounts }: { accounts: PaymentAccountDTO[] }) {
+  const cards = accounts.filter((a) => isCardType(a.type));
+  const banks = accounts.filter((a) => a.type === "bank");
+  const others = accounts.filter((a) => a.type === "cash" || a.type === "wallet");
+
+  if (accounts.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/15 px-6 py-14 text-center">
+          <p className="font-heading text-xl">Set up how you pay</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+            Add your cards and bank accounts once. Reveal details only when you need to copy them.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <AccountFormSheet triggerLabel="Add debit card" defaultType="debit_card" />
+            <AccountFormSheet triggerLabel="Add credit card" defaultType="credit_card" />
+            <AccountFormSheet triggerLabel="Add bank account" defaultType="bank" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      <AccountSection
+        title="Cards"
+        description="Debit and credit cards — reveal to copy full numbers"
+        accounts={cards}
+        addActions={[
+          { label: "Add debit card", type: "debit_card" },
+          { label: "Add credit card", type: "credit_card" },
+        ]}
+        emptyMessage="No cards added yet. Add a debit or credit card to keep numbers handy."
+      >
+        {(acc) => <CardWalletItem key={acc.id} account={acc} />}
+      </AccountSection>
+
+      <AccountSection
+        title="Bank accounts"
+        description="Savings and current accounts with IFSC for transfers"
+        accounts={banks}
+        addActions={[{ label: "Add bank account", type: "bank" }]}
+        emptyMessage="No bank accounts yet. Add one to track balances and copy account details."
+      >
+        {(acc) => <BankAccountItem key={acc.id} account={acc} />}
+      </AccountSection>
+
+      <AccountSection
+        title="Cash & UPI"
+        description="Physical cash and digital wallets"
+        accounts={others}
+        addActions={[
+          { label: "Add UPI wallet", type: "wallet" },
+          { label: "Add cash", type: "cash" },
+        ]}
+        emptyMessage="No cash or UPI wallets yet."
+      >
+        {(acc) => <SimpleAccountItem key={acc.id} account={acc} />}
+      </AccountSection>
+    </div>
+  );
+}

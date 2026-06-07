@@ -5,3 +5,6 @@ export { Investment } from "./investment";
 export { InsurancePolicy } from "./insurance-policy";
 export { LifeGoal } from "./life-goal";
 export { Asset, Liability } from "./asset";
+export { PaymentAccount } from "./payment-account";
+export { LedgerTransaction } from "./ledger-transaction";
+export { Document } from "./document";

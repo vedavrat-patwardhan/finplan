@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import {
   getDashboardData,
@@ -5,6 +6,7 @@ import {
   getUpcomingObligationsForUser,
   getPortfolioChartData,
 } from "@/lib/db/queries/finance";
+import { getLedgerSummary } from "@/lib/db/queries/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
@@ -14,12 +16,20 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [{ profile, snapshot }, chartData, goals, obligations] = await Promise.all([
-    getDashboardData(session.userId),
-    getPortfolioChartData(session.userId),
-    getGoalsWithFeasibility(session.userId),
-    getUpcomingObligationsForUser(session.userId),
-  ]);
+  const [{ profile, snapshot }, chartData, goals, obligations, ledger] =
+    await Promise.all([
+      getDashboardData(session.userId),
+      getPortfolioChartData(session.userId),
+      getGoalsWithFeasibility(session.userId),
+      getUpcomingObligationsForUser(session.userId),
+      getLedgerSummary(session.userId),
+    ]);
+
+  const budgetDelta = ledger.budgetMonthly - ledger.totalDebits;
+  const budgetUsedPct =
+    ledger.budgetMonthly > 0
+      ? Math.min(100, Math.round((ledger.totalDebits / ledger.budgetMonthly) * 100))
+      : 0;
 
   const activeGoals = goals.filter((g) => g.status !== "completed");
   const completedGoals = goals.filter((g) => g.status === "completed");
@@ -67,6 +77,83 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card p-6 md:p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+              This month (actual)
+            </p>
+            <p className="font-heading mt-2 text-3xl font-semibold tabular-nums">
+              {formatINR(ledger.totalDebits, { compact: profile?.useCompactNumbers })}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {ledger.transactionCount === 0
+                ? "No transactions logged yet"
+                : `${ledger.transactionCount} transaction${ledger.transactionCount === 1 ? "" : "s"} logged`}
+              {ledger.totalCredits > 0
+                ? ` · ${formatINR(ledger.totalCredits, { compact: true })} received`
+                : ""}
+            </p>
+          </div>
+          <div className="text-sm sm:text-right">
+            <p className="text-muted-foreground">Budget (planned)</p>
+            <p className="font-medium tabular-nums">
+              {formatINR(ledger.budgetMonthly, { compact: profile?.useCompactNumbers })}
+            </p>
+            {ledger.budgetMonthly > 0 ? (
+              <p
+                className={
+                  budgetDelta >= 0
+                    ? "mt-1 text-xs text-success"
+                    : "mt-1 text-xs text-destructive"
+                }
+              >
+                {budgetDelta >= 0
+                  ? `${formatINR(budgetDelta, { compact: true })} under budget`
+                  : `${formatINR(Math.abs(budgetDelta), { compact: true })} over budget`}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {ledger.budgetMonthly > 0 ? (
+          <div className="mt-5">
+            <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${budgetUsedPct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {budgetUsedPct}% of planned monthly spend
+            </p>
+          </div>
+        ) : null}
+
+        {ledger.byCategory.length > 0 ? (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {ledger.byCategory.slice(0, 5).map((item) => (
+              <span
+                key={item.category}
+                className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs"
+              >
+                <span className="text-muted-foreground">{item.category}</span>
+                <span className="font-medium tabular-nums">
+                  {formatINR(item.amount, { compact: true })}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <Link
+          href="/transactions"
+          className="mt-5 inline-block text-sm font-medium text-primary hover:underline"
+        >
+          View ledger →
+        </Link>
       </section>
 
       <PortfolioChartsSection data={chartData} />

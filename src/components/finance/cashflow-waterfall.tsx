@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { formatINR } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartArea } from "@/components/ui/chart-area";
 
 const BarChart = dynamic(
   () => import("recharts").then((mod) => mod.BarChart),
@@ -19,10 +20,6 @@ const YAxis = dynamic(() => import("recharts").then((mod) => mod.YAxis), {
 });
 const CartesianGrid = dynamic(
   () => import("recharts").then((mod) => mod.CartesianGrid),
-  { ssr: false }
-);
-const ResponsiveContainer = dynamic(
-  () => import("recharts").then((mod) => mod.ResponsiveContainer),
   { ssr: false }
 );
 const Cell = dynamic(() => import("recharts").then((mod) => mod.Cell), {
@@ -69,28 +66,26 @@ export function CashflowWaterfall({
         </p>
       </CardHeader>
       <CardContent>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => formatINR(v, { compact: true })}
-              />
-              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                {data.map((entry, index) => (
-                  <Cell
-                    key={entry.name}
-                    fill={entry.value < 0 ? COLORS[2] : COLORS[index === 4 ? 4 : 0]}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartArea>
+          <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis
+              tick={{ fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => formatINR(v, { compact: true })}
+            />
+            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+              {data.map((entry, index) => (
+                <Cell
+                  key={entry.name}
+                  fill={entry.value < 0 ? COLORS[2] : COLORS[index === 4 ? 4 : 0]}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartArea>
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {data.map((item) => (
