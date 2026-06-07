@@ -7,7 +7,13 @@ import { revealAccountFieldAction } from "@/actions/ledger";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type RevealableField = "cardNumber" | "accountNumber" | "ifscCode" | "holderName" | "upiId";
+type RevealableField =
+  | "cardNumber"
+  | "cardCvv"
+  | "accountNumber"
+  | "ifscCode"
+  | "holderName"
+  | "upiId";
 
 export function SensitiveField({
   accountId,

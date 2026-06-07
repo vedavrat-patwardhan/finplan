@@ -17,6 +17,8 @@ import {
   accountNumberValidationMessage,
   cardNumberValidationMessage,
   ifscValidationMessage,
+  crnValidationMessage,
+  cvvValidationMessage,
   upiValidationMessage,
 } from "@/lib/finance/account-details";
 
@@ -133,8 +135,10 @@ const paymentAccountBaseSchema = z.object({
   holderName: z.string().max(100).optional(),
   accountNumber: z.string().max(20).optional(),
   ifscCode: z.string().max(11).optional(),
+  crn: z.string().max(12).optional(),
   accountSubtype: z.enum(BANK_ACCOUNT_SUBTYPES).optional(),
   cardNumber: z.string().max(19).optional(),
+  cardCvv: z.string().max(4).optional(),
   expiryMonth: z.coerce.number().min(1).max(12).optional(),
   expiryYear: z.coerce.number().min(2020).max(2100).optional(),
   upiId: z.string().max(100).optional(),
@@ -184,6 +188,14 @@ function refinePaymentAccount(
         path: ["ifscCode"],
       });
     }
+    const crnError = crnValidationMessage(data.crn ?? "");
+    if (crnError) {
+      ctx.addIssue({
+        code: "custom",
+        message: crnError,
+        path: ["crn"],
+      });
+    }
   }
 
   if (data.type === "debit_card" || data.type === "credit_card") {
@@ -217,6 +229,17 @@ function refinePaymentAccount(
         code: "custom",
         message: "Card expiry is required",
         path: ["expiryMonth"],
+      });
+    }
+  }
+
+  if (data.type === "credit_card") {
+    const cvvError = cvvValidationMessage(data.cardCvv ?? "");
+    if (cvvError) {
+      ctx.addIssue({
+        code: "custom",
+        message: cvvError,
+        path: ["cardCvv"],
       });
     }
   }

@@ -82,6 +82,9 @@
   --chart-4: oklch(0.72 0.08 145);
   --chart-5: oklch(0.38 0.06 165);
   --radius: 0.625rem;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --card-flip-duration: 0.55s;
   --sidebar: oklch(0.965 0.01 165);
   --sidebar-foreground: oklch(0.28 0.025 165);
   --sidebar-primary: oklch(0.42 0.08 165);
@@ -169,5 +172,44 @@
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .payment-card-scene {
+    perspective: 1000px;
+    overflow: hidden;
+    border-radius: 1rem 1rem 0 0;
+    isolation: isolate;
+  }
+
+  .payment-card-inner {
+    position: relative;
+    min-height: 14rem;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+    transition: transform var(--card-flip-duration) var(--ease-out-quint);
+  }
+
+  .payment-card-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .payment-card-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-height: 14rem;
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .payment-card-back {
+    transform: rotateY(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-card-inner {
+    transition-duration: 0.01ms;
   }
 }

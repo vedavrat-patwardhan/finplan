@@ -15,6 +15,7 @@ import { AccountFormSheet } from "@/components/ledger/account-form-sheet";
 import { DeleteAccountButton } from "@/components/ledger/delete-account-button";
 import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { CopyField } from "@/components/ledger/copy-field";
+import { PaymentCardFlip } from "@/components/ledger/payment-card-flip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
@@ -27,6 +28,17 @@ import {
   isCardType,
 } from "@/lib/finance/account-details";
 import { cn } from "@/lib/utils";
+
+function AccountNotesDisplay({ notes }: { notes: string }) {
+  if (!notes.trim()) return null;
+
+  return (
+    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Notes</p>
+      <p className="mt-0.5 whitespace-pre-wrap text-sm">{notes}</p>
+    </div>
+  );
+}
 
 const typeIcons: Record<PaymentAccountType, ComponentType<{ className?: string }>> = {
   bank: Landmark,
@@ -45,45 +57,8 @@ function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
       : 0;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div
-        className={cn(
-          "relative px-5 py-5 text-primary-foreground",
-          isCredit
-            ? "bg-[linear-gradient(135deg,oklch(0.38_0.08_175),oklch(0.32_0.06_200))]"
-            : "bg-[linear-gradient(135deg,oklch(0.42_0.07_165),oklch(0.36_0.05_190))]"
-        )}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest opacity-80">
-              {isCredit ? "Credit card" : "Debit card"}
-            </p>
-            <p className="font-heading mt-1 text-lg font-semibold">{account.name}</p>
-            <p className="text-sm opacity-80">{account.institution}</p>
-          </div>
-          {account.isDefault ? (
-            <Badge className="bg-white/15 text-white hover:bg-white/15">Default</Badge>
-          ) : null}
-        </div>
-
-        <p className="mt-6 font-mono text-lg tracking-[0.2em]">
-          {formatMaskedCardFromLastFour(account.lastFour)}
-        </p>
-
-        <div className="mt-4 flex items-end justify-between gap-4 text-sm">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider opacity-70">Cardholder</p>
-            <p className="font-medium">{account.holderName ? "••••••" : "—"}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] uppercase tracking-wider opacity-70">Expires</p>
-            <p className="font-mono font-medium">
-              {formatExpiry(account.expiryMonth, account.expiryYear) || "—"}
-            </p>
-          </div>
-        </div>
-      </div>
+    <article className="isolate overflow-hidden rounded-2xl border border-border bg-card">
+      <PaymentCardFlip account={account} isCredit={isCredit} />
 
       <div className="space-y-3 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -141,11 +116,9 @@ function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
               />
             ) : null}
             {account.holderName ? (
-              <SensitiveField
-                accountId={account.id}
-                field="holderName"
+              <CopyField
                 label="Name on card"
-                maskedDisplay="••••••••"
+                value={account.holderName}
                 mono={false}
               />
             ) : null}
@@ -155,6 +128,22 @@ function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
                 value={formatExpiry(account.expiryMonth, account.expiryYear)}
               />
             ) : null}
+            {isCredit ? (
+              account.hasCardCvv ? (
+                <SensitiveField
+                  accountId={account.id}
+                  field="cardCvv"
+                  label="CVV"
+                  maskedDisplay="•••"
+                />
+              ) : (
+                <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+                  <p className="text-[11px] uppercase tracking-wider">CVV</p>
+                  <p className="mt-0.5 text-xs">Not saved. Edit this card to add your CVV.</p>
+                </div>
+              )
+            ) : null}
+            <AccountNotesDisplay notes={account.notes} />
           </div>
         ) : null}
 
@@ -255,6 +244,8 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
               mono={false}
             />
           ) : null}
+          {account.crn ? <CopyField label="CRN" value={account.crn} /> : null}
+          <AccountNotesDisplay notes={account.notes} />
         </div>
       ) : null}
 
@@ -300,6 +291,9 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
             <p className="mt-2 font-heading text-xl font-semibold tabular-nums">
               {formatINR(account.currentBalance, { compact: true })}
             </p>
+            {account.notes.trim() ? (
+              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{account.notes}</p>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
@@ -387,7 +381,7 @@ export function AccountsClient({ accounts }: { accounts: PaymentAccountDTO[] }) 
     <div className="space-y-10">
       <AccountSection
         title="Cards"
-        description="Debit and credit cards — reveal to copy full numbers"
+        description="Debit and credit cards — tap the eye to flip and reveal full details"
         accounts={cards}
         addActions={[
           { label: "Add debit card", type: "debit_card" },

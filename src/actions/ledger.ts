@@ -54,6 +54,23 @@ function formOptionalNumber(formData: FormData, key: string): number | undefined
   return value as unknown as number;
 }
 
+function formDigits(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+  if (value == null) return undefined;
+  const digits = digitsOnly(String(value));
+  return digits || undefined;
+}
+
+function encryptCardCvv(
+  type: PaymentAccountType,
+  cardCvv?: string
+): string | undefined {
+  if (type !== "credit_card") return undefined;
+  const digits = digitsOnly(cardCvv ?? "");
+  if (!digits) return undefined;
+  return encryptSensitive(digits);
+}
+
 function parseAccountFormData(formData: FormData) {
   return {
     type: formData.get("type"),
@@ -62,8 +79,10 @@ function parseAccountFormData(formData: FormData) {
     holderName: formText(formData, "holderName"),
     accountNumber: formText(formData, "accountNumber"),
     ifscCode: formText(formData, "ifscCode"),
+    crn: formText(formData, "crn"),
     accountSubtype: formText(formData, "accountSubtype"),
     cardNumber: formText(formData, "cardNumber"),
+    cardCvv: formDigits(formData, "cardCvv"),
     expiryMonth: formOptionalNumber(formData, "expiryMonth"),
     expiryYear: formOptionalNumber(formData, "expiryYear"),
     upiId: formText(formData, "upiId"),
@@ -143,6 +162,7 @@ function buildAccountUpdateDoc(
 
   if (newType === "bank") {
     update.ifscCode = normalized.ifscCode ?? "";
+    update.crn = normalized.crn ?? "";
     if (normalized.accountSubtype) update.accountSubtype = normalized.accountSubtype;
     if (normalized.accountNumber) {
       update.accountNumber = normalized.accountNumber;
@@ -150,6 +170,7 @@ function buildAccountUpdateDoc(
     }
     if (typeChanged) {
       update.cardNumber = "";
+      update.cardCvv = "";
       update.expiryMonth = undefined;
       update.expiryYear = undefined;
       update.upiId = "";
@@ -169,15 +190,18 @@ function buildAccountUpdateDoc(
     if (typeChanged) {
       update.accountNumber = "";
       update.ifscCode = "";
+      update.crn = "";
       update.accountSubtype = undefined;
       update.upiId = "";
     }
     if (newType === "credit_card") {
       if (normalized.creditLimit != null) update.creditLimit = normalized.creditLimit;
       if (normalized.billingDay != null) update.billingDay = normalized.billingDay;
+      if (normalized.cardCvv) update.cardCvv = normalized.cardCvv;
     } else if (typeChanged) {
       update.creditLimit = undefined;
       update.billingDay = undefined;
+      update.cardCvv = "";
     }
     return update;
   }
@@ -187,8 +211,10 @@ function buildAccountUpdateDoc(
     if (typeChanged) {
       update.accountNumber = "";
       update.ifscCode = "";
+      update.crn = "";
       update.accountSubtype = undefined;
       update.cardNumber = "";
+      update.cardCvv = "";
       update.expiryMonth = undefined;
       update.expiryYear = undefined;
       update.creditLimit = undefined;
@@ -201,8 +227,10 @@ function buildAccountUpdateDoc(
   if (newType === "cash" && typeChanged) {
     update.accountNumber = "";
     update.ifscCode = "";
+    update.crn = "";
     update.accountSubtype = undefined;
     update.cardNumber = "";
+    update.cardCvv = "";
     update.expiryMonth = undefined;
     update.expiryYear = undefined;
     update.upiId = "";
@@ -230,6 +258,16 @@ function normalizeAccountPayload(data: {
     payload.cardNumber = encryptSensitive(digits);
   }
 
+  const encryptedCvv = encryptCardCvv(
+    payload.type as PaymentAccountType,
+    String(payload.cardCvv ?? "")
+  );
+  if (encryptedCvv) {
+    payload.cardCvv = encryptedCvv;
+  } else {
+    delete payload.cardCvv;
+  }
+
   if (payload.accountNumber) {
     const digits = digitsOnly(String(payload.accountNumber));
     payload.lastFour = deriveLastFour(digits);
@@ -238,6 +276,10 @@ function normalizeAccountPayload(data: {
 
   if (payload.ifscCode) {
     payload.ifscCode = String(payload.ifscCode).toUpperCase().trim();
+  }
+
+  if (payload.crn != null) {
+    payload.crn = digitsOnly(String(payload.crn));
   }
 
   return payload;
@@ -287,7 +329,9 @@ export async function createAccountAction(
   }
 
   const { openingBalance, isDefault, ...data } = parsed.data;
-  const normalized = normalizeAccountPayload(data);
+  const accountType = data.type as PaymentAccountType;
+  const normalized = normalizeAccountPayload(data) as Record<string, unknown>;
+  const cardCvvEncrypted = encryptCardCvv(accountType, data.cardCvv);
   const userId = userObjectId(session.userId);
 
   try {
@@ -304,6 +348,7 @@ export async function createAccountAction(
         [
           {
             ...normalized,
+            ...(cardCvvEncrypted ? { cardCvv: cardCvvEncrypted } : {}),
             userId,
             openingBalance,
             currentBalance: openingBalance,
@@ -329,6 +374,9 @@ export async function updateAccountAction(
   const accountId = formData.get("id") as string;
   if (!accountId) return { success: false, error: "Account ID required" };
 
+  const incomingCardCvv = formDigits(formData, "cardCvv");
+  const formAccountType = formData.get("type") as PaymentAccountType | null;
+
   const userId = userObjectId(session.userId);
 
   try {
@@ -345,6 +393,7 @@ export async function updateAccountAction(
         ...existing.toObject(),
       });
       if (!raw.cardNumber) delete raw.cardNumber;
+      if (!raw.cardCvv) delete raw.cardCvv;
       if (!raw.accountNumber) delete raw.accountNumber;
 
       const parsed = paymentAccountUpdateSchema.safeParse(raw);
@@ -354,14 +403,23 @@ export async function updateAccountAction(
       }
 
       const { isDefault, openingBalance, ...data } = parsed.data;
+      const accountType = data.type as PaymentAccountType;
       const normalized = normalizeAccountPayload(data) as Record<string, unknown>;
+      const cardCvvEncrypted = encryptCardCvv(
+        accountType,
+        incomingCardCvv ?? data.cardCvv
+      );
       const updateDoc = buildAccountUpdateDoc(
         normalized,
         existing.type as PaymentAccountType,
-        data.type as PaymentAccountType,
+        accountType,
         openingBalance,
         isDefault ?? false
       );
+
+      if (cardCvvEncrypted) {
+        updateDoc.cardCvv = cardCvvEncrypted;
+      }
 
       if (isDefault) {
         await PaymentAccount.updateMany(
@@ -371,7 +429,11 @@ export async function updateAccountAction(
         );
       }
 
-      await PaymentAccount.findByIdAndUpdate(accountId, updateDoc, { session: dbSession });
+      await PaymentAccount.findByIdAndUpdate(
+        accountId,
+        { $set: updateDoc },
+        { session: dbSession }
+      );
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : transactionErrorMessage(error);
@@ -384,6 +446,7 @@ export async function updateAccountAction(
 
 const REVEALABLE_FIELDS = [
   "cardNumber",
+  "cardCvv",
   "accountNumber",
   "ifscCode",
   "holderName",
@@ -418,7 +481,7 @@ export async function revealAccountFieldAction(
   }
 
   const value =
-    field === "cardNumber" || field === "accountNumber"
+    field === "cardNumber" || field === "accountNumber" || field === "cardCvv"
       ? decryptSensitive(String(stored))
       : String(stored);
 
@@ -427,6 +490,65 @@ export async function revealAccountFieldAction(
   }
 
   return { success: true, value };
+}
+
+export async function revealCardDetailsAction(
+  accountId: string
+): Promise<{
+  success: boolean;
+  cardNumber?: string;
+  holderName?: string;
+  cardCvv?: string;
+  expiry?: string;
+  isCredit?: boolean;
+  error?: string;
+}> {
+  const session = await requireSession();
+
+  const account = await PaymentAccount.findOne({
+    _id: accountId,
+    userId: userObjectId(session.userId),
+    isActive: true,
+  }).lean();
+
+  if (!account) {
+    return { success: false, error: "Account not found" };
+  }
+
+  if (!isCardType(account.type as PaymentAccountType)) {
+    return { success: false, error: "Not a card account" };
+  }
+
+  if (!account.cardNumber) {
+    return { success: false, error: "Full card number not on file" };
+  }
+
+  const cardNumber = decryptSensitive(String(account.cardNumber));
+  if (!cardNumber) {
+    return { success: false, error: "Could not decrypt card number" };
+  }
+
+  const holderName = account.holderName ? String(account.holderName) : undefined;
+  const isCredit = account.type === "credit_card";
+
+  let cardCvv: string | undefined;
+  if (isCredit && account.cardCvv) {
+    cardCvv = decryptSensitive(String(account.cardCvv));
+  }
+
+  const expiry =
+    account.expiryMonth && account.expiryYear
+      ? `${String(account.expiryMonth).padStart(2, "0")}/${String(account.expiryYear).slice(-2)}`
+      : undefined;
+
+  return {
+    success: true,
+    cardNumber,
+    holderName,
+    cardCvv,
+    expiry,
+    isCredit,
+  };
 }
 
 export async function deleteAccountAction(id: string): Promise<ActionResult> {

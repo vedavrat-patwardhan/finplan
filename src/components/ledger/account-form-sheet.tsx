@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useRef, useState, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
   Select,
@@ -29,6 +31,7 @@ import {
   formatMaskedAccountFromLastFour,
   formatMaskedCardFromLastFour,
   isCardType,
+  isKotakInstitution,
 } from "@/lib/finance/account-details";
 import { BankCombobox } from "@/components/finance/bank-combobox";
 import { SensitiveField } from "@/components/ledger/sensitive-field";
@@ -40,6 +43,11 @@ const typeLabels: Record<string, string> = {
   credit_card: "Credit card",
   cash: "Cash",
   wallet: "UPI / Wallet",
+};
+
+const accountSubtypeLabels: Record<string, string> = {
+  savings: "Savings",
+  current: "Current",
 };
 
 const typeHints: Record<string, string> = {
@@ -62,6 +70,9 @@ type FormValues = {
   billingDay: string;
   expiryMonth: string;
   expiryYear: string;
+  cardCvv: string;
+  crn: string;
+  notes: string;
   isDefault: boolean;
 };
 
@@ -78,6 +89,9 @@ function initialFormValues(account?: PaymentAccountDTO): FormValues {
     billingDay: account?.billingDay != null ? String(account.billingDay) : "",
     expiryMonth: account?.expiryMonth != null ? String(account.expiryMonth) : "",
     expiryYear: account?.expiryYear != null ? String(account.expiryYear) : "",
+    cardCvv: "",
+    crn: account?.crn ?? "",
+    notes: account?.notes ?? "",
     isDefault: account?.isDefault ?? false,
   };
 }
@@ -129,14 +143,21 @@ export function AccountFormSheet({
   const [accountSubtype, setAccountSubtype] = useState(account?.accountSubtype ?? "savings");
   const [institution, setInstitution] = useState(account?.institution ?? "");
   const [formValues, setFormValues] = useState<FormValues>(() => initialFormValues(account));
+  const cardCvvRef = useRef(formValues.cardCvv);
+  const router = useRouter();
+
+  useEffect(() => {
+    cardCvvRef.current = formValues.cardCvv;
+  }, [formValues.cardCvv]);
 
   useEffect(() => {
     if (state.success) {
       setOpen(false);
+      router.refresh();
       toast.success(isEdit ? "Account updated" : "Account added");
     }
     if (state.error) toast.error(state.error);
-  }, [state.success, state.error, isEdit]);
+  }, [state.success, state.error, isEdit, router]);
 
   useEffect(() => {
     if (open) {
@@ -155,6 +176,8 @@ export function AccountFormSheet({
   const hasFullCardNumber = Boolean(account?.hasCardNumber);
   const hasStoredAccountNumber = hasFullAccountNumber || Boolean(account?.lastFour);
   const hasStoredCardNumber = hasFullCardNumber || Boolean(account?.lastFour);
+  const hasStoredCardCvv = Boolean(account?.hasCardCvv);
+  const isKotak = isKotakInstitution(institution);
 
   function patchForm(patch: Partial<FormValues>) {
     setFormValues((prev) => ({ ...prev, ...patch }));
@@ -176,6 +199,7 @@ export function AccountFormSheet({
       fd.set("accountSubtype", accountSubtype);
       fd.set("holderName", formValues.holderName.trim());
       fd.set("ifscCode", formValues.ifscCode.trim());
+      fd.set("crn", formValues.crn.trim());
       const accountNumber = formValues.accountNumber.trim();
       if (accountNumber) fd.set("accountNumber", accountNumber);
       else if (!isEdit) fd.set("accountNumber", "");
@@ -197,14 +221,18 @@ export function AccountFormSheet({
     if (isCredit) {
       if (formValues.creditLimit.trim()) fd.set("creditLimit", formValues.creditLimit);
       if (formValues.billingDay.trim()) fd.set("billingDay", formValues.billingDay);
+      fd.set("cardCvv", cardCvvRef.current.replace(/\D/g, ""));
     }
+
+    fd.set("notes", formValues.notes.trim());
 
     return fd;
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    startTransition(() => formAction(buildFormData()));
+    const fd = buildFormData();
+    startTransition(() => formAction(fd));
   }
 
   return (
@@ -231,8 +259,9 @@ export function AccountFormSheet({
               <div className="space-y-2">
                 <Label>What are you adding?</Label>
                 <Select value={type} onValueChange={(v) => v && setType(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
+                  <SelectTrigger className="w-full" aria-label="Account type">
+                    <span className="flex-1 text-left">{typeLabels[type]}</span>
+                    <SelectValue className="sr-only">{typeLabels[type]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {PAYMENT_ACCOUNT_TYPES.map((t) => (
@@ -282,8 +311,13 @@ export function AccountFormSheet({
                       value={accountSubtype}
                       onValueChange={(v) => v && setAccountSubtype(v as "savings" | "current")}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
+                      <SelectTrigger className="w-full" aria-label="Bank account type">
+                        <span className="flex-1 text-left">
+                          {accountSubtypeLabels[accountSubtype]}
+                        </span>
+                        <SelectValue className="sr-only">
+                          {accountSubtypeLabels[accountSubtype]}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {BANK_ACCOUNT_SUBTYPES.map((st) => (
@@ -367,6 +401,29 @@ export function AccountFormSheet({
                       11 characters: 4-letter bank code, 0, then branch code
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`acc-crn-${account?.id ?? "new"}`}>
+                      CRN / Customer ID
+                      <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id={`acc-crn-${account?.id ?? "new"}`}
+                      value={formValues.crn}
+                      onChange={(e) =>
+                        patchForm({ crn: e.target.value.replace(/\D/g, "") })
+                      }
+                      inputMode="numeric"
+                      autoComplete="off"
+                      maxLength={12}
+                      placeholder={isKotak ? "6-digit Kotak CRN" : "e.g. customer reference number"}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {isKotak
+                        ? "Kotak net banking uses a 6-digit CRN — different from your account number."
+                        : "Some banks use a separate customer ID (e.g. Kotak CRN, CIF). Digits only, 4–12 characters."}
+                    </p>
+                  </div>
                 </>
               ) : null}
 
@@ -447,6 +504,48 @@ export function AccountFormSheet({
                       />
                     </div>
                   </div>
+                  {isCredit ? (
+                    <div className="space-y-2">
+                      <Label htmlFor={`card-cvv-${account?.id ?? "new"}`}>
+                        CVV
+                        <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                      </Label>
+                      {isEdit && hasStoredCardCvv && account ? (
+                        <SensitiveField
+                          accountId={account.id}
+                          field="cardCvv"
+                          label="Saved CVV"
+                          maskedDisplay="•••"
+                        />
+                      ) : null}
+                      {isEdit && hasStoredCardCvv ? (
+                        <p className="text-xs text-muted-foreground">Replace CVV (optional)</p>
+                      ) : null}
+                      <Input
+                        id={`card-cvv-${account?.id ?? "new"}`}
+                        name="cardCvv"
+                        type="password"
+                        value={formValues.cardCvv}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          cardCvvRef.current = digits;
+                          patchForm({ cardCvv: digits });
+                        }}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        maxLength={4}
+                        placeholder={
+                          isEdit && hasStoredCardCvv
+                            ? "Enter new CVV only if replacing"
+                            : "3 or 4 digits on back of card"
+                        }
+                        className="font-mono tracking-widest"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Stored encrypted. Amex cards use 4 digits; Visa/Mastercard use 3.
+                      </p>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
 
@@ -528,6 +627,25 @@ export function AccountFormSheet({
                   Cards or Bank sections to reveal and copy when needed.
                 </p>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor={`acc-notes-${account?.id ?? "new"}`}>
+                  Notes
+                  <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <Textarea
+                  id={`acc-notes-${account?.id ?? "new"}`}
+                  value={formValues.notes}
+                  onChange={(e) => patchForm({ notes: e.target.value })}
+                  placeholder="Branch name, relationship manager, locker number, reminders…"
+                  maxLength={500}
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Extra details that don&apos;t fit elsewhere — up to 500 characters.
+                </p>
+              </div>
 
               <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
                 <input

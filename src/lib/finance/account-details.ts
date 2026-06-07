@@ -133,6 +133,31 @@ export function cardNumberValidationMessage(value: string): string | null {
   return null;
 }
 
+/** Bank customer reference numbers (e.g. Kotak CRN) — digits only, 4–12 chars */
+export function isValidCrn(value: string): boolean {
+  const digits = digitsOnly(value);
+  return digits.length >= 4 && digits.length <= 12;
+}
+
+export function cvvValidationMessage(value: string): string | null {
+  const digits = digitsOnly(value);
+  if (!digits) return null;
+  if (digits.length < 3 || digits.length > 4) return "CVV must be 3 or 4 digits";
+  return null;
+}
+
+export function crnValidationMessage(value: string): string | null {
+  const digits = digitsOnly(value);
+  if (!digits) return null;
+  if (digits.length < 4) return "CRN must be at least 4 digits";
+  if (digits.length > 12) return "CRN cannot exceed 12 digits";
+  return null;
+}
+
+export function isKotakInstitution(institution: string): boolean {
+  return institution.toLowerCase().includes("kotak");
+}
+
 export function upiValidationMessage(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return "UPI ID is required";

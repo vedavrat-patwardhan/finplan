@@ -14,8 +14,11 @@ const PaymentAccountSchema = new Schema(
     lastFour: { type: String, default: "", maxlength: 4 },
     accountNumber: { type: String, default: "" },
     ifscCode: { type: String, default: "", uppercase: true, trim: true },
+    /** Bank customer reference — e.g. Kotak CRN for net banking */
+    crn: { type: String, default: "", trim: true },
     accountSubtype: { type: String, enum: BANK_ACCOUNT_SUBTYPES },
     cardNumber: { type: String, default: "" },
+    cardCvv: { type: String, default: "" },
     expiryMonth: { type: Number, min: 1, max: 12 },
     expiryYear: { type: Number, min: 2020, max: 2100 },
     upiId: { type: String, default: "", trim: true },
@@ -37,6 +40,13 @@ export type IPaymentAccount = InferSchemaType<typeof PaymentAccountSchema> & {
   _id: mongoose.Types.ObjectId;
 };
 
+const MODEL_NAME = "PaymentAccount";
+
+// Hot reload in dev can keep a stale schema without newer fields (e.g. cardCvv).
+if (process.env.NODE_ENV !== "production" && mongoose.models[MODEL_NAME]) {
+  mongoose.deleteModel(MODEL_NAME);
+}
+
 export const PaymentAccount: Model<IPaymentAccount> =
-  mongoose.models.PaymentAccount ??
-  mongoose.model<IPaymentAccount>("PaymentAccount", PaymentAccountSchema);
+  mongoose.models[MODEL_NAME] ??
+  mongoose.model<IPaymentAccount>(MODEL_NAME, PaymentAccountSchema);

@@ -23,7 +23,9 @@ export interface PaymentAccountDTO {
   lastFour: string;
   hasAccountNumber: boolean;
   hasCardNumber: boolean;
+  hasCardCvv: boolean;
   ifscCode: string;
+  crn: string;
   accountSubtype?: "savings" | "current";
   expiryMonth?: number;
   expiryYear?: number;
@@ -93,7 +95,9 @@ export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentA
     lastFour: a.lastFour ?? "",
     hasAccountNumber: Boolean(a.accountNumber),
     hasCardNumber: Boolean(a.cardNumber),
+    hasCardCvv: Boolean(a.cardCvv),
     ifscCode: a.ifscCode ?? "",
+    crn: a.crn ?? "",
     accountSubtype: a.accountSubtype as "savings" | "current" | undefined,
     expiryMonth: a.expiryMonth ?? undefined,
     expiryYear: a.expiryYear ?? undefined,
