@@ -96,8 +96,9 @@ export function ResourceFormSheet({
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            const fd = new FormData(e.currentTarget);
             startTransition(() => {
-              formAction(new FormData(e.currentTarget));
+              formAction(fd);
             });
           }}
           className="flex min-h-0 flex-1 flex-col"

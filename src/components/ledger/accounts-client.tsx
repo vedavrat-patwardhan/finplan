@@ -228,6 +228,15 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
               label="Account number"
               maskedDisplay={formatMaskedAccountFromLastFour(account.lastFour)}
             />
+          ) : account.lastFour ? (
+            <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-wider">Account number</p>
+              <p className="mt-0.5 font-mono">•••• {account.lastFour}</p>
+              <p className="mt-1 text-xs">
+                Full number not on file. Edit this account and enter the complete number to save and
+                reveal it later.
+              </p>
+            </div>
           ) : null}
           {account.ifscCode ? (
             <SensitiveField

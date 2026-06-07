@@ -1,6 +1,10 @@
 export function formatINR(
   amount: number,
-  options?: { compact?: boolean; maximumFractionDigits?: number }
+  options?: {
+    compact?: boolean;
+    maximumFractionDigits?: number;
+    minimumFractionDigits?: number;
+  }
 ): string {
   if (options?.compact && Math.abs(amount) >= 10000000) {
     return `₹${(amount / 10000000).toFixed(2)} Cr`;
@@ -12,7 +16,8 @@ export function formatINR(
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
-    maximumFractionDigits: options?.maximumFractionDigits ?? 0,
+    minimumFractionDigits: options?.minimumFractionDigits ?? 0,
+    maximumFractionDigits: options?.maximumFractionDigits ?? 2,
   }).format(amount);
 }
 

@@ -20,7 +20,11 @@ import {
   billManualSchema,
 } from "@/lib/validations/finance";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
-import { deriveLastFour, digitsOnly } from "@/lib/finance/account-details";
+import {
+  deriveLastFour,
+  digitsOnly,
+  isCardType,
+} from "@/lib/finance/account-details";
 import { encryptSensitive, decryptSensitive } from "@/lib/crypto/sensitive";
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import {
@@ -37,25 +41,178 @@ function userObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
 }
 
+function formText(formData: FormData, key: string): string | undefined {
+  const value = formData.get(key);
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed || undefined;
+}
+
+function formOptionalNumber(formData: FormData, key: string): number | undefined {
+  const value = formData.get(key);
+  if (value == null || String(value).trim() === "") return undefined;
+  return value as unknown as number;
+}
+
 function parseAccountFormData(formData: FormData) {
   return {
     type: formData.get("type"),
-    name: formData.get("name"),
-    institution: formData.get("institution") || undefined,
-    holderName: formData.get("holderName") || undefined,
-    accountNumber: formData.get("accountNumber") || undefined,
-    ifscCode: formData.get("ifscCode") || undefined,
-    accountSubtype: formData.get("accountSubtype") || undefined,
-    cardNumber: formData.get("cardNumber") || undefined,
-    expiryMonth: formData.get("expiryMonth") || undefined,
-    expiryYear: formData.get("expiryYear") || undefined,
-    upiId: formData.get("upiId") || undefined,
+    name: formText(formData, "name"),
+    institution: formText(formData, "institution"),
+    holderName: formText(formData, "holderName"),
+    accountNumber: formText(formData, "accountNumber"),
+    ifscCode: formText(formData, "ifscCode"),
+    accountSubtype: formText(formData, "accountSubtype"),
+    cardNumber: formText(formData, "cardNumber"),
+    expiryMonth: formOptionalNumber(formData, "expiryMonth"),
+    expiryYear: formOptionalNumber(formData, "expiryYear"),
+    upiId: formText(formData, "upiId"),
     openingBalance: formData.get("openingBalance") ?? 0,
-    creditLimit: formData.get("creditLimit") || undefined,
-    billingDay: formData.get("billingDay") || undefined,
+    creditLimit: formOptionalNumber(formData, "creditLimit"),
+    billingDay: formOptionalNumber(formData, "billingDay"),
     isDefault: formData.get("isDefault") === "on" || formData.get("isDefault") === "true",
-    notes: formData.get("notes") || undefined,
+    notes: formText(formData, "notes"),
   };
+}
+
+type ParsedAccountForm = ReturnType<typeof parseAccountFormData>;
+
+function mergeAccountFormWithExisting(
+  raw: ParsedAccountForm,
+  existing: Record<string, unknown>
+) {
+  const type = String(raw.type) as PaymentAccountType;
+
+  if (!raw.holderName && existing.holderName) {
+    raw.holderName = String(existing.holderName);
+  }
+  if (!raw.institution && existing.institution) {
+    raw.institution = String(existing.institution);
+  }
+
+  if (type === "bank") {
+    if (!raw.ifscCode && existing.ifscCode) raw.ifscCode = String(existing.ifscCode);
+    if (!raw.accountSubtype && existing.accountSubtype) {
+      raw.accountSubtype = String(existing.accountSubtype);
+    }
+  }
+
+  if (type === "wallet" && !raw.upiId && existing.upiId) {
+    raw.upiId = String(existing.upiId);
+  }
+
+  if (isCardType(type)) {
+    if (raw.expiryMonth === undefined && existing.expiryMonth != null) {
+      raw.expiryMonth = Number(existing.expiryMonth);
+    }
+    if (raw.expiryYear === undefined && existing.expiryYear != null) {
+      raw.expiryYear = Number(existing.expiryYear);
+    }
+  }
+
+  if (type === "credit_card") {
+    if (raw.creditLimit === undefined && existing.creditLimit != null) {
+      raw.creditLimit = Number(existing.creditLimit);
+    }
+    if (raw.billingDay === undefined && existing.billingDay != null) {
+      raw.billingDay = Number(existing.billingDay);
+    }
+  }
+
+  return raw;
+}
+
+/** Build a partial update — never wipe sensitive fields unless type changed or user supplied a replacement. */
+function buildAccountUpdateDoc(
+  normalized: Record<string, unknown>,
+  existingType: PaymentAccountType,
+  newType: PaymentAccountType,
+  openingBalance: number,
+  isDefault: boolean
+): Record<string, unknown> {
+  const typeChanged = existingType !== newType;
+  const update: Record<string, unknown> = {
+    name: normalized.name,
+    type: newType,
+    institution: normalized.institution ?? "",
+    holderName: normalized.holderName ?? "",
+    isDefault,
+    currentBalance: openingBalance,
+    notes: normalized.notes ?? "",
+  };
+
+  if (newType === "bank") {
+    update.ifscCode = normalized.ifscCode ?? "";
+    if (normalized.accountSubtype) update.accountSubtype = normalized.accountSubtype;
+    if (normalized.accountNumber) {
+      update.accountNumber = normalized.accountNumber;
+      update.lastFour = normalized.lastFour;
+    }
+    if (typeChanged) {
+      update.cardNumber = "";
+      update.expiryMonth = undefined;
+      update.expiryYear = undefined;
+      update.upiId = "";
+      update.creditLimit = undefined;
+      update.billingDay = undefined;
+    }
+    return update;
+  }
+
+  if (isCardType(newType)) {
+    if (normalized.cardNumber) {
+      update.cardNumber = normalized.cardNumber;
+      update.lastFour = normalized.lastFour;
+    }
+    if (normalized.expiryMonth != null) update.expiryMonth = normalized.expiryMonth;
+    if (normalized.expiryYear != null) update.expiryYear = normalized.expiryYear;
+    if (typeChanged) {
+      update.accountNumber = "";
+      update.ifscCode = "";
+      update.accountSubtype = undefined;
+      update.upiId = "";
+    }
+    if (newType === "credit_card") {
+      if (normalized.creditLimit != null) update.creditLimit = normalized.creditLimit;
+      if (normalized.billingDay != null) update.billingDay = normalized.billingDay;
+    } else if (typeChanged) {
+      update.creditLimit = undefined;
+      update.billingDay = undefined;
+    }
+    return update;
+  }
+
+  if (newType === "wallet") {
+    update.upiId = normalized.upiId ?? "";
+    if (typeChanged) {
+      update.accountNumber = "";
+      update.ifscCode = "";
+      update.accountSubtype = undefined;
+      update.cardNumber = "";
+      update.expiryMonth = undefined;
+      update.expiryYear = undefined;
+      update.creditLimit = undefined;
+      update.billingDay = undefined;
+      update.holderName = "";
+    }
+    return update;
+  }
+
+  if (newType === "cash" && typeChanged) {
+    update.accountNumber = "";
+    update.ifscCode = "";
+    update.accountSubtype = undefined;
+    update.cardNumber = "";
+    update.expiryMonth = undefined;
+    update.expiryYear = undefined;
+    update.upiId = "";
+    update.creditLimit = undefined;
+    update.billingDay = undefined;
+    update.holderName = "";
+    update.institution = "";
+  }
+
+  return update;
 }
 
 function normalizeAccountPayload(data: {
@@ -172,18 +329,6 @@ export async function updateAccountAction(
   const accountId = formData.get("id") as string;
   if (!accountId) return { success: false, error: "Account ID required" };
 
-  const raw = parseAccountFormData(formData);
-  if (!raw.cardNumber) delete raw.cardNumber;
-  if (!raw.accountNumber) delete raw.accountNumber;
-
-  const parsed = paymentAccountUpdateSchema.safeParse(raw);
-
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message };
-  }
-
-  const { isDefault, openingBalance, ...data } = parsed.data;
-  const normalized = normalizeAccountPayload(data);
   const userId = userObjectId(session.userId);
 
   try {
@@ -196,6 +341,28 @@ export async function updateAccountAction(
 
       if (!existing) throw new Error("Account not found");
 
+      const raw = mergeAccountFormWithExisting(parseAccountFormData(formData), {
+        ...existing.toObject(),
+      });
+      if (!raw.cardNumber) delete raw.cardNumber;
+      if (!raw.accountNumber) delete raw.accountNumber;
+
+      const parsed = paymentAccountUpdateSchema.safeParse(raw);
+
+      if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message ?? "Invalid account data");
+      }
+
+      const { isDefault, openingBalance, ...data } = parsed.data;
+      const normalized = normalizeAccountPayload(data) as Record<string, unknown>;
+      const updateDoc = buildAccountUpdateDoc(
+        normalized,
+        existing.type as PaymentAccountType,
+        data.type as PaymentAccountType,
+        openingBalance,
+        isDefault ?? false
+      );
+
       if (isDefault) {
         await PaymentAccount.updateMany(
           { userId, isDefault: true, _id: { $ne: accountId } },
@@ -204,18 +371,11 @@ export async function updateAccountAction(
         );
       }
 
-      await PaymentAccount.findByIdAndUpdate(
-        accountId,
-        {
-          ...normalized,
-          isDefault: isDefault ?? false,
-          currentBalance: openingBalance,
-        },
-        { session: dbSession }
-      );
+      await PaymentAccount.findByIdAndUpdate(accountId, updateDoc, { session: dbSession });
     });
   } catch (error) {
-    return { success: false, error: transactionErrorMessage(error) };
+    const message = error instanceof Error ? error.message : transactionErrorMessage(error);
+    return { success: false, error: message };
   }
 
   revalidateLedger();

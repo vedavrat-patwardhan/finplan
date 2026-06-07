@@ -25,8 +25,13 @@ import {
 import { createAccountAction, updateAccountAction } from "@/actions/ledger";
 import { PAYMENT_ACCOUNT_TYPES, BANK_ACCOUNT_SUBTYPES } from "@/lib/finance/constants";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
-import { isCardType } from "@/lib/finance/account-details";
+import {
+  formatMaskedAccountFromLastFour,
+  formatMaskedCardFromLastFour,
+  isCardType,
+} from "@/lib/finance/account-details";
 import { BankCombobox } from "@/components/finance/bank-combobox";
+import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { Plus } from "lucide-react";
 
 const typeLabels: Record<string, string> = {
@@ -44,6 +49,66 @@ const typeHints: Record<string, string> = {
   cash: "Physical cash on hand",
   wallet: "PhonePe, GPay, Paytm, or other UPI wallets",
 };
+
+type FormValues = {
+  name: string;
+  holderName: string;
+  accountNumber: string;
+  cardNumber: string;
+  ifscCode: string;
+  upiId: string;
+  openingBalance: string;
+  creditLimit: string;
+  billingDay: string;
+  expiryMonth: string;
+  expiryYear: string;
+  isDefault: boolean;
+};
+
+function initialFormValues(account?: PaymentAccountDTO): FormValues {
+  return {
+    name: account?.name ?? "",
+    holderName: account?.holderName ?? "",
+    accountNumber: "",
+    cardNumber: "",
+    ifscCode: account?.ifscCode ?? "",
+    upiId: account?.upiId ?? "",
+    openingBalance: account != null ? String(account.currentBalance) : "0",
+    creditLimit: account?.creditLimit != null ? String(account.creditLimit) : "",
+    billingDay: account?.billingDay != null ? String(account.billingDay) : "",
+    expiryMonth: account?.expiryMonth != null ? String(account.expiryMonth) : "",
+    expiryYear: account?.expiryYear != null ? String(account.expiryYear) : "",
+    isDefault: account?.isDefault ?? false,
+  };
+}
+
+function StoredNumberBanner({
+  label,
+  masked,
+  hint,
+}: {
+  label: string;
+  masked: string;
+  hint: string;
+}) {
+  return (
+    <div
+      className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5"
+      aria-label={`${label} saved on file`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+          On file
+        </span>
+      </div>
+      <p className="mt-1.5 font-mono text-base tracking-wide">{masked}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+    </div>
+  );
+}
 
 interface AccountFormSheetProps {
   account?: PaymentAccountDTO;
@@ -63,6 +128,7 @@ export function AccountFormSheet({
   const [type, setType] = useState(account?.type ?? defaultType ?? "bank");
   const [accountSubtype, setAccountSubtype] = useState(account?.accountSubtype ?? "savings");
   const [institution, setInstitution] = useState(account?.institution ?? "");
+  const [formValues, setFormValues] = useState<FormValues>(() => initialFormValues(account));
 
   useEffect(() => {
     if (state.success) {
@@ -77,6 +143,7 @@ export function AccountFormSheet({
       setType(account?.type ?? defaultType ?? "bank");
       setAccountSubtype(account?.accountSubtype ?? "savings");
       setInstitution(account?.institution ?? "");
+      setFormValues(initialFormValues(account));
     }
   }, [open, account, defaultType]);
 
@@ -84,6 +151,61 @@ export function AccountFormSheet({
   const showCardFields = isCardType(type as PaymentAccountDTO["type"]);
   const showWalletFields = type === "wallet";
   const isCredit = type === "credit_card";
+  const hasFullAccountNumber = Boolean(account?.hasAccountNumber);
+  const hasFullCardNumber = Boolean(account?.hasCardNumber);
+  const hasStoredAccountNumber = hasFullAccountNumber || Boolean(account?.lastFour);
+  const hasStoredCardNumber = hasFullCardNumber || Boolean(account?.lastFour);
+
+  function patchForm(patch: Partial<FormValues>) {
+    setFormValues((prev) => ({ ...prev, ...patch }));
+  }
+
+  function buildFormData(): FormData {
+    const fd = new FormData();
+    if (isEdit && account) fd.set("id", account.id);
+    fd.set("type", type);
+    fd.set("name", formValues.name.trim());
+    fd.set("openingBalance", formValues.openingBalance);
+    if (formValues.isDefault) fd.set("isDefault", "on");
+
+    if (!showWalletFields && type !== "cash" && institution.trim()) {
+      fd.set("institution", institution.trim());
+    }
+
+    if (showBankFields) {
+      fd.set("accountSubtype", accountSubtype);
+      fd.set("holderName", formValues.holderName.trim());
+      fd.set("ifscCode", formValues.ifscCode.trim());
+      const accountNumber = formValues.accountNumber.trim();
+      if (accountNumber) fd.set("accountNumber", accountNumber);
+      else if (!isEdit) fd.set("accountNumber", "");
+    }
+
+    if (showCardFields) {
+      fd.set("holderName", formValues.holderName.trim());
+      fd.set("expiryMonth", formValues.expiryMonth);
+      fd.set("expiryYear", formValues.expiryYear);
+      const cardNumber = formValues.cardNumber.trim();
+      if (cardNumber) fd.set("cardNumber", cardNumber);
+      else if (!isEdit) fd.set("cardNumber", "");
+    }
+
+    if (showWalletFields) {
+      fd.set("upiId", formValues.upiId.trim());
+    }
+
+    if (isCredit) {
+      if (formValues.creditLimit.trim()) fd.set("creditLimit", formValues.creditLimit);
+      if (formValues.billingDay.trim()) fd.set("billingDay", formValues.billingDay);
+    }
+
+    return fd;
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    startTransition(() => formAction(buildFormData()));
+  }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -104,17 +226,7 @@ export function AccountFormSheet({
         </SheetHeader>
 
         {open ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              startTransition(() => formAction(new FormData(e.currentTarget)));
-            }}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            {isEdit && account ? <input type="hidden" name="id" value={account.id} /> : null}
-            <input type="hidden" name="type" value={type} />
-            <input type="hidden" name="accountSubtype" value={accountSubtype} />
-
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
               <div className="space-y-2">
                 <Label>What are you adding?</Label>
@@ -133,13 +245,13 @@ export function AccountFormSheet({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="acc-name">
+                <Label htmlFor={`acc-name-${account?.id ?? "new"}`}>
                   {showCardFields ? "Card label" : showWalletFields ? "Wallet name" : "Account name"}
                 </Label>
                 <Input
-                  id="acc-name"
-                  name="name"
-                  defaultValue={account?.name}
+                  id={`acc-name-${account?.id ?? "new"}`}
+                  value={formValues.name}
+                  onChange={(e) => patchForm({ name: e.target.value })}
                   placeholder={
                     showCardFields
                       ? "e.g. HDFC Regalia"
@@ -183,48 +295,73 @@ export function AccountFormSheet({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="acc-holder">Account holder name</Label>
+                    <Label htmlFor={`acc-holder-${account?.id ?? "new"}`}>Account holder name</Label>
                     <Input
-                      id="acc-holder"
-                      name="holderName"
-                      defaultValue={account?.holderName}
+                      id={`acc-holder-${account?.id ?? "new"}`}
+                      value={formValues.holderName}
+                      onChange={(e) => patchForm({ holderName: e.target.value })}
                       placeholder="Name as per bank records"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="acc-number">Account number</Label>
+                    <Label htmlFor={`acc-number-${account?.id ?? "new"}`}>Account number</Label>
+                    {isEdit && hasFullAccountNumber && account ? (
+                      <SensitiveField
+                        accountId={account.id}
+                        field="accountNumber"
+                        label="Saved account number"
+                        maskedDisplay={formatMaskedAccountFromLastFour(account.lastFour)}
+                      />
+                    ) : isEdit && hasStoredAccountNumber && account?.lastFour ? (
+                      <StoredNumberBanner
+                        label="Saved account number"
+                        masked={formatMaskedAccountFromLastFour(account.lastFour)}
+                        hint="Only the last 4 digits are on file. Enter the full number below to save it."
+                      />
+                    ) : null}
+                    {isEdit && hasStoredAccountNumber ? (
+                      <p className="text-xs text-muted-foreground">Replace account number (optional)</p>
+                    ) : null}
                     <Input
-                      id="acc-number"
-                      name="accountNumber"
+                      id={`acc-number-${account?.id ?? "new"}`}
+                      value={formValues.accountNumber}
+                      onChange={(e) =>
+                        patchForm({ accountNumber: e.target.value.replace(/\D/g, "") })
+                      }
                       inputMode="numeric"
                       autoComplete="off"
                       maxLength={18}
                       placeholder={
-                        isEdit && account?.hasAccountNumber
-                          ? "Leave blank to keep existing number"
+                        isEdit && hasStoredAccountNumber
+                          ? "Enter new number only if replacing"
                           : "9–18 digit account number"
                       }
-                      required={!isEdit}
+                      required={!isEdit && !hasStoredAccountNumber}
                       className="font-mono"
                     />
-                    <p className="text-xs text-muted-foreground">Digits only, 9 to 18 characters</p>
+                    {!isEdit || !hasStoredAccountNumber ? (
+                      <p className="text-xs text-muted-foreground">
+                        Digits only, 9 to 18 characters
+                      </p>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="acc-ifsc">IFSC code</Label>
+                    <Label htmlFor={`acc-ifsc-${account?.id ?? "new"}`}>IFSC code</Label>
                     <Input
-                      id="acc-ifsc"
-                      name="ifscCode"
-                      defaultValue={account?.ifscCode}
+                      id={`acc-ifsc-${account?.id ?? "new"}`}
+                      value={formValues.ifscCode}
+                      onChange={(e) =>
+                        patchForm({
+                          ifscCode: e.target.value.toUpperCase().replace(/\s/g, ""),
+                        })
+                      }
                       placeholder="e.g. HDFC0001234"
                       required
                       maxLength={11}
                       autoComplete="off"
                       spellCheck={false}
                       className="font-mono uppercase"
-                      onChange={(e) => {
-                        e.target.value = e.target.value.toUpperCase().replace(/\s/g, "");
-                      }}
                     />
                     <p className="text-xs text-muted-foreground">
                       11 characters: 4-letter bank code, 0, then branch code
@@ -236,55 +373,75 @@ export function AccountFormSheet({
               {showCardFields ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="card-holder">Name on card</Label>
+                    <Label htmlFor={`card-holder-${account?.id ?? "new"}`}>Name on card</Label>
                     <Input
-                      id="card-holder"
-                      name="holderName"
-                      defaultValue={account?.holderName}
+                      id={`card-holder-${account?.id ?? "new"}`}
+                      value={formValues.holderName}
+                      onChange={(e) => patchForm({ holderName: e.target.value })}
                       placeholder="As printed on card"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="card-number">Card number</Label>
+                    <Label htmlFor={`card-number-${account?.id ?? "new"}`}>Card number</Label>
+                    {isEdit && hasFullCardNumber && account ? (
+                      <SensitiveField
+                        accountId={account.id}
+                        field="cardNumber"
+                        label="Saved card number"
+                        maskedDisplay={formatMaskedCardFromLastFour(account.lastFour)}
+                      />
+                    ) : isEdit && hasStoredCardNumber && account?.lastFour ? (
+                      <StoredNumberBanner
+                        label="Saved card number"
+                        masked={formatMaskedCardFromLastFour(account.lastFour)}
+                        hint="Only the last 4 digits are on file. Enter the full number below to save it."
+                      />
+                    ) : null}
+                    {isEdit && hasStoredCardNumber ? (
+                      <p className="text-xs text-muted-foreground">Replace card number (optional)</p>
+                    ) : null}
                     <Input
-                      id="card-number"
-                      name="cardNumber"
+                      id={`card-number-${account?.id ?? "new"}`}
+                      value={formValues.cardNumber}
+                      onChange={(e) =>
+                        patchForm({ cardNumber: e.target.value.replace(/\D/g, "") })
+                      }
                       inputMode="numeric"
                       autoComplete="off"
                       maxLength={19}
                       placeholder={
-                        isEdit && account?.hasCardNumber
-                          ? "Leave blank to keep existing number"
+                        isEdit && hasStoredCardNumber
+                          ? "Enter new number only if replacing"
                           : "13–16 digit card number"
                       }
-                      required={!isEdit}
+                      required={!isEdit && !hasStoredCardNumber}
                       className="font-mono tracking-wider"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="exp-month">Expiry month</Label>
+                      <Label htmlFor={`exp-month-${account?.id ?? "new"}`}>Expiry month</Label>
                       <Input
-                        id="exp-month"
-                        name="expiryMonth"
+                        id={`exp-month-${account?.id ?? "new"}`}
                         type="number"
                         min={1}
                         max={12}
-                        defaultValue={account?.expiryMonth ?? ""}
+                        value={formValues.expiryMonth}
+                        onChange={(e) => patchForm({ expiryMonth: e.target.value })}
                         placeholder="MM"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="exp-year">Expiry year</Label>
+                      <Label htmlFor={`exp-year-${account?.id ?? "new"}`}>Expiry year</Label>
                       <Input
-                        id="exp-year"
-                        name="expiryYear"
+                        id={`exp-year-${account?.id ?? "new"}`}
                         type="number"
                         min={2020}
                         max={2100}
-                        defaultValue={account?.expiryYear ?? ""}
+                        value={formValues.expiryYear}
+                        onChange={(e) => patchForm({ expiryYear: e.target.value })}
                         placeholder="YYYY"
                         required
                       />
@@ -295,11 +452,11 @@ export function AccountFormSheet({
 
               {showWalletFields ? (
                 <div className="space-y-2">
-                  <Label htmlFor="upi-id">UPI ID</Label>
+                  <Label htmlFor={`upi-id-${account?.id ?? "new"}`}>UPI ID</Label>
                   <Input
-                    id="upi-id"
-                    name="upiId"
-                    defaultValue={account?.upiId}
+                    id={`upi-id-${account?.id ?? "new"}`}
+                    value={formValues.upiId}
+                    onChange={(e) => patchForm({ upiId: e.target.value })}
                     placeholder="e.g. name@okhdfcbank"
                     autoComplete="off"
                     required
@@ -311,7 +468,7 @@ export function AccountFormSheet({
               ) : null}
 
               <div className="space-y-2">
-                <Label htmlFor="acc-balance">
+                <Label htmlFor={`acc-balance-${account?.id ?? "new"}`}>
                   {isCredit
                     ? "Current outstanding (₹)"
                     : showCardFields
@@ -319,9 +476,9 @@ export function AccountFormSheet({
                       : "Current balance (₹)"}
                 </Label>
                 <MoneyInput
-                  id="acc-balance"
-                  name="openingBalance"
-                  defaultValue={account?.currentBalance ?? 0}
+                  id={`acc-balance-${account?.id ?? "new"}`}
+                  value={formValues.openingBalance}
+                  onChange={(e) => patchForm({ openingBalance: e.target.value })}
                   placeholder={
                     isCredit
                       ? "e.g. 15000.50 owed"
@@ -342,23 +499,23 @@ export function AccountFormSheet({
               {isCredit ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="acc-limit">Credit limit (₹)</Label>
+                    <Label htmlFor={`acc-limit-${account?.id ?? "new"}`}>Credit limit (₹)</Label>
                     <MoneyInput
-                      id="acc-limit"
-                      name="creditLimit"
-                      defaultValue={account?.creditLimit ?? ""}
+                      id={`acc-limit-${account?.id ?? "new"}`}
+                      value={formValues.creditLimit}
+                      onChange={(e) => patchForm({ creditLimit: e.target.value })}
                       placeholder="e.g. 200000"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="acc-billing">Statement day (1–31)</Label>
+                    <Label htmlFor={`acc-billing-${account?.id ?? "new"}`}>Statement day (1–31)</Label>
                     <Input
-                      id="acc-billing"
-                      name="billingDay"
+                      id={`acc-billing-${account?.id ?? "new"}`}
                       type="number"
                       min={1}
                       max={31}
-                      defaultValue={account?.billingDay ?? ""}
+                      value={formValues.billingDay}
+                      onChange={(e) => patchForm({ billingDay: e.target.value })}
                       placeholder="e.g. 15"
                     />
                   </div>
@@ -375,8 +532,8 @@ export function AccountFormSheet({
               <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
                 <input
                   type="checkbox"
-                  name="isDefault"
-                  defaultChecked={account?.isDefault}
+                  checked={formValues.isDefault}
+                  onChange={(e) => patchForm({ isDefault: e.target.checked })}
                   className="size-4 accent-primary"
                 />
                 <span className="text-sm">Default for new transactions</span>

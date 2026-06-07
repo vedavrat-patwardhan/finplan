@@ -43,7 +43,8 @@ export function BillForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        startTransition(() => formAction(new FormData(e.currentTarget)));
+        const fd = new FormData(e.currentTarget);
+        startTransition(() => formAction(fd));
       }}
       className="space-y-4 rounded-xl border border-border bg-muted/20 p-5"
     >
