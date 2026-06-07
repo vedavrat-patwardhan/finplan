@@ -27,11 +27,13 @@ async function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppShell userName={session.username}>
-      <Suspense fallback={<PageLoadingSkeleton />}>
-        <LedgerShell userId={session.userId}>{children}</LedgerShell>
-      </Suspense>
-    </AppShell>
+    <Suspense fallback={<AppLayoutFallback />}>
+      <LedgerShell userId={session.userId}>
+        <AppShell userName={session.username}>
+          <Suspense fallback={<PageLoadingSkeleton />}>{children}</Suspense>
+        </AppShell>
+      </LedgerShell>
+    </Suspense>
   );
 }
 
