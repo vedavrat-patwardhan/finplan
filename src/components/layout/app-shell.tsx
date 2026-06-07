@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { logoutAction } from "@/actions/auth";
 import { QuickAddNavButton } from "@/components/ledger/quick-add-button";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -58,6 +59,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      prefetch={true}
       onClick={onClick}
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
@@ -84,6 +86,7 @@ function MobileBottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-end border-t border-border bg-background/95 pb-safe backdrop-blur md:hidden">
       <Link
         href="/dashboard"
+        prefetch={true}
         className={cn(
           "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           pathname === "/dashboard" || pathname.startsWith("/dashboard/")
@@ -97,6 +100,7 @@ function MobileBottomNav() {
 
       <Link
         href="/transactions"
+        prefetch={true}
         className={cn(
           "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           pathname === "/transactions" || pathname.startsWith("/transactions/")
@@ -112,6 +116,7 @@ function MobileBottomNav() {
 
       <Link
         href="/accounts"
+        prefetch={true}
         className={cn(
           "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
           accountsActive ? "text-primary" : "text-muted-foreground"
@@ -148,6 +153,7 @@ function MobileBottomNav() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className={cn(
                     "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm",
                     active
@@ -171,7 +177,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-sidebar-border px-5 py-6">
-        <Link href="/dashboard" className="block" onClick={onNavigate}>
+        <Link href="/dashboard" prefetch={true} className="block" onClick={onNavigate}>
           <p className="font-heading text-xl font-semibold tracking-tight">
             <span className="text-chart-1">Fin</span>
             <span className="text-sidebar-foreground">Plan</span>
@@ -236,6 +242,7 @@ export function AppShell({
         </header>
 
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
+        <InstallPrompt />
         <MobileBottomNav />
       </div>
     </div>

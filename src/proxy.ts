@@ -7,6 +7,21 @@ const COOKIE_NAME = "session";
 const publicRoutes = ["/", "/login", "/register"];
 const authRoutes = ["/login", "/register"];
 
+const appRoutePrefixes = [
+  "/dashboard",
+  "/transactions",
+  "/accounts",
+  "/documents",
+  "/income",
+  "/expenses",
+  "/investments",
+  "/insurance",
+  "/goals",
+  "/calculators",
+  "/cashflow",
+  "/settings",
+];
+
 function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-secret-change-me");
 }
@@ -34,16 +49,9 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname);
   const isAuthRoute = authRoutes.includes(pathname);
   const isOnboardingRoute = pathname.startsWith("/onboarding");
-  const isAppRoute =
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/income") ||
-    pathname.startsWith("/expenses") ||
-    pathname.startsWith("/investments") ||
-    pathname.startsWith("/insurance") ||
-    pathname.startsWith("/goals") ||
-    pathname.startsWith("/calculators") ||
-    pathname.startsWith("/cashflow") ||
-    pathname.startsWith("/settings");
+  const isAppRoute = appRoutePrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
   const isProtectedRoute = isAppRoute || isOnboardingRoute;
 
   if (isAuthRoute && isAuthenticated) {
@@ -75,6 +83,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|sw.js|manifest.webmanifest|icons|apple-touch-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
