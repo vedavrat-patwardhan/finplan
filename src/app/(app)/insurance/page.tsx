@@ -1,16 +1,18 @@
 import { getSession } from "@/lib/auth/session";
 import { getInsurancePolicies } from "@/lib/db/queries/finance";
-import { formatINR, formatDate } from "@/lib/format";
+import { formatINR, formatDate, formatInsuranceType, formatFrequency } from "@/lib/format";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
-import { createInsuranceAction, deleteInsuranceAction } from "@/actions/finance";
-import { insuranceFormFields } from "@/lib/form-fields";
+import { isLifeInsuranceType } from "@/lib/finance/constants";
+import { deleteInsuranceAction } from "@/actions/finance";
 import {
-  ResourceFormSheet,
-  DeleteButton,
-} from "@/components/finance/resource-form-sheet";
+  InsuranceFormSheet,
+  type InsuranceListItem,
+} from "@/components/finance/insurance-form-sheet";
+import { DeleteButton } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
 import { ResourceBadge } from "@/components/finance/resource-row";
 import { PageShell, PageHeader, MetaStat, PageSection } from "@/components/layout/page-chrome";
+
 export default async function InsurancePage() {
   const session = await getSession();
   if (!session) return null;
@@ -33,13 +35,7 @@ export default async function InsurancePage() {
           />
         }
       >
-        <ResourceFormSheet
-          title="Add policy"
-          description="Track premium, coverage amount, and renewal date so nothing slips through."
-          triggerLabel="Add policy"
-          fields={insuranceFormFields}
-          action={createInsuranceAction}
-        />
+        <InsuranceFormSheet />
       </PageHeader>
 
       {items.length === 0 ? (
@@ -50,52 +46,87 @@ export default async function InsurancePage() {
       ) : (
         <PageSection>
           <div className="grid gap-4 sm:grid-cols-2">
-            {items.map((item) => (
-              <article
-                key={item.id}
-                className="flex flex-col rounded-xl border border-border bg-card p-5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    {item.provider ? (
-                      <p className="text-sm text-muted-foreground">{item.provider}</p>
-                    ) : null}
-                  </div>
-                  <ResourceBadge>{item.type.replace("_", " ")}</ResourceBadge>
-                </div>
+            {items.map((item) => {
+              const isLife = isLifeInsuranceType(item.type);
 
-                <div className="mt-4 grid flex-1 grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Premium</p>
-                    <p className="font-medium tabular-nums">{formatINR(item.premium)}</p>
+              return (
+                <article
+                  key={item.id}
+                  className="flex flex-col rounded-xl border border-border bg-card p-5"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      {item.provider ? (
+                        <p className="text-sm text-muted-foreground">{item.provider}</p>
+                      ) : null}
+                    </div>
+                    <ResourceBadge>{formatInsuranceType(item.type)}</ResourceBadge>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Coverage</p>
-                    <p className="font-medium tabular-nums">
-                      {formatINR(item.coverage, { compact: true })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Frequency</p>
-                    <p className="capitalize">{item.frequency.replace("_", " ")}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Renewal</p>
-                    <p>{item.renewalDate ? formatDate(item.renewalDate) : "—"}</p>
-                  </div>
-                </div>
 
-                <div className="mt-4 flex justify-end border-t border-border pt-3">
-                  <DeleteButton
-                    id={item.id}
-                    action={deleteInsuranceAction}
-                    itemName={item.name}
-                    label="Remove policy"
-                  />
-                </div>
-              </article>
-            ))}
+                  <div className="mt-4 grid flex-1 grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Premium</p>
+                      <p className="font-medium tabular-nums">{formatINR(item.premium)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Coverage</p>
+                      <p className="font-medium tabular-nums">
+                        {formatINR(item.coverage, { compact: true })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Frequency</p>
+                      <p>{formatFrequency(item.frequency)}</p>
+                    </div>
+
+                    {isLife ? (
+                      <>
+                        <div>
+                          <p className="text-muted-foreground">Started paying</p>
+                          <p>
+                            {item.premiumStartDate
+                              ? formatDate(item.premiumStartDate)
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Paying until</p>
+                          <p>
+                            {item.premiumEndDate
+                              ? formatDate(item.premiumEndDate)
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Valid until</p>
+                          <p>
+                            {item.validTill ? formatDate(item.validTill) : "—"}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        <p className="text-muted-foreground">Renewal</p>
+                        <p>
+                          {item.renewalDate ? formatDate(item.renewalDate) : "—"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-end gap-1 border-t border-border pt-3">
+                    <InsuranceFormSheet policy={item as InsuranceListItem} />
+                    <DeleteButton
+                      id={item.id}
+                      action={deleteInsuranceAction}
+                      itemName={item.name}
+                      label="Remove policy"
+                    />
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </PageSection>
       )}

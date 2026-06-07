@@ -4,13 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { LabeledSelect } from "@/components/ui/labeled-select";
 import { DOCUMENT_TYPES } from "@/lib/finance/constants";
 import {
   createDocumentAction,
@@ -86,18 +80,15 @@ export function DocumentUpload({
     <div className="rounded-xl border border-border bg-card p-5 space-y-4">
       <div className="space-y-2">
         <Label>Document type</Label>
-        <Select value={docType} onValueChange={(v) => v && setDocType(v)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            {DOCUMENT_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>
-                {typeLabels[t]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <LabeledSelect
+          value={docType}
+          onValueChange={setDocType}
+          options={DOCUMENT_TYPES.map((t) => ({
+            value: t,
+            label: typeLabels[t] ?? t,
+          }))}
+          placeholder="Select type"
+        />
       </div>
 
       <input

@@ -1,7 +1,11 @@
 import { getSession } from "@/lib/auth/session";
 import { getExpenses } from "@/lib/db/queries/finance";
-import { formatINR } from "@/lib/format";
-import { createExpenseAction, deleteExpenseAction } from "@/actions/finance";
+import { formatINR, formatEnumLabel, formatFrequency } from "@/lib/format";
+import {
+  createExpenseAction,
+  deleteExpenseAction,
+  updateExpenseAction,
+} from "@/actions/finance";
 import { expenseFormFields } from "@/lib/form-fields";
 import {
   ResourceFormSheet,
@@ -77,23 +81,42 @@ export default async function ExpensesPage({
               title={item.name}
               subtitle={
                 <span>
-                  {item.category} · {item.expenseClass} ·{" "}
+                  {item.category} · {formatEnumLabel(item.expenseClass)} ·{" "}
                   {item.isEssential ? "Essential" : "Optional"}
                 </span>
               }
               amount={formatINR(item.amount)}
               amountSub={
-                <span className="capitalize">
-                  {item.frequency.replace("_", " ")} ·{" "}
+                <span>
+                  {formatFrequency(item.frequency)} ·{" "}
                   {formatINR(calcMonthly(item.amount, item.frequency), { compact: true })}/mo
                 </span>
               }
               actions={
-                <DeleteButton
-                  id={item.id}
-                  action={deleteExpenseAction}
-                  itemName={item.name}
-                />
+                <div className="flex items-center gap-1">
+                  <ResourceFormSheet
+                    title="Edit expense budget"
+                    description="Update amount, category, or whether this is essential spending."
+                    triggerLabel="Edit"
+                    fields={expenseFormFields}
+                    action={createExpenseAction}
+                    updateAction={updateExpenseAction}
+                    itemId={item.id}
+                    defaultValues={{
+                      name: item.name,
+                      category: item.category,
+                      expenseClass: item.expenseClass,
+                      amount: String(item.amount),
+                      frequency: item.frequency,
+                      isEssential: String(item.isEssential),
+                    }}
+                  />
+                  <DeleteButton
+                    id={item.id}
+                    action={deleteExpenseAction}
+                    itemName={item.name}
+                  />
+                </div>
               }
             />
           ))}

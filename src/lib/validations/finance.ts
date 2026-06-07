@@ -85,6 +85,10 @@ export const expenseSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+export const expenseUpdateSchema = expenseSchema.extend({
+  id: z.string().min(1),
+});
+
 const optionalDayOfMonth = z.preprocess(
   (value) => (value === "" || value === undefined || value === null ? undefined : value),
   z.coerce.number().min(1).max(31).optional()
@@ -136,8 +140,15 @@ export const insuranceSchema = z.object({
   premium: z.coerce.number().min(0),
   frequency: z.enum(FREQUENCIES),
   coverage: z.coerce.number().min(0).optional(),
-  renewalDate: z.coerce.date().optional(),
+  renewalDate: optionalDateField,
+  premiumStartDate: optionalDateField,
+  premiumEndDate: optionalDateField,
+  validTill: optionalDateField,
   notes: z.string().max(500).optional(),
+});
+
+export const insuranceUpdateSchema = insuranceSchema.extend({
+  id: z.string().min(1),
 });
 
 export const goalSchema = z.object({

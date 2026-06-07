@@ -14,13 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { LabeledSelect } from "@/components/ui/labeled-select";
 import {
   Sheet,
   SheetContent,
@@ -43,6 +37,7 @@ import {
 } from "@/lib/finance/investment-metrics";
 import {
   formatDateInputValue,
+  formatFrequency,
   formatINR,
   formatInvestmentType,
   parseDateInputValue,
@@ -51,9 +46,6 @@ import { cn } from "@/lib/utils";
 import type { InvestmentListItem } from "@/components/finance/investment-card";
 
 const FIELD_CLASS = "h-8 w-full";
-
-const frequencyLabel = (value: string) =>
-  value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
 type FormValues = {
   name: string;
@@ -426,53 +418,37 @@ export function InvestmentFormSheet({
               <div className={cn("grid gap-4", !isLumpSum && "sm:grid-cols-2")}>
                 <div className="space-y-2">
                   <Label htmlFor="investment-type">Type</Label>
-                  <Select
+                  <LabeledSelect
+                    id="investment-type"
+                    className={FIELD_CLASS}
                     value={formValues.type}
-                    onValueChange={(value) => value && handleTypeChange(value)}
-                  >
-                    <SelectTrigger id="investment-type" className={FIELD_CLASS}>
-                      <span className="flex-1 truncate text-left">
-                        {formatInvestmentType(formValues.type)}
-                      </span>
-                      <SelectValue className="sr-only">
-                        {formatInvestmentType(formValues.type)}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INVESTMENT_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {formatInvestmentType(type)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onValueChange={handleTypeChange}
+                    options={INVESTMENT_TYPES.map((type) => ({
+                      value: type,
+                      label: formatInvestmentType(type),
+                    }))}
+                    placeholder="Select type"
+                  />
                 </div>
 
                 {!isLumpSum ? (
                   <div className="space-y-2">
                     <Label htmlFor="investment-frequency">Frequency</Label>
-                    <Select
+                    <LabeledSelect
+                      id="investment-frequency"
+                      className={FIELD_CLASS}
                       value={formValues.frequency}
                       onValueChange={(value) =>
-                        value && patchForm({ frequency: value as Frequency })
+                        patchForm({ frequency: value as Frequency })
                       }
-                    >
-                      <SelectTrigger id="investment-frequency" className={FIELD_CLASS}>
-                        <span className="flex-1 truncate text-left">
-                          {frequencyLabel(formValues.frequency)}
-                        </span>
-                        <SelectValue className="sr-only">
-                          {frequencyLabel(formValues.frequency)}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FREQUENCIES.filter((f) => f !== "one_time").map((frequency) => (
-                          <SelectItem key={frequency} value={frequency}>
-                            {frequencyLabel(frequency)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={FREQUENCIES.filter((f) => f !== "one_time").map(
+                        (frequency) => ({
+                          value: frequency,
+                          label: formatFrequency(frequency),
+                        })
+                      )}
+                      placeholder="Select frequency"
+                    />
                   </div>
                 ) : null}
               </div>

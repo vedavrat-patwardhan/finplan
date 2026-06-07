@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { getIncomeSources, getUserProfile } from "@/lib/db/queries/finance";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatIncomeType, formatFrequency } from "@/lib/format";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { createIncomeAction, deleteIncomeAction } from "@/actions/finance";
 import { incomeFormFields } from "@/lib/form-fields";
@@ -101,12 +101,12 @@ export default async function IncomePage() {
               <ResourceRow
                 key={item.id}
                 title={item.name}
-                badges={<ResourceBadge>{item.type.replace("_", " ")}</ResourceBadge>}
+                badges={<ResourceBadge>{formatIncomeType(item.type)}</ResourceBadge>}
                 subtitle={
                   <>
                     {item.notes ? <p>{item.notes}</p> : null}
-                    <p className="capitalize">
-                      {item.frequency.replace("_", " ")}
+                    <p>
+                      {formatFrequency(item.frequency)}
                       {item.type === "bonus" && !bonusSpreadMonthly ? " · paid separately" : null}
                     </p>
                   </>

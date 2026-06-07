@@ -11,6 +11,9 @@ const InsurancePolicySchema = new Schema(
     frequency: { type: String, enum: FREQUENCIES, required: true },
     coverage: { type: Number, default: 0, min: 0 },
     renewalDate: { type: Date },
+    premiumStartDate: { type: Date },
+    premiumEndDate: { type: Date },
+    validTill: { type: Date },
     notes: { type: String, default: "" },
   },
   { timestamps: true }
@@ -19,6 +22,10 @@ const InsurancePolicySchema = new Schema(
 export type IInsurancePolicy = InferSchemaType<typeof InsurancePolicySchema> & {
   _id: mongoose.Types.ObjectId;
 };
+
+if (process.env.NODE_ENV !== "production" && mongoose.models.InsurancePolicy) {
+  mongoose.deleteModel("InsurancePolicy");
+}
 
 export const InsurancePolicy: Model<IInsurancePolicy> =
   mongoose.models.InsurancePolicy ??

@@ -2,6 +2,7 @@ import { deleteInvestmentAction } from "@/actions/finance";
 import {
   formatDate,
   formatDeductionDay,
+  formatFrequency,
   formatINR,
   formatInvestmentType,
   formatPercent,
@@ -81,8 +82,8 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
               ) : isGrowthLumpSum ? (
                 <span>Lump sum · principal invested once</span>
               ) : (
-                <span className="capitalize">
-                  {item.frequency.replace("_", " ")} ·{" "}
+                <span>
+                  {formatFrequency(item.frequency)} ·{" "}
                   {formatINR(toMonthlyEquivalent(item.amount, item.frequency), {
                     compact: true,
                   })}

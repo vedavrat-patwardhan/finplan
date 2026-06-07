@@ -71,6 +71,12 @@ export type Frequency = (typeof FREQUENCIES)[number];
 export type IncomeType = (typeof INCOME_TYPES)[number];
 export type InvestmentType = (typeof INVESTMENT_TYPES)[number];
 export type InsuranceType = (typeof INSURANCE_TYPES)[number];
+
+export const LIFE_INSURANCE_TYPES = ["term_life", "ulip"] as const;
+
+export function isLifeInsuranceType(type: InsuranceType): boolean {
+  return (LIFE_INSURANCE_TYPES as readonly string[]).includes(type);
+}
 export type GoalType = (typeof GOAL_TYPES)[number];
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 

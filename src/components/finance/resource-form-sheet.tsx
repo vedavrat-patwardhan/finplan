@@ -15,13 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { LabeledSelect } from "@/components/ui/labeled-select";
 import {
   Sheet,
   SheetContent,
@@ -241,18 +235,13 @@ function SelectField({
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name}>{field.label}</Label>
-      <Select value={value} onValueChange={(val) => val && setValue(val)}>
-        <SelectTrigger id={field.name} className="w-full">
-          <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-        </SelectTrigger>
-        <SelectContent>
-          {field.options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <LabeledSelect
+        id={field.name}
+        value={value}
+        onValueChange={setValue}
+        options={field.options}
+        placeholder={`Select ${field.label.toLowerCase()}`}
+      />
       <input type="hidden" name={field.name} value={value} required={required} />
     </div>
   );

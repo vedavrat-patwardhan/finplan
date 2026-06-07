@@ -13,6 +13,8 @@ import {
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+const DEFAULT_TO_YEAR = 2150;
+
 interface DatePickerProps {
   id?: string;
   name?: string;
@@ -48,7 +50,7 @@ export function DatePicker({
   const selectedDate = parseDateInputValue(dateValue);
   const currentYear = new Date().getFullYear();
   const rangeStart = new Date(fromYear ?? currentYear - 35, 0, 1);
-  const rangeEnd = new Date(toYear ?? currentYear + 12, 11, 31);
+  const rangeEnd = new Date(toYear ?? DEFAULT_TO_YEAR, 11, 31);
 
   useEffect(() => {
     if (!isControlled) {

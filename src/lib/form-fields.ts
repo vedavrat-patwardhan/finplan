@@ -7,9 +7,7 @@ import {
   INSURANCE_TYPES,
   GOAL_TYPES,
 } from "@/lib/finance/constants";
-
-const label = (s: string) =>
-  s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+import { formatEnumLabel } from "@/lib/format";
 
 export const incomeFormFields = [
   {
@@ -22,7 +20,7 @@ export const incomeFormFields = [
     name: "type",
     label: "Type",
     type: "select" as const,
-    options: INCOME_TYPES.map((v) => ({ value: v, label: label(v) })),
+    options: INCOME_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "salary",
   },
   {
@@ -35,7 +33,7 @@ export const incomeFormFields = [
     name: "frequency",
     label: "Frequency",
     type: "select" as const,
-    options: FREQUENCIES.map((v) => ({ value: v, label: label(v) })),
+    options: FREQUENCIES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "monthly",
   },
   {
@@ -64,7 +62,7 @@ export const expenseFormFields = [
     name: "expenseClass",
     label: "Class",
     type: "select" as const,
-    options: EXPENSE_CLASSES.map((v) => ({ value: v, label: label(v) })),
+    options: EXPENSE_CLASSES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "fixed",
   },
   {
@@ -77,7 +75,7 @@ export const expenseFormFields = [
     name: "frequency",
     label: "Frequency",
     type: "select" as const,
-    options: FREQUENCIES.map((v) => ({ value: v, label: label(v) })),
+    options: FREQUENCIES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "monthly",
   },
   {
@@ -99,7 +97,7 @@ export const investmentFormFields = [
     name: "type",
     label: "Type",
     type: "select" as const,
-    options: INVESTMENT_TYPES.map((v) => ({ value: v, label: label(v) })),
+    options: INVESTMENT_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "sip",
   },
   {
@@ -112,7 +110,7 @@ export const investmentFormFields = [
     name: "frequency",
     label: "Frequency",
     type: "select" as const,
-    options: FREQUENCIES.map((v) => ({ value: v, label: label(v) })),
+    options: FREQUENCIES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "monthly",
   },
   {
@@ -176,7 +174,7 @@ export const insuranceFormFields = [
     name: "type",
     label: "Type",
     type: "select" as const,
-    options: INSURANCE_TYPES.map((v) => ({ value: v, label: label(v) })),
+    options: INSURANCE_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "term_life",
   },
   {
@@ -189,7 +187,7 @@ export const insuranceFormFields = [
     name: "frequency",
     label: "Frequency",
     type: "select" as const,
-    options: FREQUENCIES.map((v) => ({ value: v, label: label(v) })),
+    options: FREQUENCIES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "yearly",
   },
   {
@@ -217,7 +215,7 @@ export const goalFormFields = [
     name: "goalType",
     label: "Type",
     type: "select" as const,
-    options: GOAL_TYPES.map((v) => ({ value: v, label: label(v) })),
+    options: GOAL_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "custom",
   },
   {

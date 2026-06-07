@@ -128,6 +128,8 @@ export const getInvestments = cache(async (userId: string) => {
 });
 
 export const getInsurancePolicies = cache(async (userId: string) => {
+  const { connection } = await import("next/server");
+  await connection();
   await connectDB();
   const items = await InsurancePolicy.find({ userId: toObjectId(userId) })
     .sort({ renewalDate: 1 })
@@ -141,6 +143,9 @@ export const getInsurancePolicies = cache(async (userId: string) => {
     frequency: item.frequency as Frequency,
     coverage: item.coverage,
     renewalDate: item.renewalDate,
+    premiumStartDate: item.premiumStartDate,
+    premiumEndDate: item.premiumEndDate,
+    validTill: item.validTill,
     notes: item.notes,
   }));
 });

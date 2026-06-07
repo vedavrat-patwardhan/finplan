@@ -84,13 +84,34 @@ export function formatMonthYear(date: Date): string {
   }).format(date);
 }
 
+/** "term_life" → "Term Life", "half_yearly" → "Half Yearly" */
+export function formatEnumLabel(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function formatFrequency(frequency: string): string {
+  return formatEnumLabel(frequency);
+}
+
 /** "emergency_fund" → "Emergency fund", "emergency fund" → "Emergency fund" */
 export function formatInvestmentType(type: string): string {
   const labels: Record<string, string> = {
     lump_sum: "Lump sum",
     mutual_fund: "Mutual fund",
+    sip: "SIP",
+    ppf: "PPF",
+    nps: "NPS",
+    fd: "FD",
   };
-  return labels[type] ?? formatLabel(type);
+  return labels[type] ?? formatEnumLabel(type);
+}
+
+export function formatInsuranceType(type: string): string {
+  return formatEnumLabel(type);
+}
+
+export function formatIncomeType(type: string): string {
+  return formatEnumLabel(type);
 }
 
 export function formatLabel(value: string): string {

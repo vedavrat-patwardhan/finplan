@@ -16,9 +16,11 @@ import {
   profileSchema,
   incomeSchema,
   expenseSchema,
+  expenseUpdateSchema,
   investmentSchema,
   investmentUpdateSchema,
   insuranceSchema,
+  insuranceUpdateSchema,
   goalSchema,
   onboardingSchema,
 } from "@/lib/validations/finance";
@@ -215,6 +217,42 @@ export async function createExpenseAction(
   return { success: true };
 }
 
+export async function updateExpenseAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const parsed = expenseUpdateSchema.safeParse({
+    ...Object.fromEntries(formData),
+    isEssential: formData.get("isEssential") === "on" || formData.get("isEssential") === "true",
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message };
+  }
+
+  const { id, ...data } = parsed.data;
+
+  try {
+    const updated = await withTransaction(async (dbSession) =>
+      Expense.findOneAndUpdate(
+        { _id: id, userId: userObjectId(session.userId) },
+        { $set: data },
+        { session: dbSession, new: true }
+      )
+    );
+
+    if (!updated) {
+      return { success: false, error: "Expense not found" };
+    }
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  revalidateFinance();
+  return { success: true };
+}
+
 export async function deleteExpenseAction(id: string): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -348,6 +386,69 @@ export async function createInsuranceAction(
         { session: dbSession }
       );
     });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  revalidateFinance();
+  return { success: true };
+}
+
+export async function updateInsuranceAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const parsed = insuranceUpdateSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message };
+  }
+
+  const { id, ...data } = parsed.data;
+  const updateDoc: Record<string, unknown> = { ...data };
+  const unsetDoc: Record<string, ""> = {};
+  const dateFields = [
+    "renewalDate",
+    "premiumStartDate",
+    "premiumEndDate",
+    "validTill",
+  ] as const;
+
+  for (const key of dateFields) {
+    if (data[key] === undefined) {
+      delete updateDoc[key];
+      unsetDoc[key] = "";
+    }
+  }
+
+  if (data.type === "term_life" || data.type === "ulip") {
+    unsetDoc.renewalDate = "";
+    delete updateDoc.renewalDate;
+  } else {
+    unsetDoc.premiumStartDate = "";
+    unsetDoc.premiumEndDate = "";
+    unsetDoc.validTill = "";
+    delete updateDoc.premiumStartDate;
+    delete updateDoc.premiumEndDate;
+    delete updateDoc.validTill;
+  }
+
+  try {
+    const updated = await withTransaction(async (dbSession) =>
+      InsurancePolicy.findOneAndUpdate(
+        { _id: id, userId: userObjectId(session.userId) },
+        {
+          $set: updateDoc,
+          ...(Object.keys(unsetDoc).length ? { $unset: unsetDoc } : {}),
+        },
+        { session: dbSession, new: true }
+      )
+    );
+
+    if (!updated) {
+      return { success: false, error: "Policy not found" };
+    }
   } catch (error) {
     return { success: false, error: transactionErrorMessage(error) };
   }

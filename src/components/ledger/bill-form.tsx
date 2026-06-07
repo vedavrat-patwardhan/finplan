@@ -7,13 +7,7 @@ import { DatePickerField } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { LabeledSelect } from "@/components/ui/labeled-select";
 import { saveBillManualDataAction } from "@/actions/ledger";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 
@@ -56,19 +50,15 @@ export function BillForm({
         <div className="space-y-2">
           <Label>Linked card (optional)</Label>
           <input type="hidden" name="accountId" value={accountId} />
-          <Select value={accountId} onValueChange={(v) => v && setAccountId(v)}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select credit card" />
-            </SelectTrigger>
-            <SelectContent>
-              {cardAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                  {a.lastFour ? ` •••• ${a.lastFour}` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LabeledSelect
+            value={accountId}
+            onValueChange={setAccountId}
+            options={cardAccounts.map((a) => ({
+              value: a.id,
+              label: `${a.name}${a.lastFour ? ` •••• ${a.lastFour}` : ""}`,
+            }))}
+            placeholder="Select credit card"
+          />
         </div>
       ) : null}
 
