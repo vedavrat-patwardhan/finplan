@@ -1,13 +1,8 @@
 "use client";
 
 import type { ReactElement } from "react";
-import dynamic from "next/dynamic";
+import { ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-
-const ResponsiveContainer = dynamic(
-  () => import("recharts").then((m) => m.ResponsiveContainer),
-  { ssr: false }
-);
 
 const DEFAULT_INITIAL_DIMENSION = { width: 320, height: 256 } as const;
 

@@ -58,11 +58,41 @@ export function PageHeader({
   );
 }
 
-export function MetaStat({ label, value }: { label: string; value: string }) {
+const metaStatTones = {
+  default: "border-border/60 bg-muted/40",
+  positive: "border-success/25 bg-success/10",
+  accent: "border-chart-1/30 bg-chart-1/10",
+  info: "border-chart-4/30 bg-chart-4/10",
+} as const;
+
+export function MetaStat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: keyof typeof metaStatTones;
+}) {
   return (
-    <span className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-sm">
+    <span
+      className={cn(
+        "inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm",
+        metaStatTones[tone]
+      )}
+    >
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium tabular-nums text-foreground">{value}</span>
+      <span
+        className={cn(
+          "font-medium tabular-nums",
+          tone === "positive" && "text-success",
+          tone === "accent" && "text-chart-1",
+          tone === "info" && "text-chart-4",
+          tone === "default" && "text-foreground"
+        )}
+      >
+        {value}
+      </span>
     </span>
   );
 }
@@ -82,7 +112,9 @@ export function PageSection({
     <section className={cn("space-y-4", className)}>
       {title ? (
         <div>
-          <h2 className="font-heading text-lg font-semibold">{title}</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            <span className="border-l-[3px] border-chart-1 pl-3">{title}</span>
+          </h2>
           {description ? (
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           ) : null}
@@ -103,7 +135,7 @@ export function InsightPanel({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-muted/25 px-5 py-4 text-sm leading-relaxed",
+        "rounded-xl border border-chart-1/20 border-l-[3px] border-l-chart-1 bg-chart-1/5 px-5 py-4 text-sm leading-relaxed",
         className
       )}
     >

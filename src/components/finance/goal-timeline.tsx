@@ -14,6 +14,7 @@ import {
 import { formatDate, formatEnumLabel, formatINR } from "@/lib/format";
 import type { GoalFeasibility } from "@/lib/finance/engine";
 import type { ActionResult } from "@/actions/auth";
+import { chartColorAt } from "@/lib/finance/chart-colors";
 import type { GoalType } from "@/lib/finance/constants";
 
 export interface GoalTimelineItem extends GoalListItem {
@@ -63,8 +64,9 @@ export function GoalTimeline({
   }
 
   return (
-    <ol className="relative space-y-6 border-l border-border pl-6">
-      {goals.map((goal) => {
+    <ol className="relative space-y-6 border-l-2 border-chart-1/25 pl-6">
+      {goals.map((goal, goalIndex) => {
+        const accent = chartColorAt(goalIndex);
         const progress =
           goal.targetAmount > 0
             ? Math.min(100, (goal.currentSaved / goal.targetAmount) * 100)
@@ -81,11 +83,15 @@ export function GoalTimeline({
         return (
           <li key={goal.id} className="relative">
             <span
-              className="absolute -left-[calc(1.5rem+5px)] top-5 size-2.5 rounded-full border-2 border-background bg-primary"
+              className="absolute -left-[calc(1.5rem+6px)] top-5 size-3 rounded-full border-2 border-background"
+              style={{ backgroundColor: accent }}
               aria-hidden
             />
 
-            <article className="rounded-xl border border-border bg-card p-5">
+            <article
+              className="rounded-xl border border-border bg-card p-5"
+              style={{ borderLeftWidth: 3, borderLeftColor: accent }}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -158,8 +164,8 @@ export function GoalTimeline({
                       aria-valuetext={`${progress.toFixed(0)}% funded`}
                     >
                       <div
-                        className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-                        style={{ width: `${progress}%` }}
+                        className="h-full rounded-full transition-[width] duration-300 ease-out"
+                        style={{ width: `${progress}%`, backgroundColor: accent }}
                       />
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">

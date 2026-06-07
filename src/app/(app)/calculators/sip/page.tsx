@@ -21,6 +21,7 @@ export default async function SIPCalculatorPage() {
         defaults={{
           monthlyInvestment: prefill.totalSIP > 0 ? prefill.totalSIP : undefined,
           expectedReturn: 12,
+          monthlySurplus: prefill.monthlySurplus,
         }}
       />
     </PageShell>

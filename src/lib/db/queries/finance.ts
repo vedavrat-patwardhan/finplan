@@ -15,8 +15,14 @@ import {
   getUpcomingObligations,
   type UpcomingObligation,
 } from "@/lib/finance/engine";
+import { hasUpcomingInvestmentPayment } from "@/lib/finance/investment-metrics";
 import type { Frequency } from "@/lib/finance/constants";
-import { PORTFOLIO_CHART_COLORS } from "@/lib/finance/constants";
+import {
+  CASHFLOW_ALLOCATION_COLORS,
+  PORTFOLIO_CHART_COLORS,
+  chartColorAt,
+  withChartFill,
+} from "@/lib/finance/constants";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { calculateInvestmentMetrics } from "@/lib/finance/investment-metrics";
 
@@ -250,7 +256,17 @@ export const getUpcomingObligationsForUser = cache(
       getIncomeSources(userId),
     ]);
 
-    const items = [
+    const investmentItems = investments
+      .filter((i) => hasUpcomingInvestmentPayment(i))
+      .map((i) => ({
+        name: i.name,
+        amount: i.amount,
+        frequency: i.frequency,
+        dueDate: new Date(i.metrics.nextPaymentOn!),
+        type: "investment" as const,
+      }));
+
+    const otherItems = [
       ...insurance.map((i) => ({
         name: i.name,
         amount: i.premium,
@@ -266,15 +282,6 @@ export const getUpcomingObligationsForUser = cache(
           frequency: e.frequency,
           type: "expense" as const,
         })),
-      ...investments
-        .filter((i) => i.frequency !== "monthly" || i.deductionDay != null)
-        .map((i) => ({
-          name: i.name,
-          amount: i.amount,
-          frequency: i.frequency,
-          deductionDay: i.deductionDay,
-          type: "investment" as const,
-        })),
       ...income
         .filter((i) => i.type === "bonus")
         .map((i) => ({
@@ -285,7 +292,10 @@ export const getUpcomingObligationsForUser = cache(
         })),
     ];
 
-    return getUpcomingObligations(items);
+    return [
+      ...getUpcomingObligations(investmentItems, 31),
+      ...getUpcomingObligations(otherItems, 90),
+    ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   }
 );
 
@@ -362,43 +372,67 @@ export const getPortfolioChartData = cache(async (userId: string) => {
 
   const surplus = Math.max(0, snapshot.netSurplus);
 
-  const cashflowAllocation = [
-    { name: "Expenses", value: snapshot.fixedExpenses, color: PORTFOLIO_CHART_COLORS[1] },
-    { name: "Investments", value: snapshot.investments, color: PORTFOLIO_CHART_COLORS[2] },
-    { name: "Insurance", value: snapshot.insurance, color: PORTFOLIO_CHART_COLORS[3] },
-    { name: "Surplus", value: surplus, color: PORTFOLIO_CHART_COLORS[0] },
-  ].filter((d) => d.value > 0);
+  const cashflowAllocation = withChartFill(
+    [
+      {
+        name: "Expenses",
+        value: snapshot.fixedExpenses,
+        color: CASHFLOW_ALLOCATION_COLORS.Expenses,
+      },
+      {
+        name: "Investments",
+        value: snapshot.investments,
+        color: CASHFLOW_ALLOCATION_COLORS.Investments,
+      },
+      {
+        name: "Insurance",
+        value: snapshot.insurance,
+        color: CASHFLOW_ALLOCATION_COLORS.Insurance,
+      },
+      { name: "Surplus", value: surplus, color: CASHFLOW_ALLOCATION_COLORS.Surplus },
+    ].filter((d) => d.value > 0),
+    (item) => item.color
+  );
 
   const categoryMap = new Map<string, number>();
   for (const expense of expenses) {
     const monthly = toMonthlyEquivalent(expense.amount, expense.frequency);
     categoryMap.set(expense.category, (categoryMap.get(expense.category) ?? 0) + monthly);
   }
-  const expenseByCategory = Array.from(categoryMap.entries())
-    .map(([name, value], i) => ({
-      name,
-      value,
+  const expenseByCategory = withChartFill(
+    Array.from(categoryMap.entries())
+      .map(([name, value], i) => ({
+        name,
+        value,
+        color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
+      }))
+      .sort((a, b) => b.value - a.value)
+  );
+
+  const incomeBreakdown = withChartFill(
+    income.map((item, i) => ({
+      name: item.name,
+      value: toMonthlyEquivalent(item.amount, item.frequency, {
+        type: item.type,
+        bonusSpreadMonthly,
+      }),
       color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
     }))
-    .sort((a, b) => b.value - a.value);
-
-  const incomeBreakdown = income.map((item, i) => ({
-    name: item.name,
-    value: toMonthlyEquivalent(item.amount, item.frequency, {
-      type: item.type,
-      bonusSpreadMonthly,
-    }),
-    color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
-  }));
+  );
 
   const goalProgress = goals
     .filter((g) => g.status !== "completed" && g.targetAmount > 0)
-    .map((g, i) => ({
-      name: g.title.length > 12 ? `${g.title.slice(0, 12)}…` : g.title,
-      saved: g.currentSaved,
-      target: g.targetAmount,
-      color: PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length],
-    }));
+    .map((g, i) => {
+      const fill = PORTFOLIO_CHART_COLORS[i % PORTFOLIO_CHART_COLORS.length];
+      return {
+        name: g.title.length > 12 ? `${g.title.slice(0, 12)}…` : g.title,
+        saved: g.currentSaved,
+        target: g.targetAmount,
+        color: fill,
+        fill,
+        targetFill: chartColorAt(i + 3),
+      };
+    });
 
   return {
     cashflowAllocation,

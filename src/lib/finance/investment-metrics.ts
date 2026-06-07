@@ -30,6 +30,21 @@ export function isLumpSumInvestment(type: string): boolean {
   return type === "lump_sum";
 }
 
+/** Recurring investments that have a scheduled next payment. */
+export function hasUpcomingInvestmentPayment(item: {
+  type: string;
+  frequency: Frequency;
+  metrics: Pick<InvestmentMetrics, "nextPaymentOn" | "isLumpSumWithdrawal">;
+}): boolean {
+  if (item.frequency === "one_time") {
+    return false;
+  }
+  if (isLumpSumInvestment(item.type) && !item.metrics.isLumpSumWithdrawal) {
+    return false;
+  }
+  return item.metrics.nextPaymentOn != null;
+}
+
 export type LumpSumMode = "growth" | "withdrawal";
 
 export function resolveLumpSumMode(input: {
@@ -238,10 +253,15 @@ export function calculateInvestmentMetrics(
     if (override >= start && override <= asOf) {
       lastPaidOn = override;
       paymentCount = countPaymentsUpTo(start, override, input.frequency, input.deductionDay);
-      nextPaymentOn =
-        input.frequency === "one_time"
-          ? null
-          : addPaymentPeriod(override, input.frequency, input.deductionDay);
+      if (input.frequency !== "one_time") {
+        let next = addPaymentPeriod(override, input.frequency, input.deductionDay);
+        while (next <= asOf) {
+          next = addPaymentPeriod(next, input.frequency, input.deductionDay);
+        }
+        nextPaymentOn = next;
+      } else {
+        nextPaymentOn = null;
+      }
     }
   }
 

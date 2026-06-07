@@ -213,6 +213,108 @@ export function calculateEMI(
   );
 }
 
+export function calculateMaxLoanFromEMI(
+  emi: number,
+  annualRatePct: number,
+  tenureMonths: number
+): number {
+  if (emi <= 0 || tenureMonths <= 0) return 0;
+  const monthlyRate = annualRatePct / 100 / 12;
+  if (monthlyRate === 0) return emi * tenureMonths;
+
+  const factor = Math.pow(1 + monthlyRate, tenureMonths);
+  return (emi * (factor - 1)) / (monthlyRate * factor);
+}
+
+export function calculateRequiredSIP(
+  targetFutureValue: number,
+  annualReturnPct: number,
+  years: number,
+  stepUpPct = 0
+): number {
+  if (targetFutureValue <= 0 || years <= 0) return 0;
+
+  let low = 0;
+  let high = Math.max(targetFutureValue / (years * 12), 1);
+
+  while (calculateSIPFutureValue(high, annualReturnPct, years, stepUpPct) < targetFutureValue) {
+    high *= 2;
+    if (high > targetFutureValue * 10) break;
+  }
+
+  for (let i = 0; i < 64; i++) {
+    const mid = (low + high) / 2;
+    const fv = calculateSIPFutureValue(mid, annualReturnPct, years, stepUpPct);
+    if (fv < targetFutureValue) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  return high;
+}
+
+export function calculateAchievableGoalTarget(
+  monthlyBudget: number,
+  monthsRemaining: number,
+  inflationRate: number,
+  alreadySaved: number
+): { todayTarget: number; inflatedTarget: number } {
+  if (monthsRemaining <= 0) {
+    return { todayTarget: alreadySaved, inflatedTarget: alreadySaved };
+  }
+
+  const years = monthsRemaining / 12;
+  const inflatedTarget = alreadySaved + monthlyBudget * monthsRemaining;
+  const todayTarget = inflatedTarget / Math.pow(1 + inflationRate / 100, years);
+
+  return { todayTarget, inflatedTarget };
+}
+
+export function calculateAffordableRetirementLifestyle(
+  monthlySaveBudget: number,
+  yearsToRetire: number,
+  multiplier: number,
+  annualReturnPct = 0
+): { corpus: number; monthlyExpenses: number } {
+  const months = Math.max(1, yearsToRetire * 12);
+  const corpus =
+    annualReturnPct > 0
+      ? calculateSIPFutureValue(monthlySaveBudget, annualReturnPct, yearsToRetire)
+      : monthlySaveBudget * months;
+  const monthlyExpenses = corpus / multiplier / 12;
+
+  return { corpus, monthlyExpenses };
+}
+
+export function buildSurplusBudgetTiers<T>(
+  monthlySurplus: number,
+  tiers: ReadonlyArray<{
+    id: string;
+    label: string;
+    description: string;
+    utilizationPct: number;
+  }>,
+  compute: (monthlyBudget: number) => T
+): Array<{
+  id: string;
+  label: string;
+  description: string;
+  utilizationPct: number;
+  monthlyBudget: number;
+  result: T;
+}> {
+  return tiers.map((tier) => {
+    const monthlyBudget = Math.max(0, (monthlySurplus * tier.utilizationPct) / 100);
+    return {
+      ...tier,
+      monthlyBudget,
+      result: compute(monthlyBudget),
+    };
+  });
+}
+
 export function calculateRetirementCorpus(
   annualExpenses: number,
   multiplier = 25
@@ -275,6 +377,7 @@ export function getUpcomingObligations(
     amount: number;
     frequency: Frequency;
     renewalDate?: Date;
+    dueDate?: Date;
     deductionDay?: number;
     type: UpcomingObligation["type"];
   }>,
@@ -286,6 +389,20 @@ export function getUpcomingObligations(
   const obligations: UpcomingObligation[] = [];
 
   for (const item of items) {
+    if (item.dueDate) {
+      const dueDate = new Date(item.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      if (dueDate >= now && dueDate <= cutoff) {
+        obligations.push({
+          name: item.name,
+          amount: item.amount,
+          dueDate,
+          type: item.type,
+        });
+      }
+      continue;
+    }
+
     if (item.renewalDate) {
       const dueDate = new Date(item.renewalDate);
       dueDate.setHours(0, 0, 0, 0);
@@ -297,9 +414,10 @@ export function getUpcomingObligations(
           type: item.type,
         });
       }
+      continue;
     }
 
-    if (item.deductionDay) {
+    if (item.deductionDay && item.frequency === "monthly") {
       const dueDate = nextDeductionDate(item.deductionDay, now);
       if (dueDate <= cutoff) {
         obligations.push({

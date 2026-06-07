@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { getInvestments } from "@/lib/db/queries/finance";
 import { formatINR } from "@/lib/format";
-import { toMonthlyEquivalent } from "@/lib/finance/engine";
+import { sumMonthly } from "@/lib/finance/engine";
 import { EmptyState } from "@/components/finance/empty-state";
 import { InvestmentCard } from "@/components/finance/investment-card";
 import { InvestmentFormSheet } from "@/components/finance/investment-form-sheet";
@@ -12,9 +12,12 @@ export default async function InvestmentsPage() {
   if (!session) return null;
 
   const items = await getInvestments(session.userId);
-  const monthlyTotal = items.reduce(
-    (sum, i) => sum + toMonthlyEquivalent(i.amount, i.frequency),
-    0
+  const monthlyTotal = sumMonthly(
+    items.map((i) => ({
+      amount: i.amount,
+      frequency: i.frequency,
+      type: i.type,
+    }))
   );
   const totalInvested = items.reduce((sum, i) => sum + i.metrics.totalInvested, 0);
   const totalFundValue = items.reduce(
@@ -26,11 +29,11 @@ export default async function InvestmentsPage() {
     <PageShell>
       <PageHeader
         title="Investments"
-        description="SIPs, PPF, NPS, and other commitments that reduce your monthly surplus."
+        description="Monthly SIPs reduce surplus each month; quarterly and half-yearly payments appear in Upcoming obligations before they're due."
         meta={
           <>
             <MetaStat
-              label="Committed"
+              label="Monthly committed"
               value={`${formatINR(monthlyTotal, { compact: true })}/mo`}
             />
             <MetaStat

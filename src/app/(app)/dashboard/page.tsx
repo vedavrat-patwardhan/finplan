@@ -8,8 +8,10 @@ import {
 } from "@/lib/db/queries/finance";
 import { getLedgerSummary } from "@/lib/db/queries/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
+import { chartColorAt } from "@/lib/finance/chart-colors";
 import {
   PageShell,
   PageHeader,
@@ -17,6 +19,13 @@ import {
   InsightPanel,
   MetaStat,
 } from "@/components/layout/page-chrome";
+
+const obligationTypeStyles: Record<string, string> = {
+  investment: "border-l-chart-1 bg-chart-1/5",
+  insurance: "border-l-chart-2 bg-chart-2/5",
+  expense: "border-l-chart-3 bg-chart-3/5",
+  income: "border-l-chart-6 bg-chart-6/5",
+};
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -54,10 +63,12 @@ export default async function DashboardPage() {
             <MetaStat
               label="Monthly surplus"
               value={formatINR(snapshot.netSurplus, { compact: profile?.useCompactNumbers })}
+              tone={snapshot.netSurplus >= 0 ? "positive" : "default"}
             />
             <MetaStat
               label="Savings rate"
               value={formatPercent(snapshot.savingsRate)}
+              tone="info"
             />
           </>
         }
@@ -84,7 +95,7 @@ export default async function DashboardPage() {
         title="Actual vs planned"
         description="What you logged in the ledger compared to expense budgets"
       >
-        <div className="rounded-xl border border-border bg-card px-5 py-4">
+        <div className="rounded-xl border border-border border-l-[3px] border-l-chart-4 bg-card px-5 py-4">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground tabular-nums">
               {formatINR(ledger.totalDebits, { compact: profile?.useCompactNumbers })}
@@ -125,7 +136,10 @@ export default async function DashboardPage() {
               </p>
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    budgetUsedPct > 90 ? "bg-chart-3" : budgetUsedPct > 70 ? "bg-chart-2" : "bg-chart-1"
+                  )}
                   style={{ width: `${budgetUsedPct}%` }}
                 />
               </div>
@@ -133,11 +147,17 @@ export default async function DashboardPage() {
           ) : null}
           {ledger.byCategory.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
-              {ledger.byCategory.slice(0, 5).map((item) => (
+              {ledger.byCategory.slice(0, 5).map((item, i) => (
                 <span
                   key={item.category}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-xs"
+                  style={{ backgroundColor: `${chartColorAt(i)}18` }}
                 >
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: chartColorAt(i) }}
+                    aria-hidden
+                  />
                   <span className="text-muted-foreground">{item.category}</span>
                   <span className="font-medium tabular-nums">
                     {formatINR(item.amount, { compact: true })}
@@ -185,17 +205,24 @@ export default async function DashboardPage() {
         />
       </PageSection>
 
-      <PageSection title="Upcoming obligations" description="Renewals and non-monthly items in the next 90 days">
+      <PageSection
+        title="Upcoming obligations"
+        description="SIP payments, renewals, and other items due in the next 31–90 days"
+      >
         {obligations.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nothing due soon — add insurance renewals or yearly expenses to track them here.
+            Nothing due soon — monthly SIPs and half-yearly investments appear here before
+            their next payment date.
           </p>
         ) : (
           <div className="list-stack">
             {obligations.map((item, i) => (
               <div
                 key={`${item.name}-${i}`}
-                className="flex items-center justify-between rounded-xl border border-border bg-muted/25 px-4 py-3"
+                className={cn(
+                  "flex items-center justify-between rounded-xl border border-border border-l-[3px] px-4 py-3",
+                  obligationTypeStyles[item.type] ?? "border-l-chart-5 bg-chart-5/5"
+                )}
               >
                 <div>
                   <p className="text-sm font-medium">{item.name}</p>

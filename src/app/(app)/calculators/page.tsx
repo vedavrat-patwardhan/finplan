@@ -10,22 +10,22 @@ const calculators = [
   {
     href: "/calculators/sip",
     title: "SIP & lumpsum",
-    description: "Project future value with step-up SIP and growth assumptions",
+    description: "Project growth or see corpus you can build from your surplus",
   },
   {
     href: "/calculators/emi",
     title: "EMI & home loan",
-    description: "Monthly EMI, total interest, and affordability against your surplus",
+    description: "Calculate EMI or find max loan budget at your interest rate & tenure",
   },
   {
     href: "/calculators/goal-planner",
     title: "Goal planner",
-    description: "Inflation-adjusted targets and required monthly savings",
+    description: "Required savings for a target, or achievable goals from your surplus",
   },
   {
     href: "/calculators/retirement",
     title: "Retirement & insurance",
-    description: "FIRE corpus estimate and term insurance gap",
+    description: "Corpus needed for FIRE, or lifestyle you can afford from surplus",
   },
 ];
 

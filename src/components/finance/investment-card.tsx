@@ -1,16 +1,25 @@
 import { deleteInvestmentAction } from "@/actions/finance";
 import {
   formatDate,
-  formatDeductionDay,
   formatFrequency,
   formatINR,
   formatInvestmentType,
   formatPercent,
 } from "@/lib/format";
-import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { isLumpSumInvestment } from "@/lib/finance/investment-metrics";
 import type { InvestmentMetrics } from "@/lib/finance/investment-metrics";
+import { chartColorAt } from "@/lib/finance/chart-colors";
 import type { Frequency } from "@/lib/finance/constants";
+
+const investmentTypeColorIndex: Record<string, number> = {
+  mutual_fund: 0,
+  sip: 1,
+  stocks: 5,
+  crypto: 4,
+  lump_sum: 3,
+  ppf: 6,
+  nps: 7,
+};
 import { InvestmentFormSheet } from "@/components/finance/investment-form-sheet";
 import { ResourceBadge } from "@/components/finance/resource-row";
 import { DeleteButton } from "@/components/finance/resource-form-sheet";
@@ -35,14 +44,66 @@ function formatPaymentDate(date: Date | null): string {
   return date ? formatDate(date) : "—";
 }
 
+function formatInvestmentSubtitle(item: InvestmentListItem): string {
+  const isLumpSum = isLumpSumInvestment(item.type);
+  const parts: string[] = [`Started ${formatDate(item.startDate)}`];
+
+  if (isLumpSum && item.monthlyWithdrawalPct != null) {
+    parts.push(`${formatPercent(item.monthlyWithdrawalPct)} withdrawn monthly`);
+  } else if (!isLumpSum) {
+    parts.push(formatFrequency(item.frequency));
+    if (item.metrics.lastPaidOn) {
+      parts.push(`Last paid ${formatDate(item.metrics.lastPaidOn)}`);
+    }
+    if (item.metrics.nextPaymentOn) {
+      parts.push(`Next ${formatDate(item.metrics.nextPaymentOn)}`);
+    }
+  }
+
+  if (
+    (isLumpSum && !item.monthlyWithdrawalPct && item.expectedReturnPct) ||
+    (!isLumpSum && item.expectedReturnPct)
+  ) {
+    parts.push(`${item.expectedReturnPct}% expected p.a.`);
+  }
+
+  return parts.join(" · ");
+}
+
+function formatInvestmentAmountSub(item: InvestmentListItem): string {
+  const isLumpSum = isLumpSumInvestment(item.type);
+  const { metrics } = item;
+
+  if (isLumpSum && metrics.isLumpSumWithdrawal) {
+    return metrics.monthlyWithdrawalAmount != null
+      ? `${formatINR(metrics.monthlyWithdrawalAmount)}/mo to bank`
+      : "Lump sum principal";
+  }
+
+  if (isLumpSum) {
+    return "Lump sum · principal invested once";
+  }
+
+  if (item.frequency === "monthly") {
+    return `${formatFrequency(item.frequency)} · ${formatINR(item.amount)}/mo`;
+  }
+
+  return `${formatFrequency(item.frequency)} · ${formatINR(item.amount)} per payment`;
+}
+
 export function InvestmentCard({ item }: { item: InvestmentListItem }) {
   const { metrics } = item;
   const isLumpSum = isLumpSumInvestment(item.type);
   const isWithdrawalLumpSum = isLumpSum && metrics.isLumpSumWithdrawal;
   const isGrowthLumpSum = isLumpSum && !metrics.isLumpSumWithdrawal;
 
+  const accent = chartColorAt(investmentTypeColorIndex[item.type] ?? 0);
+
   return (
-    <article className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5">
+    <article
+      className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5"
+      style={{ borderLeftWidth: 3, borderLeftColor: accent }}
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -50,22 +111,7 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
             <ResourceBadge>{formatInvestmentType(item.type)}</ResourceBadge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Started {formatDate(item.startDate)}
-            {isWithdrawalLumpSum && item.monthlyWithdrawalPct != null ? (
-              <span>
-                {" "}
-                · {formatPercent(item.monthlyWithdrawalPct)} withdrawn monthly
-              </span>
-            ) : null}
-            {isGrowthLumpSum && item.expectedReturnPct ? (
-              <span> · {item.expectedReturnPct}% expected p.a.</span>
-            ) : null}
-            {!isLumpSum && item.deductionDay ? (
-              <span> · Deducts on {formatDeductionDay(item.deductionDay)}</span>
-            ) : null}
-            {!isLumpSum && item.expectedReturnPct ? (
-              <span> · {item.expectedReturnPct}% expected p.a.</span>
-            ) : null}
+            {formatInvestmentSubtitle(item)}
           </p>
         </div>
 
@@ -73,23 +119,7 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
           <div className="text-right">
             <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
             <p className="text-xs text-muted-foreground">
-              {isWithdrawalLumpSum ? (
-                metrics.monthlyWithdrawalAmount != null ? (
-                  <span>{formatINR(metrics.monthlyWithdrawalAmount)}/mo to bank</span>
-                ) : (
-                  <span>Lump sum principal</span>
-                )
-              ) : isGrowthLumpSum ? (
-                <span>Lump sum · principal invested once</span>
-              ) : (
-                <span>
-                  {formatFrequency(item.frequency)} ·{" "}
-                  {formatINR(toMonthlyEquivalent(item.amount, item.frequency), {
-                    compact: true,
-                  })}
-                  /mo
-                </span>
-              )}
+              {formatInvestmentAmountSub(item)}
             </p>
           </div>
           <div className="flex items-center">

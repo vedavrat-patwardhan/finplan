@@ -1,20 +1,20 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Pie,
+  PieChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartArea } from "@/components/ui/chart-area";
+import { ColoredBarRectangle, ColoredPieSector } from "@/components/finance/chart-shapes";
 import { formatINR } from "@/lib/format";
-import { PORTFOLIO_CHART_COLORS } from "@/lib/finance/constants";
-
-const PieChart = dynamic(() => import("recharts").then((m) => m.PieChart), { ssr: false });
-const Pie = dynamic(() => import("recharts").then((m) => m.Pie), { ssr: false });
-const Cell = dynamic(() => import("recharts").then((m) => m.Cell), { ssr: false });
-const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
-const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
-const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
-const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
-const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+import { chartColorAt, withChartFill } from "@/lib/finance/chart-colors";
 
 function ChartLegend({ items }: { items: Array<{ name: string; color: string }> }) {
   return (
@@ -34,10 +34,17 @@ function ChartLegend({ items }: { items: Array<{ name: string; color: string }> 
 }
 
 export interface PortfolioChartData {
-  cashflowAllocation: Array<{ name: string; value: number; color: string }>;
-  expenseByCategory: Array<{ name: string; value: number; color: string }>;
-  incomeBreakdown: Array<{ name: string; value: number; color: string }>;
-  goalProgress: Array<{ name: string; saved: number; target: number; color: string }>;
+  cashflowAllocation: Array<{ name: string; value: number; color: string; fill?: string }>;
+  expenseByCategory: Array<{ name: string; value: number; color: string; fill?: string }>;
+  incomeBreakdown: Array<{ name: string; value: number; color: string; fill?: string }>;
+  goalProgress: Array<{
+    name: string;
+    saved: number;
+    target: number;
+    color: string;
+    fill?: string;
+    targetFill?: string;
+  }>;
   snapshot: {
     grossIncome: number;
     netSurplus: number;
@@ -67,10 +74,18 @@ function ChartTooltip({
 export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
   const hasExpenses = data.expenseByCategory.length > 0;
   const hasGoals = data.goalProgress.length > 0;
+  const cashflowAllocation = withChartFill(data.cashflowAllocation);
+  const incomeBreakdown = withChartFill(data.incomeBreakdown);
+  const expenseByCategory = withChartFill(data.expenseByCategory);
+  const goalProgress = data.goalProgress.map((entry, i) => ({
+    ...entry,
+    fill: entry.fill ?? entry.color ?? chartColorAt(i),
+    targetFill: entry.targetFill ?? chartColorAt(i + 3),
+  }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card>
+      <Card className="overflow-hidden border-t-[3px] border-t-chart-1">
         <CardHeader>
           <CardTitle className="font-heading text-lg">Monthly allocation</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -78,13 +93,13 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
           </p>
         </CardHeader>
         <CardContent>
-          {data.cashflowAllocation.length === 1 ? (
+          {cashflowAllocation.length === 1 ? (
             <div className="flex h-64 flex-col items-center justify-center text-center">
               <p className="text-sm text-muted-foreground">
-                {data.cashflowAllocation[0].name}
+                {cashflowAllocation[0].name}
               </p>
               <p className="font-heading mt-1 text-3xl font-semibold tabular-nums">
-                {formatINR(data.cashflowAllocation[0].value, { compact: true })}
+                {formatINR(cashflowAllocation[0].value, { compact: true })}
               </p>
               <p className="mt-2 max-w-xs text-xs text-muted-foreground">
                 All in-hand income is currently unallocated — add expenses or investments to
@@ -96,7 +111,7 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
               <ChartArea>
                 <PieChart>
                   <Pie
-                    data={data.cashflowAllocation}
+                    data={cashflowAllocation}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -104,18 +119,16 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                     innerRadius={55}
                     outerRadius={90}
                     paddingAngle={2}
-                  >
-                    {data.cashflowAllocation.map((entry, i) => (
-                      <Cell key={entry.name} fill={entry.color || PORTFOLIO_CHART_COLORS[i % 8]} />
-                    ))}
-                  </Pie>
+                    stroke="#fff"
+                    shape={ColoredPieSector}
+                  />
                   <Tooltip content={<ChartTooltip />} />
                 </PieChart>
               </ChartArea>
               <ChartLegend
-                items={data.cashflowAllocation.map((entry, i) => ({
+                items={cashflowAllocation.map((entry) => ({
                   name: entry.name,
-                  color: entry.color || PORTFOLIO_CHART_COLORS[i % 8],
+                  color: entry.fill,
                 }))}
               />
             </>
@@ -123,38 +136,46 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden border-t-[3px] border-t-chart-6">
         <CardHeader>
           <CardTitle className="font-heading text-lg">Income sources</CardTitle>
           <p className="text-sm text-muted-foreground">In-hand amounts by source</p>
         </CardHeader>
         <CardContent>
-          {data.incomeBreakdown.length === 0 ? (
+          {incomeBreakdown.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">No income added yet</p>
           ) : (
-            <ChartArea>
-              <BarChart data={data.incomeBreakdown} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                <XAxis
-                  type="number"
-                  tickFormatter={(v) => formatINR(v, { compact: true })}
-                  tick={{ fontSize: 11 }}
-                />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
-                <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                  {data.incomeBreakdown.map((entry, i) => (
-                    <Cell key={entry.name} fill={entry.color || PORTFOLIO_CHART_COLORS[i % 8]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ChartArea>
+            <>
+              <ChartArea>
+                <BarChart data={incomeBreakdown} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
+                  <XAxis
+                    type="number"
+                    tickFormatter={(v) => formatINR(v, { compact: true })}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar
+                    dataKey="value"
+                    radius={[0, 4, 4, 0]}
+                    shape={ColoredBarRectangle}
+                  />
+                </BarChart>
+              </ChartArea>
+              <ChartLegend
+                items={incomeBreakdown.map((entry) => ({
+                  name: entry.name,
+                  color: entry.fill,
+                }))}
+              />
+            </>
           )}
         </CardContent>
       </Card>
 
       {hasExpenses && (
-        <Card>
+        <Card className="overflow-hidden border-t-[3px] border-t-chart-2">
           <CardHeader>
             <CardTitle className="font-heading text-lg">Expenses by category</CardTitle>
             <p className="text-sm text-muted-foreground">Monthly equivalent breakdown</p>
@@ -164,25 +185,23 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
               <ChartArea>
                 <PieChart>
                   <Pie
-                    data={data.expenseByCategory}
+                    data={expenseByCategory}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
                     paddingAngle={1}
-                  >
-                    {data.expenseByCategory.map((entry, i) => (
-                      <Cell key={entry.name} fill={entry.color || PORTFOLIO_CHART_COLORS[i % 8]} />
-                    ))}
-                  </Pie>
+                    stroke="#fff"
+                    shape={ColoredPieSector}
+                  />
                   <Tooltip content={<ChartTooltip />} />
                 </PieChart>
               </ChartArea>
               <ChartLegend
-                items={data.expenseByCategory.map((entry, i) => ({
+                items={expenseByCategory.map((entry) => ({
                   name: entry.name,
-                  color: entry.color || PORTFOLIO_CHART_COLORS[i % 8],
+                  color: entry.fill,
                 }))}
               />
             </>
@@ -191,7 +210,7 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
       )}
 
       {hasGoals && (
-        <Card>
+        <Card className="overflow-hidden border-t-[3px] border-t-chart-4">
           <CardHeader>
             <CardTitle className="font-heading text-lg">Goal funding progress</CardTitle>
             <p className="text-sm text-muted-foreground">Saved vs target for active goals</p>
@@ -199,19 +218,29 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
           <CardContent>
             <>
               <ChartArea>
-                <BarChart data={data.goalProgress} margin={{ bottom: 8 }}>
+                <BarChart data={goalProgress} margin={{ bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={60} />
                   <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} tick={{ fontSize: 11 }} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar dataKey="saved" name="Saved" fill="oklch(0.55 0.12 165)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="target" name="Target" fill="oklch(0.88 0.015 165)" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="saved"
+                    name="Saved"
+                    radius={[4, 4, 0, 0]}
+                    shape={ColoredBarRectangle}
+                  />
+                  <Bar
+                    dataKey="target"
+                    name="Target"
+                    radius={[4, 4, 0, 0]}
+                    shape={(props) => <ColoredBarRectangle {...props} fillKey="targetFill" />}
+                  />
                 </BarChart>
               </ChartArea>
               <ChartLegend
                 items={[
-                  { name: "Saved", color: "oklch(0.55 0.12 165)" },
-                  { name: "Target", color: "oklch(0.88 0.015 165)" },
+                  { name: "Saved", color: chartColorAt(0) },
+                  { name: "Target", color: chartColorAt(3) },
                 ]}
               />
             </>

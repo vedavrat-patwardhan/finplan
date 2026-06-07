@@ -21,6 +21,7 @@ export default async function RetirementCalculatorPage() {
         defaults={{
           monthlyExpenses: prefill.monthlyExpenses,
           monthlyIncome: prefill.monthlyIncome,
+          monthlySurplus: prefill.monthlySurplus,
           totalCoverage: prefill.totalCoverage,
           retirementMultiplier: prefill.retirementMultiplier,
         }}

@@ -121,6 +121,31 @@ export const DEFAULT_INFLATION_RATE = 6;
 export const DEFAULT_RETIREMENT_MULTIPLIER = 25;
 export const DEFAULT_INSURANCE_INCOME_MULTIPLIER = 12;
 
+/** Surplus allocation tiers for reverse (affordability) calculators — ideal → tight. */
+export const SURPLUS_UTILIZATION_TIERS = [
+  {
+    id: "ideal",
+    label: "Ideal",
+    description: "25% of surplus — comfortable headroom for other goals",
+    utilizationPct: 25,
+  },
+  {
+    id: "balanced",
+    label: "Balanced",
+    description: "35% of surplus — moderate stretch, still manageable",
+    utilizationPct: 35,
+  },
+  {
+    id: "tight",
+    label: "Tight budget",
+    description: "40% of surplus — maximum recommended allocation",
+    utilizationPct: 40,
+  },
+] as const;
+
+export type SurplusUtilizationTierId =
+  (typeof SURPLUS_UTILIZATION_TIERS)[number]["id"];
+
 export const DEFAULT_EXPENSE_TEMPLATES = [
   { name: "Rent / Home EMI", category: "Housing", expenseClass: "fixed", amount: 25000, frequency: "monthly", isEssential: true },
   { name: "Electricity & Water", category: "Utilities", expenseClass: "fixed", amount: 3000, frequency: "monthly", isEssential: true },
@@ -209,13 +234,11 @@ export const ONBOARDING_GOAL_OPTIONS = [
   },
 ] as const;
 
-export const PORTFOLIO_CHART_COLORS = [
-  "oklch(0.55 0.12 165)",
-  "oklch(0.62 0.14 145)",
-  "oklch(0.58 0.11 185)",
-  "oklch(0.68 0.12 130)",
-  "oklch(0.52 0.10 175)",
-  "oklch(0.72 0.09 155)",
-  "oklch(0.48 0.08 165)",
-  "oklch(0.65 0.13 140)",
-] as const;
+export {
+  CHART_PALETTE,
+  PORTFOLIO_CHART_COLORS,
+  CASHFLOW_ALLOCATION_COLORS,
+  CASHFLOW_WATERFALL_COLORS,
+  chartColorAt,
+  withChartFill,
+} from "./chart-colors";

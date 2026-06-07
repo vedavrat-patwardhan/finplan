@@ -62,11 +62,11 @@ function NavLink({
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+          ? "border-l-2 border-chart-1 bg-chart-1/10 font-medium text-chart-1"
+          : "border-l-2 border-transparent text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
       )}
     >
-      <Icon className="size-4 shrink-0" />
+      <Icon className={cn("size-4 shrink-0", active && "text-chart-1")} />
       {label}
     </Link>
   );
@@ -172,8 +172,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="border-b border-sidebar-border px-5 py-6">
         <Link href="/dashboard" className="block" onClick={onNavigate}>
-          <p className="font-heading text-xl font-semibold tracking-tight text-sidebar-foreground">
-            FinPlan
+          <p className="font-heading text-xl font-semibold tracking-tight">
+            <span className="text-chart-1">Fin</span>
+            <span className="text-sidebar-foreground">Plan</span>
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Plan with clarity
