@@ -34,6 +34,49 @@ export function formatDate(date: Date | string): string {
   }).format(d);
 }
 
+export function parseDateInputValue(value: string | undefined | null): Date | undefined {
+  if (!value) return undefined;
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    const day = Number(isoMatch[3]);
+    const parsed = new Date(year, month - 1, day);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+export function formatDateInputValue(date: Date | string | undefined | null): string {
+  if (!date) return "";
+
+  const d = typeof date === "string" ? parseDateInputValue(date) : date;
+  if (!d || Number.isNaN(d.getTime())) return "";
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function formatDeductionDay(day: number): string {
+  const mod100 = day % 100;
+  const suffix =
+    mod100 >= 11 && mod100 <= 13
+      ? "th"
+      : day % 10 === 1
+        ? "st"
+        : day % 10 === 2
+          ? "nd"
+          : day % 10 === 3
+            ? "rd"
+            : "th";
+  return `${day}${suffix} of each month`;
+}
+
 export function formatMonthYear(date: Date): string {
   return new Intl.DateTimeFormat("en-IN", {
     month: "long",
@@ -42,6 +85,14 @@ export function formatMonthYear(date: Date): string {
 }
 
 /** "emergency_fund" → "Emergency fund", "emergency fund" → "Emergency fund" */
+export function formatInvestmentType(type: string): string {
+  const labels: Record<string, string> = {
+    lump_sum: "Lump sum",
+    mutual_fund: "Mutual fund",
+  };
+  return labels[type] ?? formatLabel(type);
+}
+
 export function formatLabel(value: string): string {
   const words = value.replace(/_/g, " ").trim().split(/\s+/);
   if (words.length === 0) return value;

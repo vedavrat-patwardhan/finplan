@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DatePickerField } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
@@ -77,16 +78,15 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
             placeholder="e.g. 200000"
           />
         </div>
-        <div className="space-y-2">
-          <Label>Target date</Label>
-          <Input
-            type="date"
-            value={targetDate}
-            onChange={(e) =>
-              startTransition(() => setTargetDate(e.target.value))
-            }
-          />
-        </div>
+        <DatePickerField
+          id="goal-target-date"
+          label="Target date"
+          value={targetDate}
+          onChange={(value) => startTransition(() => setTargetDate(value))}
+          placeholder="Select target date"
+          required
+          fromYear={new Date().getFullYear()}
+        />
         <div className="space-y-2">
           <Label>Inflation (% p.a.)</Label>
           <Input

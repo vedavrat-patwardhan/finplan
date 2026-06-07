@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useRef, useState, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,7 +31,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import type { ActionResult } from "@/actions/auth";
 
 interface FieldOption {
@@ -48,6 +50,9 @@ interface ResourceFormSheetProps {
   triggerLabel: string;
   fields: FieldOption[];
   action: (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
+  updateAction?: (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
+  itemId?: string;
+  defaultValues?: Record<string, string>;
 }
 
 export function ResourceFormSheet({
@@ -56,26 +61,49 @@ export function ResourceFormSheet({
   triggerLabel,
   fields,
   action,
+  updateAction,
+  itemId,
+  defaultValues,
 }: ResourceFormSheetProps) {
+  const router = useRouter();
+  const isEdit = Boolean(itemId);
   const [open, setOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(action, {
+  const wasPending = useRef(false);
+  const submitAction = isEdit && updateAction ? updateAction : action;
+  const [state, formAction, pending] = useActionState(submitAction, {
     success: false,
   });
 
+  const resolvedFields = fields.map((field) => ({
+    ...field,
+    defaultValue: defaultValues?.[field.name] ?? field.defaultValue,
+  }));
+
   useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      toast.success("Changes saved");
+    if (wasPending.current && !pending) {
+      if (state.success) {
+        setOpen(false);
+        router.refresh();
+        toast.success(isEdit ? "Changes updated" : "Changes saved");
+      } else if (state.error) {
+        toast.error(state.error);
+      }
     }
-    if (state.error) {
-      toast.error(state.error);
-    }
-  }, [state.success, state.error]);
+    wasPending.current = pending;
+  }, [pending, state.success, state.error, isEdit, router]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button />}>
-        <Plus className="size-4" />
+      <SheetTrigger
+        render={
+          <Button
+            variant={isEdit ? "ghost" : "default"}
+            size={isEdit ? "sm" : "default"}
+            className={isEdit ? "min-h-11 px-3 text-muted-foreground" : undefined}
+          />
+        }
+      >
+        {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
         {triggerLabel}
       </SheetTrigger>
       <SheetContent
@@ -93,28 +121,31 @@ export function ResourceFormSheet({
         </SheetHeader>
 
         {open ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const fd = new FormData(e.currentTarget);
-            startTransition(() => {
-              formAction(fd);
-            });
-          }}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
-            {fields.map((field) => (
-              <Field key={field.name} field={field} />
-            ))}
-          </div>
+          <form
+            key={itemId ?? "new"}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              startTransition(() => {
+                formAction(fd);
+              });
+            }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {itemId ? <input type="hidden" name="id" value={itemId} /> : null}
 
-          <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
-            <Button type="submit" className="h-11 w-full" disabled={pending}>
-              {pending ? "Saving..." : "Save changes"}
-            </Button>
-          </SheetFooter>
-        </form>
+            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+              {resolvedFields.map((field) => (
+                <Field key={field.name} field={field} />
+              ))}
+            </div>
+
+            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+              <Button type="submit" className="h-11 w-full" disabled={pending}>
+                {pending ? "Saving..." : "Save changes"}
+              </Button>
+            </SheetFooter>
+          </form>
         ) : null}
       </SheetContent>
     </Sheet>
@@ -131,11 +162,31 @@ function fieldPlaceholder(field: FieldOption): string | undefined {
 
 function Field({ field }: { field: FieldOption }) {
   const isRequired =
-    field.required ?? (field.type !== "checkbox" && field.name !== "notes");
+    field.required !== false && field.type !== "checkbox" && field.name !== "notes";
 
   if (field.type === "select" && field.options) {
     return (
       <SelectField field={{ ...field, options: field.options }} required={isRequired} />
+    );
+  }
+
+  if (field.type === "date") {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={field.name}>
+          {field.label}
+          {!isRequired ? (
+            <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
+          ) : null}
+        </Label>
+        <DatePicker
+          id={field.name}
+          name={field.name}
+          defaultValue={field.defaultValue}
+          placeholder={fieldPlaceholder(field)}
+          required={isRequired}
+        />
+      </div>
     );
   }
 
@@ -218,6 +269,7 @@ export function DeleteButton({
   label?: string;
   itemName?: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -228,6 +280,7 @@ export function DeleteButton({
     if (result.success) {
       toast.success("Deleted");
       setOpen(false);
+      router.refresh();
     } else {
       toast.error(result.error ?? "Failed to delete");
     }

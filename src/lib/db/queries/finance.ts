@@ -18,6 +18,7 @@ import {
 import type { Frequency } from "@/lib/finance/constants";
 import { PORTFOLIO_CHART_COLORS } from "@/lib/finance/constants";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
+import { calculateInvestmentMetrics } from "@/lib/finance/investment-metrics";
 
 function toObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
@@ -92,16 +93,38 @@ export const getInvestments = cache(async (userId: string) => {
   const items = await Investment.find({ userId: toObjectId(userId) })
     .sort({ createdAt: -1 })
     .lean();
-  return items.map((item) => ({
-    id: item._id.toString(),
-    name: item.name,
-    type: item.type,
-    amount: item.amount,
-    frequency: item.frequency as Frequency,
-    expectedReturnPct: item.expectedReturnPct,
-    startDate: item.startDate,
-    notes: item.notes,
-  }));
+  return items.map((item) => {
+    const startDate = item.startDate ?? item.createdAt ?? new Date();
+    const absoluteReturnPct = item.absoluteReturnPct ?? undefined;
+    const lastPaidDate = item.lastPaidDate ?? undefined;
+    const monthlyWithdrawalPct = item.monthlyWithdrawalPct ?? undefined;
+    const metrics = calculateInvestmentMetrics({
+      amount: item.amount,
+      frequency: item.frequency as Frequency,
+      startDate: new Date(startDate),
+      investmentType: item.type,
+      deductionDay: item.deductionDay ?? undefined,
+      lastPaidDate: lastPaidDate ? new Date(lastPaidDate) : undefined,
+      absoluteReturnPct,
+      monthlyWithdrawalPct,
+    });
+
+    return {
+      id: item._id.toString(),
+      name: item.name,
+      type: item.type,
+      amount: item.amount,
+      frequency: item.frequency as Frequency,
+      expectedReturnPct: item.expectedReturnPct,
+      absoluteReturnPct,
+      monthlyWithdrawalPct,
+      startDate,
+      deductionDay: item.deductionDay ?? undefined,
+      lastPaidDate,
+      notes: item.notes,
+      metrics,
+    };
+  });
 });
 
 export const getInsurancePolicies = cache(async (userId: string) => {
@@ -229,11 +252,12 @@ export const getUpcomingObligationsForUser = cache(
           type: "expense" as const,
         })),
       ...investments
-        .filter((i) => i.frequency !== "monthly")
+        .filter((i) => i.frequency !== "monthly" || i.deductionDay != null)
         .map((i) => ({
           name: i.name,
           amount: i.amount,
           frequency: i.frequency,
+          deductionDay: i.deductionDay,
           type: "investment" as const,
         })),
       ...income

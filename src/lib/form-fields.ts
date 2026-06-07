@@ -116,11 +116,46 @@ export const investmentFormFields = [
     defaultValue: "monthly",
   },
   {
+    name: "startDate",
+    label: "Started on",
+    type: "date" as const,
+    required: false,
+    placeholder: "YYYY-MM-DD",
+  },
+  {
+    name: "deductionDay",
+    label: "SIP deduction day",
+    type: "number" as const,
+    required: false,
+    placeholder: "e.g. 5 (day of month)",
+  },
+  {
+    name: "lastPaidDate",
+    label: "Last paid on",
+    type: "date" as const,
+    required: false,
+    placeholder: "YYYY-MM-DD",
+  },
+  {
+    name: "absoluteReturnPct",
+    label: "Current absolute return (%)",
+    type: "number" as const,
+    required: false,
+    placeholder: "e.g. 18.5 (total gain since start)",
+  },
+  {
     name: "expectedReturnPct",
     label: "Expected return (% p.a.)",
     type: "number" as const,
     defaultValue: "12",
     placeholder: "e.g. 12",
+  },
+  {
+    name: "notes",
+    label: "Notes",
+    type: "text" as const,
+    required: false,
+    placeholder: "Optional context",
   },
 ];
 

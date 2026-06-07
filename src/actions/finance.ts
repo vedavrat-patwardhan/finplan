@@ -17,6 +17,7 @@ import {
   incomeSchema,
   expenseSchema,
   investmentSchema,
+  investmentUpdateSchema,
   insuranceSchema,
   goalSchema,
   onboardingSchema,
@@ -28,7 +29,71 @@ import {
 } from "@/lib/finance/constants";
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { addMonths } from "@/lib/format";
+import {
+  resolveAbsoluteReturnPct,
+  resolveLumpSumMode,
+} from "@/lib/finance/investment-metrics";
 import type { ActionResult } from "./auth";
+import type { z } from "zod";
+
+type InvestmentPayload = z.infer<typeof investmentSchema>;
+
+function normalizeInvestmentPayload(data: InvestmentPayload) {
+  const { currentValue: _currentValue, returnSource: _returnSource, ...rest } = data;
+
+  if (rest.type === "lump_sum") {
+    const lumpSumMode = resolveLumpSumMode({
+      monthlyWithdrawalPct: rest.monthlyWithdrawalPct,
+      absoluteReturnPct: rest.absoluteReturnPct,
+      lumpSumMode: data.lumpSumMode,
+    });
+
+    if (lumpSumMode === "withdrawal") {
+      return {
+        ...rest,
+        frequency: "one_time" as const,
+        absoluteReturnPct: undefined,
+        deductionDay: undefined,
+        lastPaidDate: undefined,
+      };
+    }
+
+    const absoluteReturnPct = resolveAbsoluteReturnPct({
+      amount: rest.amount,
+      frequency: "one_time",
+      startDate: rest.startDate,
+      absoluteReturnPct: rest.absoluteReturnPct,
+      currentValue: data.currentValue,
+      returnSource: data.returnSource,
+    });
+
+    return {
+      ...rest,
+      frequency: "one_time" as const,
+      absoluteReturnPct,
+      monthlyWithdrawalPct: undefined,
+      deductionDay: undefined,
+      lastPaidDate: undefined,
+    };
+  }
+
+  const absoluteReturnPct = resolveAbsoluteReturnPct({
+    amount: rest.amount,
+    frequency: rest.frequency,
+    startDate: rest.startDate,
+    deductionDay: rest.deductionDay,
+    lastPaidDate: rest.lastPaidDate,
+    absoluteReturnPct: rest.absoluteReturnPct,
+    currentValue: data.currentValue,
+    returnSource: data.returnSource,
+  });
+
+  return {
+    ...rest,
+    absoluteReturnPct,
+    monthlyWithdrawalPct: undefined,
+  };
+}
 
 function revalidateFinance() {
   revalidatePath("/dashboard");
@@ -179,13 +244,66 @@ export async function createInvestmentAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
+  const payload = normalizeInvestmentPayload(parsed.data);
+
   try {
     await withTransaction(async (dbSession) => {
       await Investment.create(
-        [{ ...parsed.data, userId: userObjectId(session.userId) }],
+        [{ ...payload, userId: userObjectId(session.userId) }],
         { session: dbSession }
       );
     });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  revalidateFinance();
+  return { success: true };
+}
+
+export async function updateInvestmentAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const parsed = investmentUpdateSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message };
+  }
+
+  const { id, ...data } = parsed.data;
+  const payload = normalizeInvestmentPayload(data);
+  const updateDoc: Record<string, unknown> = { ...payload };
+  const unsetDoc: Record<string, ""> = {};
+
+  for (const key of [
+    "deductionDay",
+    "absoluteReturnPct",
+    "lastPaidDate",
+    "monthlyWithdrawalPct",
+  ] as const) {
+    if (payload[key] === undefined) {
+      delete updateDoc[key];
+      unsetDoc[key] = "";
+    }
+  }
+
+  try {
+    const updated = await withTransaction(async (dbSession) =>
+      Investment.findOneAndUpdate(
+        { _id: id, userId: userObjectId(session.userId) },
+        {
+          $set: updateDoc,
+          ...(Object.keys(unsetDoc).length ? { $unset: unsetDoc } : {}),
+        },
+        { session: dbSession, new: true }
+      )
+    );
+
+    if (!updated) {
+      return { success: false, error: "Investment not found" };
+    }
   } catch (error) {
     return { success: false, error: transactionErrorMessage(error) };
   }

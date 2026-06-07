@@ -85,14 +85,48 @@ export const expenseSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+const optionalDayOfMonth = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().min(1).max(31).optional()
+);
+
+const optionalDateField = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.date().optional()
+);
+
+const optionalReturnPct = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().min(-100).max(10_000).optional()
+);
+
+const optionalMoney = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().min(0).optional()
+);
+
 export const investmentSchema = z.object({
   name: z.string().min(1).max(100),
   type: z.enum(INVESTMENT_TYPES),
   amount: z.coerce.number().min(0),
   frequency: z.enum(FREQUENCIES),
   expectedReturnPct: z.coerce.number().min(0).max(100),
-  startDate: z.coerce.date().optional(),
+  absoluteReturnPct: optionalReturnPct,
+  monthlyWithdrawalPct: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? undefined : value),
+    z.coerce.number().min(0).max(100).optional()
+  ),
+  lumpSumMode: z.enum(["growth", "withdrawal"]).optional(),
+  currentValue: optionalMoney,
+  returnSource: z.enum(["absoluteReturnPct", "currentValue"]).optional(),
+  startDate: optionalDateField,
+  deductionDay: optionalDayOfMonth,
+  lastPaidDate: optionalDateField,
   notes: z.string().max(500).optional(),
+});
+
+export const investmentUpdateSchema = investmentSchema.extend({
+  id: z.string().min(1),
 });
 
 export const insuranceSchema = z.object({

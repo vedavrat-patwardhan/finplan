@@ -3,6 +3,7 @@
 import { useActionState, useEffect, startTransition, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { DatePickerField } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
@@ -72,14 +73,18 @@ export function BillForm({
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="period-start">Period start</Label>
-          <Input id="period-start" name="periodStart" type="date" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="period-end">Period end</Label>
-          <Input id="period-end" name="periodEnd" type="date" />
-        </div>
+        <DatePickerField
+          id="period-start"
+          name="periodStart"
+          label="Period start"
+          placeholder="Select period start"
+        />
+        <DatePickerField
+          id="period-end"
+          name="periodEnd"
+          label="Period end"
+          placeholder="Select period end"
+        />
         <div className="space-y-2">
           <Label htmlFor="total-due">Total due (₹)</Label>
           <MoneyInput id="total-due" name="totalDue" placeholder="e.g. 45000" required />
@@ -88,9 +93,13 @@ export function BillForm({
           <Label htmlFor="min-due">Minimum due (₹)</Label>
           <MoneyInput id="min-due" name="minimumDue" placeholder="e.g. 5000" />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="due-date">Payment due date</Label>
-          <Input id="due-date" name="dueDate" type="date" />
+        <div className="sm:col-span-2">
+          <DatePickerField
+            id="due-date"
+            name="dueDate"
+            label="Payment due date"
+            placeholder="Select due date"
+          />
         </div>
       </div>
 

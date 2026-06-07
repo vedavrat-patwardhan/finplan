@@ -216,28 +216,71 @@ export function monthsUntil(date: Date): number {
   );
 }
 
+export function nextDeductionDate(dayOfMonth: number, from = new Date()): Date {
+  const clampedDay = Math.min(Math.max(dayOfMonth, 1), 31);
+  const candidate = new Date(from.getFullYear(), from.getMonth(), clampedDay);
+  candidate.setHours(0, 0, 0, 0);
+
+  const today = new Date(from);
+  today.setHours(0, 0, 0, 0);
+
+  if (candidate >= today) {
+    return candidate;
+  }
+
+  const nextMonth = new Date(from.getFullYear(), from.getMonth() + 1, 1);
+  const daysInNextMonth = new Date(
+    nextMonth.getFullYear(),
+    nextMonth.getMonth() + 1,
+    0
+  ).getDate();
+  return new Date(
+    nextMonth.getFullYear(),
+    nextMonth.getMonth(),
+    Math.min(clampedDay, daysInNextMonth)
+  );
+}
+
 export function getUpcomingObligations(
   items: Array<{
     name: string;
     amount: number;
     frequency: Frequency;
     renewalDate?: Date;
+    deductionDay?: number;
     type: UpcomingObligation["type"];
   }>,
   daysAhead = 90
 ): UpcomingObligation[] {
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
   const cutoff = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
   const obligations: UpcomingObligation[] = [];
 
   for (const item of items) {
-    if (item.renewalDate && item.renewalDate >= now && item.renewalDate <= cutoff) {
-      obligations.push({
-        name: item.name,
-        amount: item.amount,
-        dueDate: item.renewalDate,
-        type: item.type,
-      });
+    if (item.renewalDate) {
+      const dueDate = new Date(item.renewalDate);
+      dueDate.setHours(0, 0, 0, 0);
+      if (dueDate >= now && dueDate <= cutoff) {
+        obligations.push({
+          name: item.name,
+          amount: item.amount,
+          dueDate,
+          type: item.type,
+        });
+      }
+    }
+
+    if (item.deductionDay) {
+      const dueDate = nextDeductionDate(item.deductionDay, now);
+      if (dueDate <= cutoff) {
+        obligations.push({
+          name: item.name,
+          amount: item.amount,
+          dueDate,
+          type: item.type,
+        });
+      }
     }
   }
 
