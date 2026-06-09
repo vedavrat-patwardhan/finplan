@@ -298,6 +298,70 @@ export function fundValueFromAbsoluteReturn(
   return totalInvested * (1 + absoluteReturnPct / 100);
 }
 
+export interface PortfolioReturnSummary {
+  totalInvested: number;
+  totalFundValue: number;
+  gainAmount: number;
+  absoluteReturnPct: number;
+  /** Weighted average holding period in years across investments with data. */
+  averageHoldingYears: number;
+  /** Simple annualized return from absolute return and average holding period. */
+  annualizedReturnPct: number | null;
+  itemsWithReturns: number;
+  totalItems: number;
+}
+
+export function calculatePortfolioReturns(
+  items: Array<{
+    metrics: Pick<InvestmentMetrics, "totalInvested" | "fundValue" | "absoluteReturnPct">;
+    startDate: Date;
+  }>,
+  asOf = new Date()
+): PortfolioReturnSummary {
+  let totalInvested = 0;
+  let totalFundValue = 0;
+  let weightedYears = 0;
+  let weightSum = 0;
+  let itemsWithReturns = 0;
+
+  for (const item of items) {
+    const invested = item.metrics.totalInvested;
+    const fundValue = item.metrics.fundValue ?? invested;
+    totalInvested += invested;
+    totalFundValue += fundValue;
+
+    if (item.metrics.fundValue != null && invested > 0) {
+      itemsWithReturns += 1;
+      const yearsHeld = Math.max(
+        0.25,
+        (asOf.getTime() - new Date(item.startDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+      );
+      weightedYears += yearsHeld * invested;
+      weightSum += invested;
+    }
+  }
+
+  const gainAmount = totalFundValue - totalInvested;
+  const absoluteReturnPct =
+    totalInvested > 0 ? (gainAmount / totalInvested) * 100 : 0;
+  const averageHoldingYears = weightSum > 0 ? weightedYears / weightSum : 0;
+  const annualizedReturnPct =
+    averageHoldingYears > 0 && totalInvested > 0
+      ? (Math.pow(totalFundValue / totalInvested, 1 / averageHoldingYears) - 1) * 100
+      : null;
+
+  return {
+    totalInvested,
+    totalFundValue,
+    gainAmount,
+    absoluteReturnPct,
+    averageHoldingYears,
+    annualizedReturnPct,
+    itemsWithReturns,
+    totalItems: items.length,
+  };
+}
+
 export type ReturnInputSource = "absoluteReturnPct" | "currentValue";
 
 export function resolveAbsoluteReturnPct(input: {
