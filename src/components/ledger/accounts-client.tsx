@@ -48,13 +48,25 @@ const typeIcons: Record<PaymentAccountType, ComponentType<{ className?: string }
   wallet: Smartphone,
 };
 
-function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
+function CardWalletItem({
+  account,
+  monthlySpend = 0,
+}: {
+  account: PaymentAccountDTO;
+  monthlySpend?: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const isCredit = account.type === "credit_card";
   const limitUsedPct =
     isCredit && account.creditLimit
       ? Math.min(100, Math.round((account.currentBalance / account.creditLimit) * 100))
       : 0;
+  const spendTarget = account.monthlySpendTarget;
+  const spendUsedPct =
+    spendTarget && spendTarget > 0
+      ? Math.min(100, Math.round((monthlySpend / spendTarget) * 100))
+      : 0;
+  const overSpendTarget = spendTarget != null && spendTarget > 0 && monthlySpend > spendTarget;
 
   return (
     <article className="isolate overflow-hidden rounded-2xl border border-border bg-card">
@@ -90,6 +102,35 @@ function CardWalletItem({ account }: { account: PaymentAccountDTO }) {
               />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">{limitUsedPct}% of limit used</p>
+          </div>
+        ) : null}
+
+        {spendTarget != null && spendTarget > 0 ? (
+          <div>
+            <div className="flex items-baseline justify-between text-xs">
+              <span className="text-muted-foreground">Spend this month</span>
+              <span
+                className={cn(
+                  "font-medium tabular-nums",
+                  overSpendTarget ? "text-destructive" : "text-foreground"
+                )}
+              >
+                {formatINR(monthlySpend, { compact: true })}
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  / {formatINR(spendTarget, { compact: true })}
+                </span>
+              </span>
+            </div>
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all",
+                  overSpendTarget ? "bg-destructive" : spendUsedPct > 85 ? "bg-chart-3" : "bg-chart-1"
+                )}
+                style={{ width: `${spendUsedPct}%` }}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -354,7 +395,13 @@ function AccountSection({
   );
 }
 
-export function AccountsClient({ accounts }: { accounts: PaymentAccountDTO[] }) {
+export function AccountsClient({
+  accounts,
+  cardSpend = {},
+}: {
+  accounts: PaymentAccountDTO[];
+  cardSpend?: Record<string, number>;
+}) {
   const cards = accounts.filter((a) => isCardType(a.type));
   const banks = accounts.filter((a) => a.type === "bank");
   const others = accounts.filter((a) => a.type === "cash" || a.type === "wallet");
@@ -389,7 +436,13 @@ export function AccountsClient({ accounts }: { accounts: PaymentAccountDTO[] }) 
         ]}
         emptyMessage="No cards added yet. Add a debit or credit card to keep numbers handy."
       >
-        {(acc) => <CardWalletItem key={acc.id} account={acc} />}
+        {(acc) => (
+          <CardWalletItem
+            key={acc.id}
+            account={acc}
+            monthlySpend={cardSpend[acc.id] ?? 0}
+          />
+        )}
       </AccountSection>
 
       <AccountSection

@@ -68,6 +68,7 @@ type FormValues = {
   openingBalance: string;
   creditLimit: string;
   billingDay: string;
+  monthlySpendTarget: string;
   expiryMonth: string;
   expiryYear: string;
   cardCvv: string;
@@ -87,6 +88,8 @@ function initialFormValues(account?: PaymentAccountDTO): FormValues {
     openingBalance: account != null ? String(account.currentBalance) : "0",
     creditLimit: account?.creditLimit != null ? String(account.creditLimit) : "",
     billingDay: account?.billingDay != null ? String(account.billingDay) : "",
+    monthlySpendTarget:
+      account?.monthlySpendTarget != null ? String(account.monthlySpendTarget) : "",
     expiryMonth: account?.expiryMonth != null ? String(account.expiryMonth) : "",
     expiryYear: account?.expiryYear != null ? String(account.expiryYear) : "",
     cardCvv: "",
@@ -222,6 +225,10 @@ export function AccountFormSheet({
       if (formValues.creditLimit.trim()) fd.set("creditLimit", formValues.creditLimit);
       if (formValues.billingDay.trim()) fd.set("billingDay", formValues.billingDay);
       fd.set("cardCvv", cardCvvRef.current.replace(/\D/g, ""));
+    }
+
+    if (showCardFields && formValues.monthlySpendTarget.trim()) {
+      fd.set("monthlySpendTarget", formValues.monthlySpendTarget);
     }
 
     fd.set("notes", formValues.notes.trim());
@@ -619,6 +626,23 @@ export function AccountFormSheet({
                     />
                   </div>
                 </>
+              ) : null}
+
+              {showCardFields ? (
+                <div className="space-y-2">
+                  <Label htmlFor={`acc-spend-target-${account?.id ?? "new"}`}>
+                    Monthly spend target (₹)
+                  </Label>
+                  <MoneyInput
+                    id={`acc-spend-target-${account?.id ?? "new"}`}
+                    value={formValues.monthlySpendTarget}
+                    onChange={(e) => patchForm({ monthlySpendTarget: e.target.value })}
+                    placeholder="e.g. 30000"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional cap — compared to debits logged on this card in the ledger.
+                  </p>
+                </div>
               ) : null}
 
               {(showBankFields || showCardFields) && (

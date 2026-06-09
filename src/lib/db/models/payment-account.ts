@@ -27,6 +27,8 @@ const PaymentAccountSchema = new Schema(
     currency: { type: String, default: "INR" },
     creditLimit: { type: Number, min: 0 },
     billingDay: { type: Number, min: 1, max: 31 },
+    /** Monthly spending cap for debit/credit cards (tracked against ledger debits). */
+    monthlySpendTarget: { type: Number, min: 0 },
     isDefault: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     notes: { type: String, default: "" },

@@ -89,6 +89,7 @@ function parseAccountFormData(formData: FormData) {
     openingBalance: formData.get("openingBalance") ?? 0,
     creditLimit: formOptionalNumber(formData, "creditLimit"),
     billingDay: formOptionalNumber(formData, "billingDay"),
+    monthlySpendTarget: formOptionalNumber(formData, "monthlySpendTarget"),
     isDefault: formData.get("isDefault") === "on" || formData.get("isDefault") === "true",
     notes: formText(formData, "notes"),
   };
@@ -126,6 +127,9 @@ function mergeAccountFormWithExisting(
     }
     if (raw.expiryYear === undefined && existing.expiryYear != null) {
       raw.expiryYear = Number(existing.expiryYear);
+    }
+    if (raw.monthlySpendTarget === undefined && existing.monthlySpendTarget != null) {
+      raw.monthlySpendTarget = Number(existing.monthlySpendTarget);
     }
   }
 
@@ -187,6 +191,11 @@ function buildAccountUpdateDoc(
     }
     if (normalized.expiryMonth != null) update.expiryMonth = normalized.expiryMonth;
     if (normalized.expiryYear != null) update.expiryYear = normalized.expiryYear;
+    if (normalized.monthlySpendTarget != null) {
+      update.monthlySpendTarget = normalized.monthlySpendTarget;
+    } else if (typeChanged) {
+      update.monthlySpendTarget = undefined;
+    }
     if (typeChanged) {
       update.accountNumber = "";
       update.ifscCode = "";

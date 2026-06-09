@@ -35,6 +35,7 @@ export interface PaymentAccountDTO {
   currency: string;
   creditLimit?: number;
   billingDay?: number;
+  monthlySpendTarget?: number;
   isDefault: boolean;
   isActive: boolean;
   notes: string;
@@ -107,6 +108,7 @@ export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentA
     currency: a.currency ?? "INR",
     creditLimit: a.creditLimit ?? undefined,
     billingDay: a.billingDay ?? undefined,
+    monthlySpendTarget: a.monthlySpendTarget ?? undefined,
     isDefault: a.isDefault ?? false,
     isActive: a.isActive ?? true,
     notes: a.notes ?? "",
@@ -240,4 +242,44 @@ export async function getLedgerSummary(
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount),
   };
+}
+
+/** Debit totals per card account for the current (or given) month. */
+export async function getCardMonthlySpend(
+  userId: string,
+  month?: string
+): Promise<Record<string, number>> {
+  await connectDB();
+
+  const now = new Date();
+  const monthKey =
+    month ??
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [year, monthNum] = monthKey.split("-").map(Number);
+  const start = new Date(year, monthNum - 1, 1);
+  const end = new Date(year, monthNum, 1);
+
+  const [cards, transactions] = await Promise.all([
+    PaymentAccount.find({
+      userId: oid(userId),
+      isActive: true,
+      type: { $in: ["debit_card", "credit_card"] },
+    }).lean(),
+    LedgerTransaction.find({
+      userId: oid(userId),
+      type: "debit",
+      date: { $gte: start, $lt: end },
+    }).lean(),
+  ]);
+
+  const cardIds = new Set(cards.map((c) => c._id.toString()));
+  const spend: Record<string, number> = {};
+
+  for (const t of transactions) {
+    const accountId = t.accountId.toString();
+    if (!cardIds.has(accountId)) continue;
+    spend[accountId] = (spend[accountId] ?? 0) + t.amount;
+  }
+
+  return spend;
 }
