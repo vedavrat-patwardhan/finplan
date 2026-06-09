@@ -690,13 +690,10 @@ export async function completeOnboardingAction(
                 goalType: option.goalType,
                 status: option.status,
                 targetAmount: option.targetAmount,
-                targetDate:
-                  option.status === "completed"
-                    ? new Date()
-                    : addMonths(new Date(), option.monthsFromNow),
-                currentSaved: option.status === "completed" ? option.targetAmount : 0,
+                targetDate: addMonths(new Date(), option.monthsFromNow),
+                currentSaved: 0,
                 monthlyContribution: 0,
-                priority: option.status === "completed" ? -1 : 0,
+                priority: 0,
               },
             ],
             { session: dbSession }

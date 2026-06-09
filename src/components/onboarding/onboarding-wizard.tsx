@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { completeOnboardingAction } from "@/actions/finance";
 import {
   DEFAULT_EXPENSE_TEMPLATES,
@@ -17,7 +16,7 @@ import {
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
-import { CheckCircle2, Target } from "lucide-react";
+import { Target } from "lucide-react";
 
 const STEPS = ["Profile", "Income", "Expenses", "Investments", "Goals"] as const;
 
@@ -329,13 +328,11 @@ export function OnboardingWizard() {
             <CardHeader>
               <CardTitle className="font-heading">Your goals</CardTitle>
               <CardDescription>
-                Choose what you&apos;re planning or have already achieved. Nothing is selected by
-                default.
+                Choose milestones you&apos;re working toward. Nothing is selected by default.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {ONBOARDING_GOAL_OPTIONS.map((option) => {
-                const isCompleted = option.status === "completed";
                 const selected = selectedGoals.has(option.id);
                 return (
                   <label
@@ -362,22 +359,13 @@ export function OnboardingWizard() {
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          {isCompleted ? (
-                            <CheckCircle2 className="size-4 text-success" />
-                          ) : (
-                            <Target className="size-4 text-primary" />
-                          )}
+                          <Target className="size-4 text-primary" />
                           <p className="text-sm font-medium">{option.title}</p>
-                          {isCompleted && (
-                            <Badge variant="secondary" className="text-xs">
-                              Achieved
-                            </Badge>
-                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
-                    {!isCompleted && option.targetAmount > 0 && (
+                    {option.targetAmount > 0 && (
                       <span className="text-sm tabular-nums text-muted-foreground">
                         {formatINR(option.targetAmount, { compact: true })}
                       </span>
