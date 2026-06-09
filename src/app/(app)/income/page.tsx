@@ -55,22 +55,29 @@ export default async function IncomePage() {
         />
       </PageHeader>
 
-      {profile && (profile.annualInHandSalary > 0 || profile.annualInHandBonus > 0) ? (
-        <PageSection title="Annual package">
+      {profile && profile.monthlyTakeHome > 0 ? (
+        <PageSection title="Profile summary">
           <Card>
             <CardContent className="grid gap-4 pt-6 text-sm sm:grid-cols-3">
               <div>
-                <p className="text-muted-foreground">In-hand salary</p>
+                <p className="text-muted-foreground">Monthly in-hand salary</p>
                 <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(profile.annualInHandSalary, { compact: true })}/yr
+                  {formatINR(profile.monthlyTakeHome, { compact: true })}/mo
                 </p>
+                {profile.annualInHandSalary > 0 ? (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    ≈ {formatINR(profile.annualInHandSalary, { compact: true })}/yr
+                  </p>
+                ) : null}
               </div>
-              <div>
-                <p className="text-muted-foreground">In-hand bonus</p>
-                <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(profile.annualInHandBonus, { compact: true })}/yr
-                </p>
-              </div>
+              {profile.annualInHandBonus > 0 ? (
+                <div>
+                  <p className="text-muted-foreground">Annual bonus in-hand</p>
+                  <p className="mt-0.5 font-medium tabular-nums">
+                    {formatINR(profile.annualInHandBonus, { compact: true })}/yr
+                  </p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-muted-foreground">Tax regime</p>
                 <p className="mt-0.5 font-medium capitalize">

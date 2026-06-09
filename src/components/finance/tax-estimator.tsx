@@ -12,33 +12,36 @@ import {
 } from "@/lib/finance/tax";
 
 interface TaxEstimatorProps {
-  defaultSalary?: number;
+  defaultMonthlySalary?: number;
   defaultBonus?: number;
   defaultRegime?: TaxRegime;
   bonusSpreadMonthly?: boolean;
 }
 
 export function TaxEstimator({
-  defaultSalary = 1_700_000,
-  defaultBonus = 300_000,
+  defaultMonthlySalary = 0,
+  defaultBonus = 0,
   defaultRegime = "new",
   bonusSpreadMonthly = false,
 }: TaxEstimatorProps) {
-  const [annualSalary, setAnnualSalary] = useState(String(defaultSalary));
+  const [monthlySalary, setMonthlySalary] = useState(
+    String(defaultMonthlySalary > 0 ? defaultMonthlySalary : 0)
+  );
   const [annualBonus, setAnnualBonus] = useState(String(defaultBonus));
   const [regime, setRegime] = useState<TaxRegime>(defaultRegime);
 
-  const salaryNum = Number(annualSalary) || 0;
+  const salaryNum = Number(monthlySalary) || 0;
   const bonusNum = Number(annualBonus) || 0;
+  const annualSalaryNum = salaryNum * 12;
 
   const breakdown = useMemo(() => {
     if (salaryNum === 0 && bonusNum === 0) return null;
     return breakdownSalaryPackage({
-      annualInHandSalary: salaryNum,
+      annualInHandSalary: annualSalaryNum,
       annualInHandBonus: bonusNum,
       taxRegime: regime,
     });
-  }, [salaryNum, bonusNum, regime]);
+  }, [salaryNum, bonusNum, annualSalaryNum, regime]);
 
   const regimeCompare = useMemo(() => {
     if (!breakdown) return null;
@@ -56,12 +59,25 @@ export function TaxEstimator({
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Annual in-hand salary (₹)</Label>
-            <MoneyInput value={annualSalary} onChange={(e) => setAnnualSalary(e.target.value)} placeholder="e.g. 1700000" />
+            <Label>Monthly in-hand salary (₹)</Label>
+            <MoneyInput
+              value={monthlySalary}
+              onChange={(e) => setMonthlySalary(e.target.value)}
+              placeholder="e.g. 141667"
+            />
+            {salaryNum > 0 ? (
+              <p className="text-xs text-muted-foreground">
+                ≈ {formatINR(annualSalaryNum, { compact: true })}/yr in-hand
+              </p>
+            ) : null}
           </div>
           <div className="space-y-2">
-            <Label>Annual bonus in-hand (₹)</Label>
-            <MoneyInput value={annualBonus} onChange={(e) => setAnnualBonus(e.target.value)} placeholder="e.g. 300000" />
+            <Label>Annual bonus in-hand (₹, optional)</Label>
+            <MoneyInput
+              value={annualBonus}
+              onChange={(e) => setAnnualBonus(e.target.value)}
+              placeholder="e.g. 300000"
+            />
           </div>
         </div>
 

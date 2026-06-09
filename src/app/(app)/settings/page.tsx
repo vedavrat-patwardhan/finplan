@@ -29,7 +29,10 @@ export default async function SettingsPage() {
 
       <PageSection title="Tax estimate" description="Based on your in-hand salary and chosen regime">
         <TaxEstimator
-          defaultSalary={profile.annualInHandSalary || profile.monthlyTakeHome * 12}
+          defaultMonthlySalary={
+            profile.monthlyTakeHome ||
+            (profile.annualInHandSalary > 0 ? profile.annualInHandSalary / 12 : 0)
+          }
           defaultBonus={profile.annualInHandBonus}
           defaultRegime={profile.taxRegime}
           bonusSpreadMonthly={profile.bonusSpreadMonthly}

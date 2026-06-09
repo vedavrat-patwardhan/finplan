@@ -29,7 +29,7 @@ export function OnboardingWizard() {
   const [profile, setProfile] = useState({ name: "" });
   const [income, setIncome] = useState({
     skipIncome: false,
-    annualInHandSalary: "",
+    monthlyInHandSalary: "",
     annualInHandBonus: "",
     taxRegime: "new" as "new" | "old",
   });
@@ -37,22 +37,23 @@ export function OnboardingWizard() {
   const [selectedInvestments, setSelectedInvestments] = useState<Set<number>>(new Set());
   const [selectedGoals, setSelectedGoals] = useState<Set<string>>(new Set());
 
-  const annualSalary = Number(income.annualInHandSalary) || 0;
+  const monthlySalary = Number(income.monthlyInHandSalary) || 0;
+  const annualSalary = monthlySalary * 12;
   const annualBonus = Number(income.annualInHandBonus) || 0;
 
   const taxPreview = useMemo(() => {
-    if (income.skipIncome || (annualSalary === 0 && annualBonus === 0)) return null;
+    if (income.skipIncome || (monthlySalary === 0 && annualBonus === 0)) return null;
     return breakdownSalaryPackage({
       annualInHandSalary: annualSalary,
       annualInHandBonus: annualBonus,
       taxRegime: income.taxRegime,
     });
-  }, [annualSalary, annualBonus, income.taxRegime, income.skipIncome]);
+  }, [annualSalary, annualBonus, income.taxRegime, income.skipIncome, monthlySalary]);
 
   function canContinue() {
     if (step === 0) return profile.name.trim().length > 0;
     if (step === 1 && !income.skipIncome) {
-      return annualSalary > 0 || annualBonus > 0;
+      return monthlySalary > 0 || annualBonus > 0;
     }
     return true;
   }
@@ -128,9 +129,10 @@ export function OnboardingWizard() {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle className="font-heading">Annual package</CardTitle>
+              <CardTitle className="font-heading">Monthly income</CardTitle>
               <CardDescription>
-                Enter in-hand amounts (after TDS). Example: ₹17L salary + ₹3L bonus.
+                Enter in-hand amounts after TDS. Start with your monthly salary — annual figures
+                are calculated automatically.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -148,23 +150,23 @@ export function OnboardingWizard() {
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="annualSalary">Annual in-hand salary (₹)</Label>
+                      <Label htmlFor="monthlySalary">Monthly in-hand salary (₹)</Label>
                       <MoneyInput
-                        id="annualSalary"
-                        value={income.annualInHandSalary}
+                        id="monthlySalary"
+                        value={income.monthlyInHandSalary}
                         onChange={(e) =>
-                          setIncome((p) => ({ ...p, annualInHandSalary: e.target.value }))
+                          setIncome((p) => ({ ...p, monthlyInHandSalary: e.target.value }))
                         }
-                        placeholder="1700000"
+                        placeholder="141667"
                       />
-                      {annualSalary > 0 && (
+                      {monthlySalary > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          ≈ {formatINR(annualSalary / 12, { compact: true })}/month in-hand
+                          ≈ {formatINR(annualSalary, { compact: true })}/yr in-hand
                         </p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="annualBonus">Annual bonus in-hand (₹)</Label>
+                      <Label htmlFor="annualBonus">Annual bonus in-hand (₹, optional)</Label>
                       <MoneyInput
                         id="annualBonus"
                         value={income.annualInHandBonus}
@@ -173,7 +175,9 @@ export function OnboardingWizard() {
                         }
                         placeholder="300000"
                       />
-                      <p className="text-xs text-muted-foreground">After TDS, paid separately</p>
+                      <p className="text-xs text-muted-foreground">
+                        Paid separately once a year, after TDS
+                      </p>
                     </div>
                   </div>
 

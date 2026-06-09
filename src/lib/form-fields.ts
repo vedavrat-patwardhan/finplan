@@ -27,7 +27,7 @@ export const incomeFormFields = [
     name: "amount",
     label: "Amount (₹)",
     type: "number" as const,
-    placeholder: "e.g. 100000",
+    placeholder: "e.g. 100000 (monthly in-hand)",
   },
   {
     name: "frequency",
