@@ -23,6 +23,11 @@ const calculators = [
     description: "Required savings for a target, or achievable goals from your surplus",
   },
   {
+    href: "/calculators/temp-planner",
+    title: "Temp planner",
+    description: "Scratch-pad with custom A/B/C/D formulas — nothing saved to your plan",
+  },
+  {
     href: "/calculators/retirement",
     title: "Retirement & insurance",
     description: "Corpus needed for FIRE, or lifestyle you can afford from surplus",
