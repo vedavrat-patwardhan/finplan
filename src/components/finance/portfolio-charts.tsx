@@ -178,7 +178,7 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
         <Card className="overflow-hidden border-t-[3px] border-t-chart-2">
           <CardHeader>
             <CardTitle className="font-heading text-lg">Expenses by category</CardTitle>
-            <p className="text-sm text-muted-foreground">Monthly equivalent breakdown</p>
+            <p className="text-sm text-muted-foreground">Planned budget breakdown — edit in Expenses</p>
           </CardHeader>
           <CardContent>
             <>

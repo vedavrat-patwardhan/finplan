@@ -99,24 +99,33 @@ export default async function DashboardPage() {
 
       <InsightPanel>
         <p>
+          <span className="text-muted-foreground">Planned monthly cashflow: </span>
           <span className="font-medium text-foreground tabular-nums">
             {formatINR(snapshot.grossIncome, { compact: true })}
           </span>{" "}
-          in-hand income ·{" "}
+          income ·{" "}
           <span className="tabular-nums">
-            {formatINR(snapshot.totalOutflow, { compact: true })}
+            {formatINR(snapshot.fixedExpenses, { compact: true })}
           </span>{" "}
-          outflow ·{" "}
+          expense budgets ·{" "}
           <span className="tabular-nums">
-            {formatINR(snapshot.investments, { compact: true })}
+            {formatINR(snapshot.investments + snapshot.insurance, { compact: true })}
           </span>{" "}
-          invested
+          committed. Edit these in{" "}
+          <Link href="/expenses" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Expenses
+          </Link>{" "}
+          and{" "}
+          <Link href="/investments" className="font-medium text-foreground underline-offset-4 hover:underline">
+            Investments
+          </Link>
+          .
         </p>
       </InsightPanel>
 
       <PageSection
-        title="Actual vs planned"
-        description="What you logged in the ledger compared to expense budgets"
+        title="Ledger spending"
+        description="Actual amounts from transactions you logged — not your editable expense budgets"
       >
         <div className="rounded-xl border border-border border-l-[3px] border-l-chart-4 bg-card px-5 py-4">
           <p className="text-sm text-muted-foreground">
@@ -138,22 +147,23 @@ export default async function DashboardPage() {
               </>
             ) : null}
           </p>
-          {ledger.budgetMonthly > 0 ? (
+          {ledger.budgetMonthly > 0 && ledger.transactionCount > 0 ? (
             <>
               <p className="mt-2 text-sm text-muted-foreground">
-                Planned budget{" "}
+                Expense budget target{" "}
                 <span className="font-medium tabular-nums text-foreground">
                   {formatINR(ledger.budgetMonthly, { compact: profile?.useCompactNumbers })}
                 </span>
+                <span className="text-xs"> (editable plan, not logged spending)</span>
                 {budgetDelta >= 0 ? (
                   <span className="text-success">
                     {" "}
-                    · {formatINR(budgetDelta, { compact: true })} under
+                    · {formatINR(budgetDelta, { compact: true })} under budget
                   </span>
                 ) : (
                   <span className="text-destructive">
                     {" "}
-                    · {formatINR(Math.abs(budgetDelta), { compact: true })} over
+                    · {formatINR(Math.abs(budgetDelta), { compact: true })} over budget
                   </span>
                 )}
               </p>
@@ -167,6 +177,14 @@ export default async function DashboardPage() {
                 />
               </div>
             </>
+          ) : ledger.budgetMonthly > 0 && ledger.transactionCount === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              You have expense budgets totalling{" "}
+              <span className="font-medium tabular-nums text-foreground">
+                {formatINR(ledger.budgetMonthly, { compact: true })}
+              </span>
+              /mo — log transactions to compare actual spending against them.
+            </p>
           ) : null}
           {ledger.byCategory.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
