@@ -31,14 +31,34 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [{ profile, snapshot }, chartData, goals, obligations, ledger] =
+  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments] =
     await Promise.all([
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
       getGoalsWithFeasibility(session.userId),
       getUpcomingObligationsForUser(session.userId),
       getLedgerSummary(session.userId),
+      getInvestments(session.userId),
     ]);
+
+  const portfolioValue = investments.reduce(
+    (sum, i) => sum + (i.metrics.fundValue ?? i.metrics.totalInvested),
+    0
+  );
+  const totalInvested = investments.reduce((sum, i) => sum + i.metrics.totalInvested, 0);
+  const portfolioReturnPct =
+    totalInvested > 0 && portfolioValue > totalInvested
+      ? ((portfolioValue - totalInvested) / totalInvested) * 100
+      : investments.length > 0
+        ? investments.reduce((sum, i) => sum + i.expectedReturnPct, 0) / investments.length
+        : 12;
+
+  const futureProjection = generateFutureProjection({
+    monthlySurplus: snapshot.netSurplus,
+    monthlyInvestments: snapshot.investments,
+    currentPortfolioValue: portfolioValue,
+    portfolioReturnPct,
+  });
 
   const budgetDelta = ledger.budgetMonthly - ledger.totalDebits;
   const budgetUsedPct =
@@ -173,6 +193,13 @@ export default async function DashboardPage() {
             Open ledger →
           </Link>
         </div>
+      </PageSection>
+
+      <PageSection title="Future outlook" description="Where your plan could be in 12 months">
+        <FuturePredictionPanel
+          projection={futureProjection}
+          monthlySurplus={snapshot.netSurplus}
+        />
       </PageSection>
 
       <PortfolioChartsSection data={chartData} />

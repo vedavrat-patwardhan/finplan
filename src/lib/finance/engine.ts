@@ -496,3 +496,46 @@ export function generateEMIAmortization(
 
   return schedule;
 }
+
+export interface FutureProjectionPoint {
+  monthOffset: number;
+  label: string;
+  projectedSurplus: number;
+  projectedPortfolio: number;
+  cumulativeSurplus: number;
+}
+
+/** Project monthly surplus accumulation and portfolio growth over upcoming months. */
+export function generateFutureProjection(input: {
+  monthlySurplus: number;
+  monthlyInvestments: number;
+  currentPortfolioValue: number;
+  portfolioReturnPct?: number;
+  months?: number;
+}): FutureProjectionPoint[] {
+  const months = input.months ?? 12;
+  const monthlyReturn = (input.portfolioReturnPct ?? 12) / 100 / 12;
+  const now = new Date();
+  const points: FutureProjectionPoint[] = [];
+
+  let portfolio = input.currentPortfolioValue;
+  let cumulativeSurplus = 0;
+
+  for (let i = 1; i <= months; i++) {
+    portfolio = portfolio * (1 + monthlyReturn) + input.monthlyInvestments;
+    cumulativeSurplus += input.monthlySurplus;
+
+    const futureDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const label = futureDate.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+
+    points.push({
+      monthOffset: i,
+      label,
+      projectedSurplus: input.monthlySurplus,
+      projectedPortfolio: portfolio,
+      cumulativeSurplus,
+    });
+  }
+
+  return points;
+}
