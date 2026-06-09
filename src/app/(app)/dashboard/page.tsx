@@ -5,13 +5,16 @@ import {
   getGoalsWithFeasibility,
   getUpcomingObligationsForUser,
   getPortfolioChartData,
+  getInvestments,
 } from "@/lib/db/queries/finance";
 import { getLedgerSummary } from "@/lib/db/queries/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
+import { FuturePredictionPanel } from "@/components/finance/future-prediction-panel";
 import { chartColorAt } from "@/lib/finance/chart-colors";
+import { generateFutureProjection } from "@/lib/finance/engine";
 import {
   PageShell,
   PageHeader,
