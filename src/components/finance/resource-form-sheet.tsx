@@ -25,7 +25,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { ActionResult } from "@/actions/auth";
 
 interface FieldOption {
@@ -93,16 +93,21 @@ export function ResourceFormSheet({
           <Button
             variant={isEdit ? "ghost" : "default"}
             size={isEdit ? "sm" : "default"}
-            className={isEdit ? "min-h-11 px-3 text-muted-foreground" : undefined}
+            className={isEdit ? "min-h-11 px-2.5 text-muted-foreground md:px-3" : undefined}
+            aria-label={isEdit ? triggerLabel : undefined}
           />
         }
       >
-        {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
-        {triggerLabel}
+        {isEdit ? <Pencil className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
+        {isEdit ? (
+          <span className="hidden md:inline">{triggerLabel}</span>
+        ) : (
+          triggerLabel
+        )}
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:max-h-[88dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[88dvh]"
       >
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
@@ -281,10 +286,12 @@ export function DeleteButton({
         type="button"
         variant="ghost"
         size="sm"
-        className="min-h-11 px-3 text-muted-foreground hover:text-destructive"
+        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        aria-label={label}
         onClick={() => setOpen(true)}
       >
-        {label}
+        <Trash2 className="size-4 shrink-0" />
+        <span className="hidden md:inline">{label}</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

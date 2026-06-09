@@ -104,19 +104,29 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
       className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5"
       style={{ borderLeftWidth: 3, borderLeftColor: accent }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium">{item.name}</p>
-            <ResourceBadge>{formatInvestmentType(item.type)}</ResourceBadge>
+          <div className="flex items-start justify-between gap-3 sm:block">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium leading-snug">{item.name}</p>
+                <ResourceBadge>{formatInvestmentType(item.type)}</ResourceBadge>
+              </div>
+            </div>
+            <div className="shrink-0 text-right sm:hidden">
+              <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatInvestmentAmountSub(item)}
+              </p>
+            </div>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatInvestmentSubtitle(item)}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="text-right">
+        <div className="flex items-center justify-end gap-2 sm:gap-4">
+          <div className="hidden text-right sm:block">
             <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
             <p className="text-xs text-muted-foreground">
               {formatInvestmentAmountSub(item)}

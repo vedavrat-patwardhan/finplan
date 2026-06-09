@@ -195,7 +195,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border space-y-2 p-3">
+      <div className="sticky bottom-0 z-10 shrink-0 space-y-2 border-t border-sidebar-border bg-sidebar p-3">
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-xs text-muted-foreground">Appearance</span>
           <ThemeToggle />
@@ -235,7 +235,7 @@ export function AppShell({
               <Menu className="size-4" />
               <span className="sr-only">Open navigation</span>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
+            <SheetContent side="left" className="flex h-full w-72 flex-col p-0">
               <SidebarContent />
             </SheetContent>
           </Sheet>

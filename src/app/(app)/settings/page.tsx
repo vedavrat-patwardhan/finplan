@@ -1,12 +1,13 @@
 import { getSession } from "@/lib/auth/session";
 import { getUserProfile, getMonthlySnapshot } from "@/lib/db/queries/finance";
 import { ProfileForm } from "@/components/settings/profile-form";
+import { AccountSecurity } from "@/components/settings/account-security";
+import { SettingsFooter } from "@/components/settings/settings-footer";
 import { ExportButton } from "@/components/finance/export-button";
 import { TaxEstimator } from "@/components/finance/tax-estimator";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
 import { PageShell, PageHeader, PageSection } from "@/components/layout/page-chrome";
 import { Card, CardContent } from "@/components/ui/card";
-import { ThemeSelector } from "@/components/theme-toggle";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -20,24 +21,16 @@ export default async function SettingsPage() {
   if (!profile) return null;
 
   return (
-    <PageShell>
+    <PageShell className="pb-4">
       <PageHeader
         title="Settings"
-        description="Profile, tax assumptions, what-if scenarios, and data export."
+        description="Account, tax assumptions, what-if scenarios, and data export."
       >
         <ExportButton />
       </PageHeader>
 
-      <PageSection title="Appearance" description="Choose light, dark, or match your system">
-        <Card>
-          <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-md text-sm text-muted-foreground">
-              Dark mode uses the same calm sage-teal palette — tuned for evening planning, not a
-              trading-terminal look.
-            </p>
-            <ThemeSelector />
-          </CardContent>
-        </Card>
+      <PageSection title="Account" description="Sign-in email and password">
+        <AccountSecurity email={profile.email} />
       </PageSection>
 
       <PageSection title="Tax estimate" description="Based on your in-hand salary and chosen regime">
@@ -66,6 +59,8 @@ export default async function SettingsPage() {
       >
         <ScenarioModeler baseSurplus={snapshot.netSurplus} />
       </PageSection>
+
+      <SettingsFooter />
     </PageShell>
   );
 }

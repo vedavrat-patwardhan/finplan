@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Trash2 } from "lucide-react";
 import { deleteAccountAction } from "@/actions/ledger";
 
 export function DeleteAccountButton({ id, name }: { id: string; name: string }) {
@@ -35,10 +36,12 @@ export function DeleteAccountButton({ id, name }: { id: string; name: string }) 
         type="button"
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-destructive"
+        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        aria-label={`Delete ${name}`}
         onClick={() => setOpen(true)}
       >
-        Delete
+        <Trash2 className="size-4 shrink-0" />
+        <span className="hidden md:inline">Delete</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

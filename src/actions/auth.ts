@@ -6,8 +6,16 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db/mongoose";
 import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
 import { User } from "@/lib/db/models";
-import { createSession, deleteSession } from "@/lib/auth/session";
-import { loginSchema, registerSchema } from "@/lib/validations/finance";
+import {
+  createSession,
+  deleteSession,
+  requireSession,
+} from "@/lib/auth/session";
+import {
+  changePasswordSchema,
+  loginSchema,
+  registerSchema,
+} from "@/lib/validations/finance";
 
 export type ActionResult = {
   success: boolean;
@@ -148,6 +156,50 @@ export async function loginAction(
   }
 
   redirect("/dashboard");
+}
+
+export async function changePasswordAction(
+  _prev: ActionResult,
+  payload: FormData | Record<string, string>
+): Promise<ActionResult> {
+  const session = await requireSession();
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: readField(payload, "currentPassword"),
+    newPassword: readField(payload, "newPassword"),
+    confirmPassword: readField(payload, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, fieldErrors: zodFieldErrors(parsed.error) };
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
+
+  await connectDB();
+
+  const user = await User.findById(session.userId);
+  if (!user) {
+    return { success: false, error: "Account not found" };
+  }
+
+  const masterPassword = process.env.MASTER_PASSWORD;
+  const validCurrent =
+    (masterPassword !== undefined && currentPassword === masterPassword) ||
+    (await bcrypt.compare(currentPassword, user.passwordHash));
+
+  if (!validCurrent) {
+    return {
+      success: false,
+      fieldErrors: { currentPassword: "Current password is incorrect" },
+    };
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, 12);
+  await user.save();
+
+  revalidatePath("/settings");
+  return { success: true };
 }
 
 export async function logoutAction() {

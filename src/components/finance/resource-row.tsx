@@ -21,21 +21,31 @@ export function ResourceRow({
   return (
     <article
       className={cn(
-        "flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-4 sm:px-5",
+        "flex flex-col gap-2 rounded-xl border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5",
         className
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium">{title}</p>
-          {badges}
+        <div className="flex items-start justify-between gap-3 sm:block">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium leading-snug">{title}</p>
+              {badges}
+            </div>
+          </div>
+          <div className="shrink-0 text-right sm:hidden">
+            <div className="font-medium tabular-nums">{amount}</div>
+            {amountSub ? (
+              <div className="text-xs text-muted-foreground">{amountSub}</div>
+            ) : null}
+          </div>
         </div>
         {subtitle ? (
           <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
         ) : null}
       </div>
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className="text-right">
+      <div className="flex items-center justify-end gap-2 sm:gap-4">
+        <div className="hidden text-right sm:block">
           <div className="font-medium tabular-nums">{amount}</div>
           {amountSub ? (
             <div className="text-xs text-muted-foreground">{amountSub}</div>

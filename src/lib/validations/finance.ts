@@ -33,6 +33,26 @@ export const loginSchema = z.object({
   ),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.preprocess(
+      (val) => (val == null ? "" : val),
+      z.string().min(1, "Current password is required")
+    ),
+    newPassword: z.preprocess(
+      (val) => (val == null ? "" : val),
+      z.string().min(8, "Password must be at least 8 characters")
+    ),
+    confirmPassword: z.preprocess(
+      (val) => (val == null ? "" : val),
+      z.string().min(1, "Confirm your new password")
+    ),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const registerSchema = z.object({
   email: z.preprocess(
     (val) => (val == null ? "" : val),

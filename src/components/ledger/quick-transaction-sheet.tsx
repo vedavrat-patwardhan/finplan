@@ -92,7 +92,7 @@ export function QuickTransactionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[92dvh]"
       >
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { formatINR } from "@/lib/format";
 import { formatAccountLabel } from "@/lib/finance/ledger";
 import { Badge } from "@/components/ui/badge";
@@ -75,10 +76,12 @@ function DeleteTxButton({ id, label }: { id: string; label: string }) {
         type="button"
         variant="ghost"
         size="sm"
-        className="min-h-11 px-3 text-muted-foreground hover:text-destructive"
+        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        aria-label="Delete transaction"
         onClick={() => setOpen(true)}
       >
-        Delete
+        <Trash2 className="size-4 shrink-0" />
+        <span className="hidden md:inline">Delete</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">

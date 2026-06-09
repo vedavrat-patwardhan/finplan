@@ -35,7 +35,7 @@ import {
 } from "@/lib/finance/account-details";
 import { BankCombobox } from "@/components/finance/bank-combobox";
 import { SensitiveField } from "@/components/ledger/sensitive-field";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 
 const typeLabels: Record<string, string> = {
   bank: "Bank account",
@@ -244,25 +244,39 @@ export function AccountFormSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant={isEdit ? "outline" : "default"} size="sm" />}>
-        {!isEdit ? <Plus className="size-4" /> : null}
-        {triggerLabel}
+      <SheetTrigger
+        render={
+          <Button
+            variant={isEdit ? "outline" : "default"}
+            size="sm"
+            className={isEdit ? "min-h-11 px-2.5 md:px-3" : undefined}
+            aria-label={isEdit ? triggerLabel : undefined}
+          />
+        }
+      >
+        {isEdit ? <Pencil className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
+        {isEdit ? (
+          <span className="hidden md:inline">{triggerLabel}</span>
+        ) : (
+          triggerLabel
+        )}
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[92dvh]"
       >
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4">
           <SheetTitle className="font-heading text-xl">
             {isEdit ? "Edit account" : "Add account"}
           </SheetTitle>
-          <SheetDescription>{typeHints[type]}</SheetDescription>
+          <SheetDescription className="min-h-11 text-sm leading-snug">
+            {typeHints[type]}
+          </SheetDescription>
         </SheetHeader>
 
-        {open ? (
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5">
               <div className="space-y-2">
                 <Label>What are you adding?</Label>
                 <Select value={type} onValueChange={(v) => v && setType(v)}>
@@ -270,7 +284,7 @@ export function AccountFormSheet({
                     <span className="flex-1 text-left">{typeLabels[type]}</span>
                     <SelectValue className="sr-only">{typeLabels[type]}</SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent alignItemWithTrigger={false}>
                     {PAYMENT_ACCOUNT_TYPES.map((t) => (
                       <SelectItem key={t} value={t}>
                         {typeLabels[t]}
@@ -326,7 +340,7 @@ export function AccountFormSheet({
                           {accountSubtypeLabels[accountSubtype]}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent alignItemWithTrigger={false}>
                         {BANK_ACCOUNT_SUBTYPES.map((st) => (
                           <SelectItem key={st} value={st}>
                             {st === "savings" ? "Savings" : "Current"}
@@ -688,7 +702,6 @@ export function AccountFormSheet({
               </Button>
             </SheetFooter>
           </form>
-        ) : null}
       </SheetContent>
     </Sheet>
   );
