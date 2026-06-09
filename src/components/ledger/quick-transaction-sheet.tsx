@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useRef, useState, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +16,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import Link from "next/link";
-import { createTransactionAction } from "@/actions/ledger";
+import { createTransactionAction, updateTransactionAction } from "@/actions/ledger";
 import { QUICK_TRANSACTION_CATEGORIES } from "@/lib/finance/constants";
-import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
+import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
@@ -29,18 +30,30 @@ function todayInputValue() {
   return d.toISOString().slice(0, 16);
 }
 
+function toDatetimeLocalValue(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function QuickTransactionSheet({
   accounts,
   open,
   onOpenChange,
+  transaction,
 }: {
   accounts: PaymentAccountDTO[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  transaction?: LedgerTransactionDTO | null;
 }) {
-  const [state, formAction, pending] = useActionState(createTransactionAction, {
+  const router = useRouter();
+  const isEdit = Boolean(transaction);
+  const action = isEdit ? updateTransactionAction : createTransactionAction;
+  const [state, formAction, pending] = useActionState(action, {
     success: false,
   });
+  const wasPending = useRef(false);
 
   const defaultAccount =
     accounts.find((a) => a.isDefault)?.id ??
@@ -58,20 +71,34 @@ export function QuickTransactionSheet({
 
   useEffect(() => {
     if (open && accounts.length > 0) {
-      const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
-      const match = accounts.find((a) => a.id === stored);
-      setAccountId(match?.id ?? accounts.find((a) => a.isDefault)?.id ?? accounts[0].id);
-      setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
+      if (transaction) {
+        setAccountId(transaction.accountId);
+        setCategory(transaction.category);
+        setTxType(transaction.type);
+        setShowDate(true);
+      } else {
+        const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
+        const match = accounts.find((a) => a.id === stored);
+        setAccountId(match?.id ?? accounts.find((a) => a.isDefault)?.id ?? accounts[0].id);
+        setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
+        setTxType("debit");
+        setShowDate(false);
+      }
     }
-  }, [open, accounts]);
+  }, [open, accounts, transaction]);
 
   useEffect(() => {
-    if (state.success) {
-      onOpenChange(false);
-      toast.success("Transaction saved");
+    if (wasPending.current && !pending) {
+      if (state.success) {
+        onOpenChange(false);
+        router.refresh();
+        toast.success(isEdit ? "Transaction updated" : "Transaction saved");
+      } else if (state.error) {
+        toast.error(state.error);
+      }
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, onOpenChange]);
+    wasPending.current = pending;
+  }, [pending, state.success, state.error, onOpenChange, router, isEdit]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,14 +106,18 @@ export function QuickTransactionSheet({
       toast.error("Add a payment account first");
       return;
     }
-    localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
-    localStorage.setItem(LAST_CATEGORY_KEY, category);
+    if (!isEdit) {
+      localStorage.setItem(LAST_ACCOUNT_KEY, accountId);
+      localStorage.setItem(LAST_CATEGORY_KEY, category);
+    }
     const fd = new FormData(e.currentTarget);
     fd.set("accountId", accountId);
     fd.set("type", txType);
     fd.set("category", category);
     startTransition(() => formAction(fd));
   }
+
+  const dateValue = transaction ? toDatetimeLocalValue(transaction.date) : todayInputValue();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -96,8 +127,14 @@ export function QuickTransactionSheet({
       >
         <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4">
-          <SheetTitle className="font-heading text-xl">Add transaction</SheetTitle>
-          <SheetDescription>Log a purchase or payment in seconds</SheetDescription>
+          <SheetTitle className="font-heading text-xl">
+            {isEdit ? "Edit transaction" : "Add transaction"}
+          </SheetTitle>
+          <SheetDescription>
+            {isEdit
+              ? "Update amount, category, account, or date for this entry."
+              : "Log a purchase or payment in seconds"}
+          </SheetDescription>
         </SheetHeader>
 
         {accounts.length === 0 ? (
@@ -106,7 +143,13 @@ export function QuickTransactionSheet({
             <Button render={<Link href="/accounts" />}>Set up accounts</Button>
           </div>
         ) : open ? (
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <form
+            key={transaction?.id ?? "new"}
+            onSubmit={handleSubmit}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {transaction ? <input type="hidden" name="id" value={transaction.id} /> : null}
+
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
               <div className="flex gap-2">
                 {(["debit", "credit"] as const).map((t) => (
@@ -133,8 +176,9 @@ export function QuickTransactionSheet({
                   name="amount"
                   inputMode="decimal"
                   placeholder="e.g. 450"
+                  defaultValue={transaction ? String(transaction.amount) : undefined}
                   required
-                  autoFocus
+                  autoFocus={!isEdit}
                   className="h-12 text-lg"
                 />
               </div>
@@ -194,6 +238,7 @@ export function QuickTransactionSheet({
                   id="quick-merchant"
                   name="merchant"
                   placeholder="e.g. Movie tickets, DMart"
+                  defaultValue={transaction?.merchant ?? ""}
                 />
               </div>
 
@@ -214,7 +259,7 @@ export function QuickTransactionSheet({
                     id="quick-date"
                     name="date"
                     type="datetime-local"
-                    defaultValue={todayInputValue()}
+                    defaultValue={dateValue}
                     required
                   />
                 </div>
@@ -222,12 +267,16 @@ export function QuickTransactionSheet({
                 <input type="hidden" name="date" value={todayInputValue()} />
               )}
 
-              <input type="hidden" name="description" value="" />
+              <input
+                type="hidden"
+                name="description"
+                value={transaction?.description ?? ""}
+              />
             </div>
 
             <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <Button type="submit" className="h-11 w-full text-base" disabled={pending}>
-                {pending ? "Saving..." : "Save transaction"}
+                {pending ? "Saving..." : isEdit ? "Save changes" : "Save transaction"}
               </Button>
             </SheetFooter>
           </form>

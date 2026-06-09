@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useLedger } from "@/components/ledger/ledger-provider";
 import { formatINR } from "@/lib/format";
 import { formatAccountLabel } from "@/lib/finance/ledger";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,24 @@ function groupByDay(transactions: LedgerTransactionDTO[]) {
     label: dayLabel(items[0].date),
     items,
   }));
+}
+
+function EditTxButton({ transaction }: { transaction: LedgerTransactionDTO }) {
+  const { openEditTransaction } = useLedger();
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="min-h-11 px-2.5 text-muted-foreground md:px-3"
+      aria-label="Edit transaction"
+      onClick={() => openEditTransaction(transaction)}
+    >
+      <Pencil className="size-4 shrink-0" />
+      <span className="hidden md:inline">Edit</span>
+    </Button>
+  );
 }
 
 function DeleteTxButton({ id, label }: { id: string; label: string }) {
@@ -167,7 +186,10 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
                       {t.type === "credit" ? "+" : "−"}
                       {formatINR(t.amount)}
                     </p>
-                    <DeleteTxButton id={t.id} label={title} />
+                    <div className="flex items-center gap-0.5">
+                      <EditTxButton transaction={t} />
+                      <DeleteTxButton id={t.id} label={title} />
+                    </div>
                   </div>
                 </div>
               );

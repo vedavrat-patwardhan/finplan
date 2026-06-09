@@ -142,6 +142,7 @@ export function AccountFormSheet({
   const isEdit = Boolean(account);
   const action = isEdit ? updateAccountAction : createAccountAction;
   const [state, formAction, pending] = useActionState(action, { success: false });
+  const wasPending = useRef(false);
   const [type, setType] = useState(account?.type ?? defaultType ?? "bank");
   const [accountSubtype, setAccountSubtype] = useState(account?.accountSubtype ?? "savings");
   const [institution, setInstitution] = useState(account?.institution ?? "");
@@ -154,13 +155,17 @@ export function AccountFormSheet({
   }, [formValues.cardCvv]);
 
   useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      router.refresh();
-      toast.success(isEdit ? "Account updated" : "Account added");
+    if (wasPending.current && !pending) {
+      if (state.success) {
+        setOpen(false);
+        router.refresh();
+        toast.success(isEdit ? "Account updated" : "Account added");
+      } else if (state.error) {
+        toast.error(state.error);
+      }
     }
-    if (state.error) toast.error(state.error);
-  }, [state.success, state.error, isEdit, router]);
+    wasPending.current = pending;
+  }, [pending, state.success, state.error, isEdit, router]);
 
   useEffect(() => {
     if (open) {

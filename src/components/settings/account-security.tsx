@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useRef, useState, startTransition } from "react";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { changePasswordAction } from "@/actions/auth";
@@ -24,15 +24,19 @@ const initialState: ActionResult = { success: false };
 export function AccountSecurity({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(changePasswordAction, initialState);
+  const wasPending = useRef(false);
 
   useEffect(() => {
-    if (state.success) {
-      toast.success("Password updated");
-      setOpen(false);
-    } else if (state.error) {
-      toast.error(state.error);
+    if (wasPending.current && !pending) {
+      if (state.success) {
+        toast.success("Password updated");
+        setOpen(false);
+      } else if (state.error) {
+        toast.error(state.error);
+      }
     }
-  }, [state.success, state.error]);
+    wasPending.current = pending;
+  }, [pending, state.success, state.error]);
 
   return (
     <>

@@ -223,12 +223,12 @@ export function AppShell({
   userName?: string;
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-sidebar md:block">
+    <div className="min-h-screen bg-background">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-60 border-r border-border bg-sidebar md:block">
         <SidebarContent />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
         <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-3 backdrop-blur md:hidden">
           <Sheet>
             <SheetTrigger render={<Button variant="outline" size="icon" className="shrink-0" />}>

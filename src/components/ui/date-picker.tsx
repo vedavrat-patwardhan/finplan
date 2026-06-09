@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -96,48 +97,50 @@ export function DatePicker({
       ) : null}
 
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          disabled={disabled}
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              id={id}
-              disabled={disabled}
-              className={cn(
-                "h-8 w-full justify-start gap-2.5 px-2.5 font-normal shadow-xs",
-                !dateValue && "text-muted-foreground",
-                className
-              )}
-            />
-          }
-        >
-          <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
-          <span className="flex-1 truncate text-left">
-            {selectedDate ? formatDate(selectedDate) : placeholder}
-          </span>
+        <div className="relative w-full">
+          <PopoverTrigger
+            disabled={disabled}
+            render={
+              <Input
+                id={id}
+                readOnly
+                disabled={disabled}
+                placeholder={placeholder}
+                value={selectedDate ? formatDate(selectedDate) : ""}
+                className={cn(
+                  "h-8 cursor-pointer pr-16 shadow-xs",
+                  !dateValue && "text-muted-foreground",
+                  className
+                )}
+                aria-haspopup="dialog"
+                aria-expanded={open}
+                onClick={() => {
+                  if (!disabled) setOpen(true);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    if (!disabled) setOpen(true);
+                  }
+                }}
+              />
+            }
+          />
           {dateValue && !required ? (
-            <span
-              role="button"
-              tabIndex={0}
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            <button
+              type="button"
+              className="absolute top-1/2 right-8 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={(event) => {
                 event.stopPropagation();
                 handleClear();
               }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleClear();
-                }
-              }}
               aria-label="Clear date"
             >
               <X className="size-3.5" />
-            </span>
+            </button>
           ) : null}
-        </PopoverTrigger>
+          <CalendarIcon className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
 
         <PopoverContent
           className="w-auto p-0"
