@@ -14,7 +14,8 @@ import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
 import { FuturePredictionPanel } from "@/components/finance/future-prediction-panel";
 import { chartColorAt } from "@/lib/finance/chart-colors";
-import { generateFutureProjection } from "@/lib/finance/engine";
+import { weightedExpectedReturn } from "@/lib/finance/engine";
+import { calculatePortfolioReturns } from "@/lib/finance/investment-metrics";
 import {
   PageShell,
   PageHeader,
@@ -48,20 +49,27 @@ export default async function DashboardPage() {
     (sum, i) => sum + (i.metrics.fundValue ?? i.metrics.totalInvested),
     0
   );
-  const totalInvested = investments.reduce((sum, i) => sum + i.metrics.totalInvested, 0);
-  const portfolioReturnPct =
-    totalInvested > 0 && portfolioValue > totalInvested
-      ? ((portfolioValue - totalInvested) / totalInvested) * 100
-      : investments.length > 0
-        ? investments.reduce((sum, i) => sum + i.expectedReturnPct, 0) / investments.length
-        : 12;
 
-  const futureProjection = generateFutureProjection({
-    monthlySurplus: snapshot.netSurplus,
-    monthlyInvestments: snapshot.investments,
-    currentPortfolioValue: portfolioValue,
-    portfolioReturnPct,
-  });
+  const portfolioReturns = calculatePortfolioReturns(
+    investments.map((item) => ({
+      metrics: item.metrics,
+      startDate: new Date(item.startDate),
+    }))
+  );
+
+  const expectedReturnPct = weightedExpectedReturn(
+    investments.map((i) => ({
+      amount: i.amount,
+      frequency: i.frequency,
+      expectedReturnPct: i.expectedReturnPct,
+    }))
+  );
+
+  const currentReturnPct =
+    portfolioReturns.annualizedReturnPct ??
+    (portfolioReturns.totalInvested > 0
+      ? portfolioReturns.absoluteReturnPct
+      : expectedReturnPct);
 
   const budgetDelta = ledger.budgetMonthly - ledger.totalDebits;
   const budgetUsedPct =
@@ -216,10 +224,18 @@ export default async function DashboardPage() {
         </div>
       </PageSection>
 
-      <PageSection title="Future outlook" description="Where your plan could be in 12 months">
+      <PageSection
+        title="Future outlook"
+        description="Project portfolio value over 1–50 years with expected vs actual returns"
+      >
         <FuturePredictionPanel
-          projection={futureProjection}
-          monthlySurplus={snapshot.netSurplus}
+          inputs={{
+            currentPortfolioValue: portfolioValue,
+            monthlyInvestments: snapshot.investments,
+            expectedReturnPct,
+            currentReturnPct,
+            inflationRate: profile?.inflationRate ?? 6,
+          }}
         />
       </PageSection>
 

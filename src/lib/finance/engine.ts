@@ -505,6 +505,117 @@ export interface FutureProjectionPoint {
   cumulativeSurplus: number;
 }
 
+export interface PortfolioHorizonProjection {
+  years: number;
+  futureValue: number;
+  newContributions: number;
+  startingValue: number;
+  gain: number;
+  absoluteReturnPct: number;
+  /** Future value expressed in today's purchasing power. */
+  inflationAdjustedValue: number;
+}
+
+/** Project portfolio value after N years with monthly contributions and a fixed annual return. */
+export function projectPortfolioAtYears(input: {
+  currentPortfolioValue: number;
+  monthlyInvestments: number;
+  annualReturnPct: number;
+  years: number;
+  inflationRate?: number;
+}): PortfolioHorizonProjection {
+  const months = Math.max(0, Math.round(input.years * 12));
+  const monthlyReturn = input.annualReturnPct / 100 / 12;
+  const inflationRate = input.inflationRate ?? 6;
+
+  let portfolio = input.currentPortfolioValue;
+  let newContributions = 0;
+
+  for (let i = 0; i < months; i++) {
+    portfolio = portfolio * (1 + monthlyReturn) + input.monthlyInvestments;
+    newContributions += input.monthlyInvestments;
+  }
+
+  const startingValue = input.currentPortfolioValue;
+  const basis = startingValue + newContributions;
+  const gain = portfolio - basis;
+  const absoluteReturnPct = basis > 0 ? (gain / basis) * 100 : 0;
+
+  return {
+    years: input.years,
+    futureValue: portfolio,
+    newContributions,
+    startingValue,
+    gain,
+    absoluteReturnPct,
+    inflationAdjustedValue: inflationAdjust(portfolio, input.years, inflationRate),
+  };
+}
+
+export interface HorizonProjectionSeriesPoint {
+  year: number;
+  expected: number;
+  current: number;
+  expectedToday: number;
+  currentToday: number;
+}
+
+/** Year-by-year portfolio paths for expected vs current return assumptions. */
+export function generateHorizonProjectionSeries(input: {
+  currentPortfolioValue: number;
+  monthlyInvestments: number;
+  expectedReturnPct: number;
+  currentReturnPct: number;
+  maxYears?: number;
+  inflationRate?: number;
+}): HorizonProjectionSeriesPoint[] {
+  const maxYears = input.maxYears ?? 50;
+  const inflationRate = input.inflationRate ?? 6;
+  const points: HorizonProjectionSeriesPoint[] = [];
+
+  for (let year = 1; year <= maxYears; year++) {
+    const expected = projectPortfolioAtYears({
+      ...input,
+      years: year,
+      annualReturnPct: input.expectedReturnPct,
+      inflationRate,
+    });
+    const current = projectPortfolioAtYears({
+      ...input,
+      years: year,
+      annualReturnPct: input.currentReturnPct,
+      inflationRate,
+    });
+
+    points.push({
+      year,
+      expected: expected.futureValue,
+      current: current.futureValue,
+      expectedToday: expected.inflationAdjustedValue,
+      currentToday: current.inflationAdjustedValue,
+    });
+  }
+
+  return points;
+}
+
+/** Weighted average expected return (% p.a.) from investment commitments. */
+export function weightedExpectedReturn(
+  items: Array<{ amount: number; frequency: Frequency; expectedReturnPct: number }>
+): number {
+  let weightedSum = 0;
+  let weightTotal = 0;
+
+  for (const item of items) {
+    const monthly = toMonthlyEquivalent(item.amount, item.frequency);
+    if (monthly <= 0) continue;
+    weightedSum += monthly * item.expectedReturnPct;
+    weightTotal += monthly;
+  }
+
+  return weightTotal > 0 ? weightedSum / weightTotal : 12;
+}
+
 /** Project monthly surplus accumulation and portfolio growth over upcoming months. */
 export function generateFutureProjection(input: {
   monthlySurplus: number;
