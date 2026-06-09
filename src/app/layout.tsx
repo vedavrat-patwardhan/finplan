@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { SerwistProvider } from "@serwist/next/react";
 import { Libre_Franklin, Source_Serif_4 } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const libreFranklin = Libre_Franklin({
@@ -65,13 +66,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${libreFranklin.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
-          {children}
-          <Toaster richColors position="top-right" />
-        </SerwistProvider>
+        <ThemeProvider>
+          <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
+            {children}
+            <Toaster richColors position="top-right" />
+          </SerwistProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

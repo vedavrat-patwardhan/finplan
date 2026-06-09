@@ -119,7 +119,7 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                     innerRadius={55}
                     outerRadius={90}
                     paddingAngle={2}
-                    stroke="#fff"
+                    stroke="var(--card)"
                     shape={ColoredPieSector}
                   />
                   <Tooltip content={<ChartTooltip />} />
@@ -192,7 +192,7 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                     cy="50%"
                     outerRadius={90}
                     paddingAngle={1}
-                    stroke="#fff"
+                    stroke="var(--card)"
                     shape={ColoredPieSector}
                   />
                   <Tooltip content={<ChartTooltip />} />

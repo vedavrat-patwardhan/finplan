@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { AuthCard, LoginForm } from "@/components/auth/auth-forms";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="mb-8 text-center">
         <Link href="/" className="font-heading text-3xl font-semibold tracking-tight">
           FinPlan

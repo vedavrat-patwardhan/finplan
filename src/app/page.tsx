@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HomePage() {
   return (
@@ -6,7 +7,8 @@ export default function HomePage() {
       <header className="border-b border-border">
         <div className="page-container flex items-center justify-between py-4">
           <p className="font-heading text-xl font-semibold">FinPlan</p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
           <Link href="/login" className="inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium hover:bg-muted">
             Sign in
           </Link>

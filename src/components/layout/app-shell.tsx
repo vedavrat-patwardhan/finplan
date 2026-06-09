@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { logoutAction } from "@/actions/auth";
 import { QuickAddNavButton } from "@/components/ledger/quick-add-button";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -64,8 +65,8 @@ function NavLink({
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
         active
-          ? "border-l-2 border-chart-1 bg-chart-1/10 font-medium text-chart-1"
-          : "border-l-2 border-transparent text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+          ? "bg-chart-1/10 font-medium text-chart-1"
+          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
       )}
     >
       <Icon className={cn("size-4 shrink-0", active && "text-chart-1")} />
@@ -194,7 +195,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border space-y-2 p-3">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="text-xs text-muted-foreground">Appearance</span>
+          <ThemeToggle />
+        </div>
         <form action={logoutAction}>
           <Button
             type="submit"
@@ -224,21 +229,25 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 px-4 py-3 backdrop-blur md:hidden">
-          <div>
-            <p className="font-heading text-lg font-semibold">FinPlan</p>
-            {userName ? (
-              <p className="text-xs text-muted-foreground">Hello, {userName}</p>
-            ) : null}
-          </div>
+        <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-3 backdrop-blur md:hidden">
           <Sheet>
-            <SheetTrigger render={<Button variant="outline" size="icon" />}>
+            <SheetTrigger render={<Button variant="outline" size="icon" className="shrink-0" />}>
               <Menu className="size-4" />
+              <span className="sr-only">Open navigation</span>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
               <SidebarContent />
             </SheetContent>
           </Sheet>
+
+          <div className="min-w-0 flex-1">
+            <p className="font-heading text-lg font-semibold leading-tight">FinPlan</p>
+            {userName ? (
+              <p className="truncate text-xs text-muted-foreground">Hello, {userName}</p>
+            ) : null}
+          </div>
+
+          <ThemeToggle />
         </header>
 
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
