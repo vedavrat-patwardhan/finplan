@@ -5,6 +5,12 @@ import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const DISMISS_KEY = "finplan-install-dismissed";
+const DISMISS_UNTIL_KEY = "finplan-install-dismiss-until";
+/** Don't show again for 14 days after dismiss. */
+const DISMISS_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+/** Wait at least 3 visits before showing on a new device. */
+const MIN_VISITS_BEFORE_PROMPT = 3;
+const VISIT_COUNT_KEY = "finplan-install-visits";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -40,7 +46,14 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (!isMobileDevice() || isStandalone()) return;
-    if (localStorage.getItem(DISMISS_KEY) === "1") return;
+    if (localStorage.getItem(DISMISS_KEY) === "installed") return;
+
+    const dismissUntil = Number(localStorage.getItem(DISMISS_UNTIL_KEY) || 0);
+    if (dismissUntil > Date.now()) return;
+
+    const visits = Number(localStorage.getItem(VISIT_COUNT_KEY) || 0) + 1;
+    localStorage.setItem(VISIT_COUNT_KEY, String(visits));
+    if (visits < MIN_VISITS_BEFORE_PROMPT) return;
 
     if (isIosSafari()) {
       setIosHint(true);
@@ -59,14 +72,17 @@ export function InstallPrompt() {
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, "1");
+    localStorage.setItem(DISMISS_UNTIL_KEY, String(Date.now() + DISMISS_COOLDOWN_MS));
     setVisible(false);
   };
 
   const install = async () => {
     if (!installEvent) return;
     await installEvent.prompt();
-    await installEvent.userChoice;
+    const choice = await installEvent.userChoice;
+    if (choice.outcome === "accepted") {
+      localStorage.setItem(DISMISS_KEY, "installed");
+    }
     setInstallEvent(null);
     setVisible(false);
   };
