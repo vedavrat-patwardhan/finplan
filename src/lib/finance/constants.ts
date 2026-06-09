@@ -223,15 +223,6 @@ export const ONBOARDING_GOAL_OPTIONS = [
     monthsFromNow: 48,
     status: "active" as const,
   },
-  {
-    id: "married",
-    title: "Already married",
-    description: "Mark this milestone as achieved",
-    goalType: "marriage" as const,
-    targetAmount: 0,
-    monthsFromNow: 0,
-    status: "completed" as const,
-  },
 ] as const;
 
 export {
