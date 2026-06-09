@@ -1,19 +1,12 @@
 import { getSession } from "@/lib/auth/session";
 import { getExpenses } from "@/lib/db/queries/finance";
-import { formatINR, formatEnumLabel, formatFrequency } from "@/lib/format";
-import {
-  createExpenseAction,
-  deleteExpenseAction,
-  updateExpenseAction,
-} from "@/actions/finance";
+import { formatINR } from "@/lib/format";
+import { createExpenseAction } from "@/actions/finance";
 import { expenseFormFields } from "@/lib/form-fields";
-import {
-  ResourceFormSheet,
-  DeleteButton,
-} from "@/components/finance/resource-form-sheet";
+import { ResourceFormSheet } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
 import { ExpenseClassTabs } from "@/components/finance/expense-class-tabs";
-import { ResourceList, ResourceRow } from "@/components/finance/resource-row";
+import { ExpensesList } from "@/components/finance/expenses-list";
 import { PageShell, PageHeader, MetaStat } from "@/components/layout/page-chrome";
 import { toMonthlyEquivalent as calcMonthly } from "@/lib/finance/engine";
 
@@ -74,53 +67,7 @@ export default async function ExpensesPage({
           actionHref="/transactions"
         />
       ) : (
-        <ResourceList>
-          {items.map((item) => (
-            <ResourceRow
-              key={item.id}
-              title={item.name}
-              subtitle={
-                <span>
-                  {item.category} · {formatEnumLabel(item.expenseClass)} ·{" "}
-                  {item.isEssential ? "Essential" : "Optional"}
-                </span>
-              }
-              amount={formatINR(item.amount)}
-              amountSub={
-                <span>
-                  {formatFrequency(item.frequency)} ·{" "}
-                  {formatINR(calcMonthly(item.amount, item.frequency), { compact: true })}/mo
-                </span>
-              }
-              actions={
-                <div className="flex items-center gap-1">
-                  <ResourceFormSheet
-                    title="Edit expense budget"
-                    description="Update amount, category, or whether this is essential spending."
-                    triggerLabel="Edit"
-                    fields={expenseFormFields}
-                    action={createExpenseAction}
-                    updateAction={updateExpenseAction}
-                    itemId={item.id}
-                    defaultValues={{
-                      name: item.name,
-                      category: item.category,
-                      expenseClass: item.expenseClass,
-                      amount: String(item.amount),
-                      frequency: item.frequency,
-                      isEssential: String(item.isEssential),
-                    }}
-                  />
-                  <DeleteButton
-                    id={item.id}
-                    action={deleteExpenseAction}
-                    itemName={item.name}
-                  />
-                </div>
-              }
-            />
-          ))}
-        </ResourceList>
+        <ExpensesList items={items} />
       )}
     </PageShell>
   );
