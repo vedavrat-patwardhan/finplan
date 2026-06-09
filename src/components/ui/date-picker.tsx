@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -73,7 +72,9 @@ export function DatePicker({
     }
   }
 
-  function handleClear() {
+  function handleClear(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
     updateValue("");
     setOpen(false);
   }
@@ -84,6 +85,12 @@ export function DatePicker({
     updateValue(formatDateInputValue(today));
     setOpen(false);
   }
+
+  function openCalendar() {
+    if (!disabled) setOpen(true);
+  }
+
+  const displayValue = selectedDate ? formatDate(selectedDate) : placeholder;
 
   return (
     <>
@@ -97,50 +104,48 @@ export function DatePicker({
       ) : null}
 
       <Popover open={open} onOpenChange={setOpen}>
-        <div className="relative w-full">
-          <PopoverTrigger
-            disabled={disabled}
-            render={
-              <Input
-                id={id}
-                readOnly
-                disabled={disabled}
-                placeholder={placeholder}
-                value={selectedDate ? formatDate(selectedDate) : ""}
-                className={cn(
-                  "h-8 cursor-pointer pr-16 shadow-xs",
-                  !dateValue && "text-muted-foreground",
-                  className
-                )}
-                aria-haspopup="dialog"
-                aria-expanded={open}
-                onClick={() => {
-                  if (!disabled) setOpen(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    if (!disabled) setOpen(true);
-                  }
-                }}
-              />
-            }
-          />
-          {dateValue && !required ? (
+        <PopoverTrigger
+          disabled={disabled}
+          render={
             <button
               type="button"
-              className="absolute top-1/2 right-8 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleClear();
+              id={id}
+              disabled={disabled}
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              onClick={openCalendar}
+              className={cn(
+                "flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-left text-base shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
+                !dateValue && "text-muted-foreground",
+                className
+              )}
+            />
+          }
+        >
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {displayValue}
+          </span>
+          {dateValue && !required ? (
+            <span
+              role="button"
+              tabIndex={0}
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={handleClear}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  updateValue("");
+                  setOpen(false);
+                }
               }}
               aria-label="Clear date"
             >
               <X className="size-3.5" />
-            </button>
+            </span>
           ) : null}
-          <CalendarIcon className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-        </div>
+          <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
+        </PopoverTrigger>
 
         <PopoverContent
           className="w-auto p-0"
@@ -175,7 +180,10 @@ export function DatePicker({
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2.5 text-muted-foreground"
-                onClick={handleClear}
+                onClick={() => {
+                  updateValue("");
+                  setOpen(false);
+                }}
                 disabled={!dateValue}
               >
                 Clear

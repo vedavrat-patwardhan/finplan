@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
@@ -255,10 +256,9 @@ export function QuickTransactionSheet({
               {showDate ? (
                 <div className="space-y-2">
                   <Label htmlFor="quick-date">Date & time</Label>
-                  <Input
+                  <DateTimePicker
                     id="quick-date"
                     name="date"
-                    type="datetime-local"
                     defaultValue={dateValue}
                     required
                   />
