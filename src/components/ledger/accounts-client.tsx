@@ -12,6 +12,8 @@ import {
 import type { ComponentType } from "react";
 import { formatINR } from "@/lib/format";
 import { AccountFormSheet } from "@/components/ledger/account-form-sheet";
+import { FavoriteAccountButton } from "@/components/ledger/favorite-account-button";
+import { sortPaymentAccounts } from "@/lib/finance/ledger";
 import { DeleteAccountButton } from "@/components/ledger/delete-account-button";
 import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { CopyField } from "@/components/ledger/copy-field";
@@ -87,7 +89,8 @@ function CardWalletItem({
               </p>
             ) : null}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1">
+            <FavoriteAccountButton accountId={account.id} isFavorite={account.isFavorite} />
             <AccountFormSheet account={account} triggerLabel="Edit" />
             <DeleteAccountButton id={account.id} name={account.name} />
           </div>
@@ -212,6 +215,11 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-medium">{account.name}</p>
+              {account.isFavorite ? (
+                <Badge variant="secondary" className="text-xs">
+                  Favourite
+                </Badge>
+              ) : null}
               {account.isDefault ? (
                 <Badge variant="secondary" className="text-xs">
                   Default
@@ -232,7 +240,8 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
             </p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-1">
+          <FavoriteAccountButton accountId={account.id} isFavorite={account.isFavorite} />
           <AccountFormSheet account={account} triggerLabel="Edit" />
           <DeleteAccountButton id={account.id} name={account.name} />
         </div>
@@ -313,6 +322,11 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-medium">{account.name}</p>
+              {account.isFavorite ? (
+                <Badge variant="secondary" className="text-xs">
+                  Favourite
+                </Badge>
+              ) : null}
               {account.isDefault ? (
                 <Badge variant="secondary" className="text-xs">
                   Default
@@ -337,7 +351,8 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
             ) : null}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-1">
+          <FavoriteAccountButton accountId={account.id} isFavorite={account.isFavorite} />
           <AccountFormSheet account={account} triggerLabel="Edit" />
           <DeleteAccountButton id={account.id} name={account.name} />
         </div>
@@ -402,9 +417,11 @@ export function AccountsClient({
   accounts: PaymentAccountDTO[];
   cardSpend?: Record<string, number>;
 }) {
-  const cards = accounts.filter((a) => isCardType(a.type));
-  const banks = accounts.filter((a) => a.type === "bank");
-  const others = accounts.filter((a) => a.type === "cash" || a.type === "wallet");
+  const cards = sortPaymentAccounts(accounts.filter((a) => isCardType(a.type)));
+  const banks = sortPaymentAccounts(accounts.filter((a) => a.type === "bank"));
+  const others = sortPaymentAccounts(
+    accounts.filter((a) => a.type === "cash" || a.type === "wallet")
+  );
 
   if (accounts.length === 0) {
     return (

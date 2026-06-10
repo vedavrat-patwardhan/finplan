@@ -194,6 +194,11 @@ export function PaymentCardFlip({ account, isCredit }: PaymentCardFlipProps) {
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/75">
                 {isCredit ? "Credit card" : "Debit card"}
               </p>
+              {account.isFavorite ? (
+                <Badge className="h-5 border-0 bg-white/14 px-2 text-[10px] text-white hover:bg-white/14">
+                  Favourite
+                </Badge>
+              ) : null}
               {account.isDefault ? (
                 <Badge className="h-5 border-0 bg-white/14 px-2 text-[10px] text-white hover:bg-white/14">
                   Default

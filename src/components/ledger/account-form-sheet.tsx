@@ -75,6 +75,7 @@ type FormValues = {
   crn: string;
   notes: string;
   isDefault: boolean;
+  isFavorite: boolean;
 };
 
 function initialFormValues(account?: PaymentAccountDTO): FormValues {
@@ -96,6 +97,7 @@ function initialFormValues(account?: PaymentAccountDTO): FormValues {
     crn: account?.crn ?? "",
     notes: account?.notes ?? "",
     isDefault: account?.isDefault ?? false,
+    isFavorite: account?.isFavorite ?? false,
   };
 }
 
@@ -198,6 +200,7 @@ export function AccountFormSheet({
     fd.set("name", formValues.name.trim());
     fd.set("openingBalance", formValues.openingBalance);
     if (formValues.isDefault) fd.set("isDefault", "on");
+    if (formValues.isFavorite) fd.set("isFavorite", "on");
 
     if (!showWalletFields && type !== "cash" && institution.trim()) {
       fd.set("institution", institution.trim());
@@ -689,6 +692,16 @@ export function AccountFormSheet({
                   Extra details that don&apos;t fit elsewhere — up to 500 characters.
                 </p>
               </div>
+
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={formValues.isFavorite}
+                  onChange={(e) => patchForm({ isFavorite: e.target.checked })}
+                  className="size-4 accent-primary"
+                />
+                <span className="text-sm">Favourite — show at top of lists</span>
+              </label>
 
               <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
                 <input

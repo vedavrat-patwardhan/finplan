@@ -91,6 +91,7 @@ function parseAccountFormData(formData: FormData) {
     billingDay: formOptionalNumber(formData, "billingDay"),
     monthlySpendTarget: formOptionalNumber(formData, "monthlySpendTarget"),
     isDefault: formData.get("isDefault") === "on" || formData.get("isDefault") === "true",
+    isFavorite: formData.get("isFavorite") === "on" || formData.get("isFavorite") === "true",
     notes: formText(formData, "notes"),
   };
 }
@@ -151,7 +152,8 @@ function buildAccountUpdateDoc(
   existingType: PaymentAccountType,
   newType: PaymentAccountType,
   openingBalance: number,
-  isDefault: boolean
+  isDefault: boolean,
+  isFavorite: boolean
 ): Record<string, unknown> {
   const typeChanged = existingType !== newType;
   const update: Record<string, unknown> = {
@@ -160,6 +162,7 @@ function buildAccountUpdateDoc(
     institution: normalized.institution ?? "",
     holderName: normalized.holderName ?? "",
     isDefault,
+    isFavorite,
     currentBalance: openingBalance,
     notes: normalized.notes ?? "",
   };
@@ -337,7 +340,7 @@ export async function createAccountAction(
     return { success: false, error: parsed.error.issues[0]?.message };
   }
 
-  const { openingBalance, isDefault, ...data } = parsed.data;
+  const { openingBalance, isDefault, isFavorite, ...data } = parsed.data;
   const accountType = data.type as PaymentAccountType;
   const normalized = normalizeAccountPayload(data) as Record<string, unknown>;
   const cardCvvEncrypted = encryptCardCvv(accountType, data.cardCvv);
@@ -362,6 +365,7 @@ export async function createAccountAction(
             openingBalance,
             currentBalance: openingBalance,
             isDefault: isDefault ?? false,
+            isFavorite: isFavorite ?? false,
           },
         ],
         { session: dbSession }
@@ -369,6 +373,43 @@ export async function createAccountAction(
     });
   } catch (error) {
     return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  revalidateLedger();
+  return { success: true };
+}
+
+export async function toggleAccountFavoriteAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const accountId = formData.get("id");
+  if (!accountId || typeof accountId !== "string") {
+    return { success: false, error: "Account ID required" };
+  }
+
+  const userId = userObjectId(session.userId);
+
+  try {
+    await withTransaction(async (dbSession) => {
+      const account = await PaymentAccount.findOne({
+        _id: accountId,
+        userId,
+        isActive: true,
+      }).session(dbSession);
+
+      if (!account) throw new Error("Account not found");
+
+      await PaymentAccount.findByIdAndUpdate(
+        accountId,
+        { $set: { isFavorite: !account.isFavorite } },
+        { session: dbSession }
+      );
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : transactionErrorMessage(error);
+    return { success: false, error: message };
   }
 
   revalidateLedger();
@@ -411,7 +452,7 @@ export async function updateAccountAction(
         throw new Error(parsed.error.issues[0]?.message ?? "Invalid account data");
       }
 
-      const { isDefault, openingBalance, ...data } = parsed.data;
+      const { isDefault, isFavorite, openingBalance, ...data } = parsed.data;
       const accountType = data.type as PaymentAccountType;
       const normalized = normalizeAccountPayload(data) as Record<string, unknown>;
       const cardCvvEncrypted = encryptCardCvv(
@@ -423,7 +464,8 @@ export async function updateAccountAction(
         existing.type as PaymentAccountType,
         accountType,
         openingBalance,
-        isDefault ?? false
+        isDefault ?? false,
+        isFavorite ?? false
       );
 
       if (cardCvvEncrypted) {

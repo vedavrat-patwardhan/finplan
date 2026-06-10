@@ -10,6 +10,7 @@ import { MoneyInput } from "@/components/finance/money-input";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import { saveBillManualDataAction } from "@/actions/ledger";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
+import { sortPaymentAccounts } from "@/lib/finance/ledger";
 
 export function BillForm({
   documentId,
@@ -23,7 +24,9 @@ export function BillForm({
   const [state, formAction, pending] = useActionState(saveBillManualDataAction, {
     success: false,
   });
-  const cardAccounts = accounts.filter((a) => a.type === "credit_card");
+  const cardAccounts = sortPaymentAccounts(
+    accounts.filter((a) => a.type === "credit_card")
+  );
   const [accountId, setAccountId] = useState("");
 
   useEffect(() => {
@@ -55,7 +58,7 @@ export function BillForm({
             onValueChange={setAccountId}
             options={cardAccounts.map((a) => ({
               value: a.id,
-              label: `${a.name}${a.lastFour ? ` •••• ${a.lastFour}` : ""}`,
+              label: `${a.isFavorite ? "★ " : ""}${a.name}${a.lastFour ? ` •••• ${a.lastFour}` : ""}`,
             }))}
             placeholder="Select credit card"
           />

@@ -21,7 +21,8 @@ import { createTransactionAction, updateTransactionAction } from "@/actions/ledg
 import { QUICK_TRANSACTION_CATEGORIES } from "@/lib/finance/constants";
 import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { pickPreferredAccountId, sortPaymentAccounts } from "@/lib/finance/ledger";
+import { ChevronDown, Star } from "lucide-react";
 
 const LAST_ACCOUNT_KEY = "finplan-last-account";
 const LAST_CATEGORY_KEY = "finplan-last-category";
@@ -56,10 +57,12 @@ export function QuickTransactionSheet({
   });
   const wasPending = useRef(false);
 
+  const sortedAccounts = sortPaymentAccounts(accounts);
+
   const defaultAccount =
-    accounts.find((a) => a.isDefault)?.id ??
-    accounts[0]?.id ??
-    (typeof window !== "undefined" ? localStorage.getItem(LAST_ACCOUNT_KEY) ?? "" : "");
+    typeof window !== "undefined"
+      ? pickPreferredAccountId(sortedAccounts, localStorage.getItem(LAST_ACCOUNT_KEY))
+      : pickPreferredAccountId(sortedAccounts);
 
   const [accountId, setAccountId] = useState(defaultAccount);
   const [category, setCategory] = useState(
@@ -71,7 +74,7 @@ export function QuickTransactionSheet({
   const [showDate, setShowDate] = useState(false);
 
   useEffect(() => {
-    if (open && accounts.length > 0) {
+    if (open && sortedAccounts.length > 0) {
       if (transaction) {
         setAccountId(transaction.accountId);
         setCategory(transaction.category);
@@ -79,14 +82,13 @@ export function QuickTransactionSheet({
         setShowDate(true);
       } else {
         const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
-        const match = accounts.find((a) => a.id === stored);
-        setAccountId(match?.id ?? accounts.find((a) => a.isDefault)?.id ?? accounts[0].id);
+        setAccountId(pickPreferredAccountId(sortedAccounts, stored));
         setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
         setTxType("debit");
         setShowDate(false);
       }
     }
-  }, [open, accounts, transaction]);
+  }, [open, sortedAccounts, transaction]);
 
   useEffect(() => {
     if (wasPending.current && !pending) {
@@ -138,7 +140,7 @@ export function QuickTransactionSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {accounts.length === 0 ? (
+        {sortedAccounts.length === 0 ? (
           <div className="space-y-4 px-5 py-8 text-center text-sm text-muted-foreground">
             <p>Add a card or bank account before logging transactions.</p>
             <Button render={<Link href="/accounts" />}>Set up accounts</Button>
@@ -208,7 +210,7 @@ export function QuickTransactionSheet({
               <div className="space-y-2">
                 <Label>Payment account</Label>
                 <div className="flex flex-wrap gap-2">
-                  {accounts.map((acc) => (
+                  {sortedAccounts.map((acc) => (
                     <button
                       key={acc.id}
                       type="button"
@@ -220,7 +222,12 @@ export function QuickTransactionSheet({
                           : "border-border hover:bg-muted/40"
                       )}
                     >
-                      <span className="font-medium">{acc.name}</span>
+                      <span className="flex items-center gap-1.5 font-medium">
+                        {acc.isFavorite ? (
+                          <Star className="size-3.5 shrink-0 fill-chart-3 text-chart-3" />
+                        ) : null}
+                        {acc.name}
+                      </span>
                       {(acc.institution || acc.lastFour) && (
                         <span className="block text-xs text-muted-foreground">
                           {[acc.institution, acc.lastFour ? `•••• ${acc.lastFour}` : null]

@@ -30,6 +30,7 @@ const PaymentAccountSchema = new Schema(
     /** Monthly spending cap for debit/credit cards (tracked against ledger debits). */
     monthlySpendTarget: { type: Number, min: 0 },
     isDefault: { type: Boolean, default: false },
+    isFavorite: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     notes: { type: String, default: "" },
   },

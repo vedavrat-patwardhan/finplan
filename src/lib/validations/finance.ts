@@ -302,6 +302,7 @@ const paymentAccountBaseSchema = z.object({
   billingDay: z.coerce.number().min(1).max(31).optional(),
   monthlySpendTarget: z.coerce.number().min(0).optional(),
   isDefault: z.coerce.boolean().optional(),
+  isFavorite: z.coerce.boolean().optional(),
   notes: z.string().max(500).optional(),
 });
 

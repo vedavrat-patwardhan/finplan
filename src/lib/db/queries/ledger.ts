@@ -8,6 +8,7 @@ import {
   Expense,
 } from "@/lib/db/models";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
+import { sortPaymentAccounts } from "@/lib/finance/ledger";
 import type { PaymentAccountType, TransactionType, LedgerCategory } from "@/lib/finance/constants";
 
 function oid(userId: string) {
@@ -37,6 +38,7 @@ export interface PaymentAccountDTO {
   billingDay?: number;
   monthlySpendTarget?: number;
   isDefault: boolean;
+  isFavorite: boolean;
   isActive: boolean;
   notes: string;
 }
@@ -84,10 +86,10 @@ export interface LedgerSummary {
 export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentAccountDTO[]> => {
   await connectDB();
   const items = await PaymentAccount.find({ userId: oid(userId), isActive: true })
-    .sort({ isDefault: -1, name: 1 })
+    .sort({ isFavorite: -1, isDefault: -1, name: 1 })
     .lean();
 
-  return items.map((a) => ({
+  const mapped = items.map((a) => ({
     id: a._id.toString(),
     type: a.type as PaymentAccountType,
     name: a.name,
@@ -110,9 +112,12 @@ export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentA
     billingDay: a.billingDay ?? undefined,
     monthlySpendTarget: a.monthlySpendTarget ?? undefined,
     isDefault: a.isDefault ?? false,
+    isFavorite: a.isFavorite ?? false,
     isActive: a.isActive ?? true,
     notes: a.notes ?? "",
   }));
+
+  return sortPaymentAccounts(mapped);
 });
 
 export const getTransactions = cache(

@@ -28,3 +28,41 @@ export function formatAccountLabel(
   if (lastFour) parts.push(`•••• ${lastFour}`);
   return parts.join(" · ");
 }
+
+type AccountSortable = {
+  isFavorite?: boolean;
+  isDefault?: boolean;
+  name: string;
+};
+
+/** Favourites first, then default account, then alphabetical. */
+export function sortPaymentAccounts<T extends AccountSortable>(accounts: T[]): T[] {
+  return [...accounts].sort((a, b) => {
+    const favoriteDelta = Number(b.isFavorite) - Number(a.isFavorite);
+    if (favoriteDelta !== 0) return favoriteDelta;
+
+    const defaultDelta = Number(b.isDefault) - Number(a.isDefault);
+    if (defaultDelta !== 0) return defaultDelta;
+
+    return a.name.localeCompare(b.name, "en-IN");
+  });
+}
+
+export function pickPreferredAccountId<T extends AccountSortable & { id: string }>(
+  accounts: T[],
+  storedId?: string | null
+): string {
+  const sorted = sortPaymentAccounts(accounts);
+  if (sorted.length === 0) return "";
+
+  if (storedId) {
+    const match = sorted.find((account) => account.id === storedId);
+    if (match) return match.id;
+  }
+
+  return (
+    sorted.find((account) => account.isDefault)?.id ??
+    sorted.find((account) => account.isFavorite)?.id ??
+    sorted[0].id
+  );
+}
