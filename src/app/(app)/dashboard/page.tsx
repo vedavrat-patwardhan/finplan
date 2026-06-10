@@ -6,6 +6,7 @@ import {
   getUpcomingObligationsForUser,
   getPortfolioChartData,
   getInvestments,
+  getExpenses,
 } from "@/lib/db/queries/finance";
 import { getLedgerSummary } from "@/lib/db/queries/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
@@ -23,6 +24,7 @@ import {
   InsightPanel,
   MetaStat,
 } from "@/components/layout/page-chrome";
+import { GetStartedBanner } from "@/components/finance/get-started-banner";
 
 const obligationTypeStyles: Record<string, string> = {
   investment: "border-l-chart-1 bg-chart-1/5",
@@ -35,7 +37,7 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments] =
+  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments, expenses] =
     await Promise.all([
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
@@ -43,7 +45,11 @@ export default async function DashboardPage() {
       getUpcomingObligationsForUser(session.userId),
       getLedgerSummary(session.userId),
       getInvestments(session.userId),
+      getExpenses(session.userId),
     ]);
+
+  const showGetStarted =
+    expenses.length === 0 && investments.length === 0 && goals.length === 0;
 
   const portfolioValue = investments.reduce(
     (sum, i) => sum + (i.metrics.fundValue ?? i.metrics.totalInvested),
@@ -104,6 +110,8 @@ export default async function DashboardPage() {
           </>
         }
       />
+
+      {showGetStarted ? <GetStartedBanner /> : null}
 
       <InsightPanel>
         <p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -25,6 +26,7 @@ import { logoutAction } from "@/actions/auth";
 import { QuickAddNavButton } from "@/components/ledger/quick-add-button";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/brand/app-logo";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -75,7 +77,13 @@ function NavLink({
   );
 }
 
-function MobileBottomNav() {
+function MobileBottomNav({
+  moreOpen,
+  onMoreOpenChange,
+}: {
+  moreOpen: boolean;
+  onMoreOpenChange: (open: boolean) => void;
+}) {
   const pathname = usePathname();
   const accountsActive =
     pathname === "/accounts" || pathname.startsWith("/accounts/");
@@ -127,7 +135,7 @@ function MobileBottomNav() {
         Accounts
       </Link>
 
-      <Sheet>
+      <Sheet open={moreOpen} onOpenChange={onMoreOpenChange}>
         <SheetTrigger
           render={
             <button
@@ -155,6 +163,7 @@ function MobileBottomNav() {
                   key={item.href}
                   href={item.href}
                   prefetch={true}
+                  onClick={() => onMoreOpenChange(false)}
                   className={cn(
                     "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm",
                     active
@@ -179,13 +188,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="border-b border-sidebar-border px-5 py-6">
         <Link href="/dashboard" prefetch={true} className="block" onClick={onNavigate}>
-          <p className="font-heading text-xl font-semibold tracking-tight">
-            <span className="text-chart-1">Fin</span>
-            <span className="text-sidebar-foreground">Plan</span>
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Plan with clarity
-          </p>
+          <AppLogo variant="sidebar" />
         </Link>
       </div>
 
@@ -222,6 +225,9 @@ export function AppShell({
   children: React.ReactNode;
   userName?: string;
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-60 border-r border-border bg-sidebar md:block">
@@ -230,18 +236,18 @@ export function AppShell({
 
       <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
         <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-3 backdrop-blur md:hidden">
-          <Sheet>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger render={<Button variant="outline" size="icon" className="shrink-0" />}>
               <Menu className="size-4" />
               <span className="sr-only">Open navigation</span>
             </SheetTrigger>
             <SheetContent side="left" className="flex h-full w-72 flex-col p-0">
-              <SidebarContent />
+              <SidebarContent onNavigate={() => setSidebarOpen(false)} />
             </SheetContent>
           </Sheet>
 
           <div className="min-w-0 flex-1">
-            <p className="font-heading text-lg font-semibold leading-tight">FinPlan</p>
+            <AppLogo variant="header" showTagline={false} />
             {userName ? (
               <p className="truncate text-xs text-muted-foreground">Hello, {userName}</p>
             ) : null}
@@ -252,7 +258,7 @@ export function AppShell({
 
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
         <InstallPrompt />
-        <MobileBottomNav />
+        <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
       </div>
     </div>
   );

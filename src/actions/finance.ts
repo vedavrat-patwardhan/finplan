@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/models";
 import { requireSession, refreshSession } from "@/lib/auth/session";
 import {
+  personalProfileSchema,
   profileSchema,
   incomeSchema,
   expenseSchema,
@@ -114,6 +115,133 @@ function userObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
 }
 
+export async function updatePersonalProfileAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await requireSession();
+
+  const parsed = personalProfileSchema.safeParse({
+    name: formData.get("name"),
+    username: formData.get("username"),
+    monthlyInHandSalary: formData.get("monthlyInHandSalary"),
+    annualInHandBonus: formData.get("annualInHandBonus"),
+    taxRegime: formData.get("taxRegime") ?? "new",
+  });
+
+  if (!parsed.success) {
+    return { success: false, fieldErrors: zodFieldErrors(parsed.error) };
+  }
+
+  const { name, username, monthlyInHandSalary, annualInHandBonus, taxRegime } = parsed.data;
+
+  const existingUsername = await User.findOne({
+    username,
+    _id: { $ne: session.userId },
+  });
+  if (existingUsername) {
+    return {
+      success: false,
+      fieldErrors: { username: "Username is already taken" },
+    };
+  }
+  const annualInHandSalary = monthlyInHandSalary * 12;
+  const userId = userObjectId(session.userId);
+
+  let monthlyTakeHome = 0;
+  let packageBreakdown = null;
+
+  if (annualInHandSalary > 0 || annualInHandBonus > 0) {
+    packageBreakdown = breakdownSalaryPackage({
+      annualInHandSalary,
+      annualInHandBonus,
+      taxRegime,
+    });
+    monthlyTakeHome = packageBreakdown.monthlyInHandSalary;
+  }
+
+  try {
+    await withTransaction(async (dbSession) => {
+      await User.findByIdAndUpdate(
+        session.userId,
+        {
+          name,
+          username,
+          monthlyTakeHome,
+          annualInHandSalary,
+          annualInHandBonus,
+          taxRegime,
+        },
+        { session: dbSession }
+      );
+
+      await IncomeSource.deleteMany({
+        userId,
+        name: { $in: ["Monthly Salary (in-hand)", "Annual Bonus (in-hand)"] },
+      }).session(dbSession);
+
+      if (packageBreakdown && annualInHandSalary > 0) {
+        await IncomeSource.create(
+          [
+            {
+              userId,
+              name: "Monthly Salary (in-hand)",
+              type: "salary",
+              amount: packageBreakdown.monthlyInHandSalary,
+              frequency: "monthly",
+              isNetAmount: true,
+              grossAmount: packageBreakdown.estimatedGrossSalary / 12,
+              estimatedTax: packageBreakdown.estimatedSalaryTax / 12,
+              notes: `Annual in-hand ₹${annualInHandSalary.toLocaleString("en-IN")} · FY 2025-26 ${taxRegime} regime`,
+            },
+          ],
+          { session: dbSession }
+        );
+      }
+
+      if (packageBreakdown && annualInHandBonus > 0) {
+        await IncomeSource.create(
+          [
+            {
+              userId,
+              name: "Annual Bonus (in-hand)",
+              type: "bonus",
+              amount: annualInHandBonus,
+              frequency: "yearly",
+              isNetAmount: true,
+              grossAmount: packageBreakdown.estimatedGrossBonus,
+              estimatedTax: packageBreakdown.estimatedBonusTax,
+              notes: "After TDS at payment · not spread monthly",
+            },
+          ],
+          { session: dbSession }
+        );
+      }
+    });
+  } catch (error) {
+    return { success: false, error: transactionErrorMessage(error) };
+  }
+
+  await refreshSession({ username });
+
+  revalidateFinance();
+  revalidatePath("/settings");
+  revalidatePath("/income");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+function zodFieldErrors(error: { issues: { path: PropertyKey[]; message: string }[] }) {
+  const result: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const key = String(issue.path[0] ?? "");
+    if (key && !result[key]) {
+      result[key] = issue.message;
+    }
+  }
+  return result;
+}
+
 export async function updateProfileAction(
   _prev: ActionResult,
   formData: FormData
@@ -121,8 +249,6 @@ export async function updateProfileAction(
   const session = await requireSession();
 
   const parsed = profileSchema.safeParse({
-    name: formData.get("name"),
-    monthlyTakeHome: formData.get("monthlyTakeHome"),
     inflationRate: formData.get("inflationRate"),
     bonusSpreadMonthly: formData.get("bonusSpreadMonthly") === "on",
     retirementMultiplier: formData.get("retirementMultiplier"),
@@ -567,6 +693,7 @@ export async function completeOnboardingAction(
   const investmentTemplates = formData.getAll("investmentTemplates") as string[];
   const goalOptions = formData.getAll("goalOptions") as string[];
   const skipIncome = formData.get("skipIncome") === "true";
+  const revisit = formData.get("revisit") === "true";
 
   const parsed = onboardingSchema.safeParse({
     name: formData.get("name"),
@@ -608,97 +735,114 @@ export async function completeOnboardingAction(
 
   try {
     await withTransaction(async (dbSession) => {
-      await User.findByIdAndUpdate(
-        session.userId,
-        {
-          name,
-          monthlyTakeHome,
-          annualInHandSalary,
-          annualInHandBonus,
-          taxRegime,
-          onboardingCompleted: true,
-        },
-        { session: dbSession }
-      );
+      if (!revisit) {
+        await User.findByIdAndUpdate(
+          session.userId,
+          {
+            name,
+            monthlyTakeHome,
+            annualInHandSalary,
+            annualInHandBonus,
+            taxRegime,
+            onboardingCompleted: true,
+          },
+          { session: dbSession }
+        );
 
-      if (packageBreakdown) {
-        if (annualInHandSalary > 0) {
-          await IncomeSource.create(
-            [
-              {
-                userId,
-                name: "Monthly Salary (in-hand)",
-                type: "salary",
-                amount: packageBreakdown.monthlyInHandSalary,
-                frequency: "monthly",
-                isNetAmount: true,
-                grossAmount: packageBreakdown.estimatedGrossSalary / 12,
-                estimatedTax: packageBreakdown.estimatedSalaryTax / 12,
-                notes: `Annual in-hand ₹${annualInHandSalary.toLocaleString("en-IN")} · FY 2025-26 ${taxRegime} regime`,
-              },
-            ],
-            { session: dbSession }
-          );
-        }
-        if (annualInHandBonus > 0) {
-          await IncomeSource.create(
-            [
-              {
-                userId,
-                name: "Annual Bonus (in-hand)",
-                type: "bonus",
-                amount: annualInHandBonus,
-                frequency: "yearly",
-                isNetAmount: true,
-                grossAmount: packageBreakdown.estimatedGrossBonus,
-                estimatedTax: packageBreakdown.estimatedBonusTax,
-                notes: "After TDS at payment · not spread monthly",
-              },
-            ],
-            { session: dbSession }
-          );
+        if (packageBreakdown) {
+          if (annualInHandSalary > 0) {
+            await IncomeSource.create(
+              [
+                {
+                  userId,
+                  name: "Monthly Salary (in-hand)",
+                  type: "salary",
+                  amount: packageBreakdown.monthlyInHandSalary,
+                  frequency: "monthly",
+                  isNetAmount: true,
+                  grossAmount: packageBreakdown.estimatedGrossSalary / 12,
+                  estimatedTax: packageBreakdown.estimatedSalaryTax / 12,
+                  notes: `Annual in-hand ₹${annualInHandSalary.toLocaleString("en-IN")} · FY 2025-26 ${taxRegime} regime`,
+                },
+              ],
+              { session: dbSession }
+            );
+          }
+          if (annualInHandBonus > 0) {
+            await IncomeSource.create(
+              [
+                {
+                  userId,
+                  name: "Annual Bonus (in-hand)",
+                  type: "bonus",
+                  amount: annualInHandBonus,
+                  frequency: "yearly",
+                  isNetAmount: true,
+                  grossAmount: packageBreakdown.estimatedGrossBonus,
+                  estimatedTax: packageBreakdown.estimatedBonusTax,
+                  notes: "After TDS at payment · not spread monthly",
+                },
+              ],
+              { session: dbSession }
+            );
+          }
         }
       }
 
       for (const key of selectedExpenseTemplates) {
         const idx = parseInt(key, 10);
         const template = DEFAULT_EXPENSE_TEMPLATES[idx];
-        if (template) {
-          await Expense.create([{ userId, ...template }], { session: dbSession });
+        if (!template) continue;
+
+        if (revisit) {
+          const exists = await Expense.findOne({ userId, name: template.name }).session(dbSession);
+          if (exists) continue;
         }
+
+        await Expense.create([{ userId, ...template }], { session: dbSession });
       }
 
       for (const key of selectedInvestmentTemplates) {
         const idx = parseInt(key, 10);
         const template = DEFAULT_INVESTMENT_TEMPLATES[idx];
-        if (template) {
-          await Investment.create(
-            [{ userId, ...template, startDate: new Date() }],
-            { session: dbSession }
-          );
+        if (!template) continue;
+
+        if (revisit) {
+          const exists = await Investment.findOne({ userId, name: template.name }).session(dbSession);
+          if (exists) continue;
         }
+
+        await Investment.create(
+          [{ userId, ...template, startDate: new Date() }],
+          { session: dbSession }
+        );
       }
 
       for (const optionId of selectedGoalOptions) {
         const option = ONBOARDING_GOAL_OPTIONS.find((o) => o.id === optionId);
-        if (option) {
-          await LifeGoal.create(
-            [
-              {
-                userId,
-                title: option.title,
-                goalType: option.goalType,
-                status: option.status,
-                targetAmount: option.targetAmount,
-                targetDate: addMonths(new Date(), option.monthsFromNow),
-                currentSaved: 0,
-                monthlyContribution: 0,
-                priority: 0,
-              },
-            ],
-            { session: dbSession }
-          );
+        if (!option) continue;
+
+        if (revisit) {
+          const exists = await LifeGoal.findOne({ userId, title: option.title }).session(dbSession);
+          if (exists) continue;
         }
+
+        await LifeGoal.create(
+          [
+            {
+              userId,
+              title: option.title,
+              goalType: option.goalType,
+              status: option.status,
+              targetAmount: option.targetAmount,
+              targetDate: addMonths(new Date(), option.monthsFromNow),
+              currentSaved: 0,
+              monthlyContribution: 0,
+              priority: 0,
+            },
+          ],
+          { session: dbSession }
+        );
       }
     });
   } catch (error) {
@@ -706,7 +850,9 @@ export async function completeOnboardingAction(
   }
 
   revalidateFinance();
-  await refreshSession({ onboardingCompleted: true });
+  if (!revisit) {
+    await refreshSession({ onboardingCompleted: true });
+  }
   return { success: true };
 }
 

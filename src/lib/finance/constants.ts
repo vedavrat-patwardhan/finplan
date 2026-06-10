@@ -1,8 +1,8 @@
 export const EXPENSE_CLASSES = [
-  "fixed",
-  "recurring",
-  "optional",
-  "variable",
+  "obligation",
+  "routine",
+  "discretionary",
+  "adhoc",
 ] as const;
 
 export const FREQUENCIES = [
@@ -147,13 +147,13 @@ export type SurplusUtilizationTierId =
   (typeof SURPLUS_UTILIZATION_TIERS)[number]["id"];
 
 export const DEFAULT_EXPENSE_TEMPLATES = [
-  { name: "Rent / Home EMI", category: "Housing", expenseClass: "fixed", amount: 25000, frequency: "monthly", isEssential: true },
-  { name: "Electricity & Water", category: "Utilities", expenseClass: "fixed", amount: 3000, frequency: "monthly", isEssential: true },
-  { name: "Groceries", category: "Food", expenseClass: "recurring", amount: 8000, frequency: "monthly", isEssential: true },
-  { name: "Commute / Fuel", category: "Transport", expenseClass: "recurring", amount: 4000, frequency: "monthly", isEssential: true },
-  { name: "Mobile & Internet", category: "Subscriptions", expenseClass: "fixed", amount: 1500, frequency: "monthly", isEssential: true },
-  { name: "Dining Out", category: "Entertainment", expenseClass: "optional", amount: 5000, frequency: "monthly", isEssential: false },
-  { name: "Shopping", category: "Shopping", expenseClass: "optional", amount: 3000, frequency: "monthly", isEssential: false },
+  { name: "Rent / Home EMI", category: "Housing", expenseClass: "obligation", amount: 25000, frequency: "monthly", isEssential: true },
+  { name: "Electricity & Water", category: "Utilities", expenseClass: "obligation", amount: 3000, frequency: "monthly", isEssential: true },
+  { name: "Groceries", category: "Food", expenseClass: "routine", amount: 8000, frequency: "monthly", isEssential: true },
+  { name: "Commute / Fuel", category: "Transport", expenseClass: "routine", amount: 4000, frequency: "monthly", isEssential: true },
+  { name: "Mobile & Internet", category: "Subscriptions", expenseClass: "obligation", amount: 1500, frequency: "monthly", isEssential: true },
+  { name: "Dining Out", category: "Entertainment", expenseClass: "discretionary", amount: 5000, frequency: "monthly", isEssential: false },
+  { name: "Shopping", category: "Shopping", expenseClass: "discretionary", amount: 3000, frequency: "monthly", isEssential: false },
 ] as const;
 
 export const DEFAULT_INVESTMENT_TEMPLATES = [

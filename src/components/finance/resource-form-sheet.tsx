@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LabeledSelect } from "@/components/ui/labeled-select";
+import { ExpenseCategoryField } from "@/components/finance/expense-category-field";
 import {
   Sheet,
   SheetContent,
@@ -31,8 +32,8 @@ import type { ActionResult } from "@/actions/auth";
 interface FieldOption {
   name: string;
   label: string;
-  type?: "text" | "number" | "date" | "select" | "checkbox";
-  options?: { value: string; label: string }[];
+  type?: "text" | "number" | "date" | "select" | "checkbox" | "expenseCategory";
+  options?: { value: string; label: string; description?: string }[];
   defaultValue?: string;
   required?: boolean;
   placeholder?: string;
@@ -163,6 +164,17 @@ function Field({ field }: { field: FieldOption }) {
   const isRequired =
     field.required !== false && field.type !== "checkbox" && field.name !== "notes";
 
+  if (field.type === "expenseCategory") {
+    return (
+      <ExpenseCategoryField
+        id={field.name}
+        name={field.name}
+        defaultValue={field.defaultValue}
+        required={isRequired}
+      />
+    );
+  }
+
   if (field.type === "select" && field.options) {
     return (
       <SelectField field={{ ...field, options: field.options }} required={isRequired} />
@@ -232,10 +244,11 @@ function SelectField({
   field,
   required,
 }: {
-  field: FieldOption & { options: { value: string; label: string }[] };
+  field: FieldOption & { options: { value: string; label: string; description?: string }[] };
   required: boolean;
 }) {
   const [value, setValue] = useState(field.defaultValue ?? field.options[0]?.value ?? "");
+  const activeDescription = field.options.find((option) => option.value === value)?.description;
 
   return (
     <div className="space-y-2">
@@ -247,6 +260,9 @@ function SelectField({
         options={field.options}
         placeholder={`Select ${field.label.toLowerCase()}`}
       />
+      {activeDescription ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">{activeDescription}</p>
+      ) : null}
       <input type="hidden" name={field.name} value={value} required={required} />
     </div>
   );

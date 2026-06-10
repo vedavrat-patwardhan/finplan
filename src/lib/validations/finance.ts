@@ -76,9 +76,19 @@ export const registerSchema = z.object({
   ),
 });
 
-export const profileSchema = z.object({
+export const personalProfileSchema = z.object({
   name: z.string().min(1).max(100),
-  monthlyTakeHome: z.coerce.number().min(0),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30)
+    .regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, and underscores only"),
+  monthlyInHandSalary: z.coerce.number().min(0),
+  annualInHandBonus: z.coerce.number().min(0),
+  taxRegime: z.enum(["new", "old"]),
+});
+
+export const profileSchema = z.object({
   inflationRate: z.coerce.number().min(0).max(30),
   bonusSpreadMonthly: z.boolean(),
   retirementMultiplier: z.coerce.number().min(10).max(50),
@@ -97,7 +107,7 @@ export const incomeSchema = z.object({
 
 export const expenseSchema = z.object({
   name: z.string().min(1).max(100),
-  category: z.enum(EXPENSE_CATEGORIES),
+  category: z.string().trim().min(1).max(50),
   expenseClass: z.enum(EXPENSE_CLASSES),
   amount: z.coerce.number().min(0),
   frequency: z.enum(FREQUENCIES),

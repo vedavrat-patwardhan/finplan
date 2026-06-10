@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatINR, formatEnumLabel, formatFrequency } from "@/lib/format";
+import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
 import { toMonthlyEquivalent as calcMonthly } from "@/lib/finance/engine";
 import type { Frequency } from "@/lib/finance/constants";
 
@@ -78,7 +79,7 @@ function matchesSearch(item: ExpenseListItem, query: string) {
   const haystack = [
     item.name,
     item.category,
-    formatEnumLabel(item.expenseClass),
+    formatExpenseClassLabel(item.expenseClass),
     item.isEssential ? "essential" : "optional",
   ]
     .join(" ")
@@ -138,7 +139,7 @@ export function ExpensesList({ items }: { items: ExpenseListItem[] }) {
               title={item.name}
               subtitle={
                 <span>
-                  {item.category} · {formatEnumLabel(item.expenseClass)} ·{" "}
+                  {item.category} · {formatExpenseClassLabel(item.expenseClass)} ·{" "}
                   {item.isEssential ? "Essential" : "Optional"}
                 </span>
               }

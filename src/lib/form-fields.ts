@@ -8,6 +8,7 @@ import {
   GOAL_TYPES,
 } from "@/lib/finance/constants";
 import { formatEnumLabel } from "@/lib/format";
+import { EXPENSE_CLASS_META } from "@/lib/finance/expense-classes";
 
 export const incomeFormFields = [
   {
@@ -54,16 +55,19 @@ export const expenseFormFields = [
   {
     name: "category",
     label: "Category",
-    type: "select" as const,
-    options: EXPENSE_CATEGORIES.map((v) => ({ value: v, label: v })),
+    type: "expenseCategory" as const,
     defaultValue: "Miscellaneous",
   },
   {
     name: "expenseClass",
-    label: "Class",
+    label: "Budget type",
     type: "select" as const,
-    options: EXPENSE_CLASSES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
-    defaultValue: "fixed",
+    options: EXPENSE_CLASSES.map((v) => ({
+      value: v,
+      label: EXPENSE_CLASS_META[v].label,
+      description: EXPENSE_CLASS_META[v].description,
+    })),
+    defaultValue: "obligation",
   },
   {
     name: "amount",

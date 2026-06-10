@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { getUserProfile, getMonthlySnapshot } from "@/lib/db/queries/finance";
+import { PersonalProfileForm } from "@/components/settings/personal-profile-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { AccountSecurity } from "@/components/settings/account-security";
 import { SettingsFooter } from "@/components/settings/settings-footer";
@@ -29,6 +30,25 @@ export default async function SettingsPage() {
         <ExportButton />
       </PageHeader>
 
+      <PageSection
+        title="Profile"
+        description="Personal details from onboarding — name and in-hand income"
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <PersonalProfileForm
+              profile={{
+                name: profile.name,
+                username: profile.username,
+                annualInHandSalary: profile.annualInHandSalary,
+                annualInHandBonus: profile.annualInHandBonus,
+                taxRegime: profile.taxRegime,
+              }}
+            />
+          </CardContent>
+        </Card>
+      </PageSection>
+
       <PageSection title="Account" description="Sign-in email and password">
         <AccountSecurity email={profile.email} />
       </PageSection>
@@ -45,10 +65,20 @@ export default async function SettingsPage() {
         />
       </PageSection>
 
-      <PageSection title="Profile & assumptions">
+      <PageSection
+        title="Planning assumptions"
+        description="Inflation, retirement, and display preferences for projections"
+      >
         <Card>
           <CardContent className="pt-6">
-            <ProfileForm profile={profile} />
+            <ProfileForm
+              profile={{
+                inflationRate: profile.inflationRate,
+                bonusSpreadMonthly: profile.bonusSpreadMonthly,
+                retirementMultiplier: profile.retirementMultiplier,
+                useCompactNumbers: profile.useCompactNumbers,
+              }}
+            />
           </CardContent>
         </Card>
       </PageSection>

@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,16 +15,20 @@ import {
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
+import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
 import { Target } from "lucide-react";
 
-const STEPS = ["Profile", "Income", "Expenses", "Investments", "Goals"] as const;
+const STEPS = ["Welcome", "Income", "Expenses", "Investments", "Goals"] as const;
 
-export function OnboardingWizard() {
+interface OnboardingWizardProps {
+  initialName: string;
+  revisit?: boolean;
+}
+
+export function OnboardingWizard({ initialName, revisit = false }: OnboardingWizardProps) {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
-
-  const [profile, setProfile] = useState({ name: "" });
   const [income, setIncome] = useState({
     skipIncome: false,
     monthlyInHandSalary: "",
@@ -50,8 +53,8 @@ export function OnboardingWizard() {
   }, [annualSalary, annualBonus, income.taxRegime, income.skipIncome, monthlySalary]);
 
   function canContinue() {
-    if (step === 0) return profile.name.trim().length > 0;
-    if (step === 1 && !income.skipIncome) {
+    if (step === 0) return initialName.trim().length > 0;
+    if (step === 1 && !income.skipIncome && !revisit) {
       return monthlySalary > 0 || annualBonus > 0;
     }
     return true;
@@ -60,7 +63,8 @@ export function OnboardingWizard() {
   async function handleFinish() {
     setSubmitting(true);
     const formData = new FormData();
-    formData.set("name", profile.name);
+    formData.set("name", initialName.trim());
+    formData.set("revisit", revisit ? "true" : "false");
     formData.set("skipIncome", income.skipIncome ? "true" : "false");
     formData.set("annualInHandSalary", String(annualSalary));
     formData.set("annualInHandBonus", String(annualBonus));
@@ -72,7 +76,7 @@ export function OnboardingWizard() {
 
     const result = await completeOnboardingAction({ success: false }, formData);
     if (result.success) {
-      toast.success("Setup complete!");
+      toast.success(revisit ? "Selections added!" : "Setup complete!");
       router.push("/dashboard");
     } else if (result.error) {
       toast.error(result.error);
@@ -108,20 +112,26 @@ export function OnboardingWizard() {
         {step === 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="font-heading">Welcome</CardTitle>
-              <CardDescription>Let&apos;s set up your financial profile</CardDescription>
+              <CardTitle className="font-heading">
+                {revisit
+                  ? "Welcome back"
+                  : initialName
+                    ? `Welcome, ${initialName.split(" ")[0]}`
+                    : "Welcome"}
+              </CardTitle>
+              <CardDescription>
+                {revisit
+                  ? "Pick expense budgets, investments, and goals to add to your plan."
+                  : "Your name from account creation is already saved. You can change it anytime in Settings."}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  value={profile.name}
-                  onChange={(e) => setProfile({ name: e.target.value })}
-                  placeholder="Your name"
-                />
-              </div>
-            </CardContent>
+            {initialName ? (
+              <CardContent>
+                <p className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                  Signed in as <span className="font-medium text-foreground">{initialName}</span>
+                </p>
+              </CardContent>
+            ) : null}
           </Card>
         )}
 
@@ -130,8 +140,9 @@ export function OnboardingWizard() {
             <CardHeader>
               <CardTitle className="font-heading">Monthly income</CardTitle>
               <CardDescription>
-                Enter in-hand amounts after TDS. Start with your monthly salary — annual figures
-                are calculated automatically.
+                {revisit
+                  ? "Your income is already set up. Skip this step or update it anytime from the Income page."
+                  : "Enter in-hand amounts after TDS. Start with your monthly salary — annual figures are calculated automatically."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -270,7 +281,7 @@ export function OnboardingWizard() {
                     <div>
                       <p className="text-sm font-medium">{template.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {template.category} · {template.expenseClass}
+                        {template.category} · {formatExpenseClassLabel(template.expenseClass)}
                       </p>
                     </div>
                   </div>
@@ -401,7 +412,13 @@ export function OnboardingWizard() {
             </Button>
           ) : (
             <Button type="button" disabled={submitting} onClick={handleFinish}>
-              {submitting ? "Setting up..." : "Finish setup"}
+              {submitting
+                ? revisit
+                  ? "Saving..."
+                  : "Setting up..."
+                : revisit
+                  ? "Add selections"
+                  : "Finish setup"}
             </Button>
           )}
         </div>

@@ -4,7 +4,6 @@ import { useActionState, useEffect, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MoneyInput } from "@/components/finance/money-input";
 import { updateProfileAction } from "@/actions/finance";
 import type { ActionResult } from "@/actions/auth";
 import { toast } from "sonner";
@@ -13,8 +12,6 @@ const initialState: ActionResult = { success: false };
 
 interface ProfileFormProps {
   profile: {
-    name: string;
-    monthlyTakeHome: number;
     inflationRate: number;
     bonusSpreadMonthly: boolean;
     retirementMultiplier: number;
@@ -63,7 +60,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   const [state, formAction, pending] = useActionState(updateProfileAction, initialState);
 
   useEffect(() => {
-    if (state.success) toast.success("Settings saved");
+    if (state.success) toast.success("Planning assumptions saved");
     if (state.error) toast.error(state.error);
   }, [state.success, state.error]);
 
@@ -77,19 +74,6 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       }}
       className="space-y-5"
     >
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" defaultValue={profile.name} placeholder="Your full name" required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="monthlyTakeHome">Monthly take-home (₹)</Label>
-        <MoneyInput
-          id="monthlyTakeHome"
-          name="monthlyTakeHome"
-          defaultValue={profile.monthlyTakeHome}
-          placeholder="e.g. 100000"
-        />
-      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="inflationRate">Default inflation rate (%)</Label>
@@ -130,7 +114,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         />
       </div>
       <Button type="submit" disabled={pending}>
-        {pending ? "Saving..." : "Save settings"}
+        {pending ? "Saving..." : "Save assumptions"}
       </Button>
     </form>
   );

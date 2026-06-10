@@ -9,6 +9,7 @@ import { ExpenseClassTabs } from "@/components/finance/expense-class-tabs";
 import { ExpensesList } from "@/components/finance/expenses-list";
 import { PageShell, PageHeader, MetaStat } from "@/components/layout/page-chrome";
 import { toMonthlyEquivalent as calcMonthly } from "@/lib/finance/engine";
+import { normalizeExpenseClass } from "@/lib/finance/expense-classes";
 
 export default async function ExpensesPage({
   searchParams,
@@ -20,12 +21,16 @@ export default async function ExpensesPage({
 
   const params = await searchParams;
   const activeClass = params.class ?? "all";
+  const normalizedClass =
+    activeClass === "all" ? "all" : normalizeExpenseClass(activeClass) ?? activeClass;
   const allItems = await getExpenses(session.userId);
 
   const items =
-    activeClass === "all"
+    normalizedClass === "all"
       ? allItems
-      : allItems.filter((e) => e.expenseClass === activeClass);
+      : allItems.filter(
+          (e) => (normalizeExpenseClass(e.expenseClass) ?? e.expenseClass) === normalizedClass
+        );
 
   const monthlyTotal = allItems.reduce(
     (sum, e) => sum + calcMonthly(e.amount, e.frequency),
@@ -53,7 +58,7 @@ export default async function ExpensesPage({
         />
       </PageHeader>
 
-      <ExpenseClassTabs activeClass={activeClass} />
+      <ExpenseClassTabs activeClass={normalizedClass} />
 
       {items.length === 0 ? (
         <EmptyState
