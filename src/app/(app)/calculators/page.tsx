@@ -8,6 +8,11 @@ import { ArrowUpRight } from "lucide-react";
 
 const calculators = [
   {
+    href: "/calculators/portfolio-outlook",
+    title: "Portfolio outlook",
+    description: "Future value breakdown — invested capital vs interest from your plan",
+  },
+  {
     href: "/calculators/sip",
     title: "SIP & lumpsum",
     description: "Project growth or see corpus you can build from your surplus",

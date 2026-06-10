@@ -13,10 +13,7 @@ import { formatINR, formatPercent, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
-import { FuturePredictionPanel } from "@/components/finance/future-prediction-panel";
 import { chartColorAt } from "@/lib/finance/chart-colors";
-import { weightedExpectedReturn } from "@/lib/finance/engine";
-import { calculatePortfolioReturns } from "@/lib/finance/investment-metrics";
 import {
   PageShell,
   PageHeader,
@@ -50,32 +47,6 @@ export default async function DashboardPage() {
 
   const showGetStarted =
     expenses.length === 0 && investments.length === 0 && goals.length === 0;
-
-  const portfolioValue = investments.reduce(
-    (sum, i) => sum + (i.metrics.fundValue ?? i.metrics.totalInvested),
-    0
-  );
-
-  const portfolioReturns = calculatePortfolioReturns(
-    investments.map((item) => ({
-      metrics: item.metrics,
-      startDate: new Date(item.startDate),
-    }))
-  );
-
-  const expectedReturnPct = weightedExpectedReturn(
-    investments.map((i) => ({
-      amount: i.amount,
-      frequency: i.frequency,
-      expectedReturnPct: i.expectedReturnPct,
-    }))
-  );
-
-  const currentReturnPct =
-    portfolioReturns.annualizedReturnPct ??
-    (portfolioReturns.totalInvested > 0
-      ? portfolioReturns.absoluteReturnPct
-      : expectedReturnPct);
 
   const budgetDelta = ledger.budgetMonthly - ledger.totalDebits;
   const budgetUsedPct =
@@ -232,21 +203,6 @@ export default async function DashboardPage() {
             Open ledger →
           </Link>
         </div>
-      </PageSection>
-
-      <PageSection
-        title="Future outlook"
-        description="Project portfolio value over 1–50 years with expected vs actual returns"
-      >
-        <FuturePredictionPanel
-          inputs={{
-            currentPortfolioValue: portfolioValue,
-            monthlyInvestments: snapshot.investments,
-            expectedReturnPct,
-            currentReturnPct,
-            inflationRate: profile?.inflationRate ?? 6,
-          }}
-        />
       </PageSection>
 
       <PortfolioChartsSection data={chartData} />

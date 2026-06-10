@@ -1,23 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceLine,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartArea } from "@/components/ui/chart-area";
 import { formatINR, formatPercent } from "@/lib/format";
 import {
-  generateHorizonProjectionSeries,
   projectPortfolioAtYears,
+  type PortfolioHorizonProjection,
 } from "@/lib/finance/engine";
-import { chartColorAt } from "@/lib/finance/chart-colors";
+import { cn } from "@/lib/utils";
 
 export interface FuturePredictionInputs {
   currentPortfolioValue: number;
@@ -27,67 +17,94 @@ export interface FuturePredictionInputs {
   inflationRate: number;
 }
 
-function ProjectionTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color?: string }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      {label ? <p className="mb-1 font-medium">{label}</p> : null}
-      {payload.map((item) => (
-        <p key={item.name} className="tabular-nums">
-          <span className="text-muted-foreground">{item.name}: </span>
-          {formatINR(item.value, { compact: true })}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function ScenarioCard({
+function ProjectionBreakdown({
   title,
   subtitle,
   projection,
+  years,
   accentClass,
 }: {
   title: string;
   subtitle: string;
-  projection: ReturnType<typeof projectPortfolioAtYears>;
+  projection: PortfolioHorizonProjection;
+  years: number;
   accentClass: string;
 }) {
+  const invested = projection.startingValue + projection.newContributions;
+
   return (
-    <div className={`rounded-xl border border-border px-4 py-4 ${accentClass}`}>
+    <div className={cn("rounded-xl border border-border px-4 py-4", accentClass)}>
       <p className="text-sm font-medium">{title}</p>
       <p className="text-xs text-muted-foreground">{subtitle}</p>
-      <p className="font-heading mt-3 text-2xl font-semibold tabular-nums">
-        {formatINR(projection.futureValue, { compact: true })}
+
+      <p className="font-heading mt-4 text-2xl font-semibold tabular-nums">
+        {formatINR(projection.futureValue)}
       </p>
-      <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-        <div>
-          <p className="text-xs text-muted-foreground">Investment gain</p>
-          <p
-            className={`font-medium tabular-nums ${
+      <p className="mt-0.5 text-xs text-muted-foreground">Future value in {years} years</p>
+
+      <dl className="mt-5 space-y-0 text-sm">
+        <div className="flex items-baseline justify-between gap-3 border-b border-border/60 py-2.5">
+          <dt className="text-muted-foreground">Invested</dt>
+          <dd className="font-medium tabular-nums">{formatINR(invested)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 py-1.5 pl-2 text-xs">
+          <dt className="text-muted-foreground">Current portfolio</dt>
+          <dd className="tabular-nums">{formatINR(projection.startingValue)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 pl-2 pb-2.5 text-xs">
+          <dt className="text-muted-foreground">Future SIP ({years} yr)</dt>
+          <dd className="tabular-nums">{formatINR(projection.newContributions)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 py-2.5">
+          <dt className="text-muted-foreground">Interest / gains</dt>
+          <dd
+            className={cn(
+              "font-medium tabular-nums",
               projection.gain >= 0 ? "text-success" : "text-destructive"
-            }`}
+            )}
           >
             {projection.gain >= 0 ? "+" : ""}
-            {formatINR(projection.gain, { compact: true })}
-          </p>
+            {formatINR(projection.gain)}
+          </dd>
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Return on basis</p>
-          <p className="font-medium tabular-nums">
-            {formatPercent(projection.absoluteReturnPct)}
-          </p>
+        <div className="flex items-baseline justify-between gap-3 border-t border-border py-2.5 font-medium">
+          <dt>Total</dt>
+          <dd className="tabular-nums">{formatINR(projection.futureValue)}</dd>
         </div>
-      </div>
+      </dl>
+
+      <p className="mt-3 text-xs text-muted-foreground">
+        Return on invested capital: {formatPercent(projection.absoluteReturnPct)}
+      </p>
+    </div>
+  );
+}
+
+function InflationStat({
+  label,
+  futureValue,
+  todayValue,
+  years,
+}: {
+  label: string;
+  futureValue: number;
+  todayValue: number;
+  years: number;
+}) {
+  const erosionPct =
+    futureValue > 0 ? ((futureValue - todayValue) / futureValue) * 100 : 0;
+
+  return (
+    <div className="rounded-lg bg-background/80 px-3 py-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm tabular-nums">
+        <span className="font-medium">{formatINR(futureValue)}</span>
+        <span className="text-muted-foreground"> in {years} yr → </span>
+        <span className="font-medium text-foreground">{formatINR(todayValue)} today</span>
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        ~{formatPercent(erosionPct)} less buying power than the headline number suggests
+      </p>
     </div>
   );
 }
@@ -98,18 +115,6 @@ export function FuturePredictionPanel({
   inputs: FuturePredictionInputs;
 }) {
   const [years, setYears] = useState(10);
-
-  const series = useMemo(
-    () =>
-      generateHorizonProjectionSeries({
-        currentPortfolioValue: inputs.currentPortfolioValue,
-        monthlyInvestments: inputs.monthlyInvestments,
-        expectedReturnPct: inputs.expectedReturnPct,
-        currentReturnPct: inputs.currentReturnPct,
-        inflationRate: inputs.inflationRate,
-      }),
-    [inputs]
-  );
 
   const expectedAtHorizon = useMemo(
     () =>
@@ -135,27 +140,22 @@ export function FuturePredictionPanel({
     [inputs, years]
   );
 
-  const chartData = series.map((point) => ({
-    year: point.year,
-    expected: Math.round(point.expected),
-    current: Math.round(point.current),
-  }));
-
-  const expectedColor = chartColorAt(0);
-  const currentColor = chartColorAt(2);
   const yearLabel = years === 1 ? "1 year" : `${years} years`;
 
   return (
     <Card className="overflow-hidden border-t-[3px] border-t-chart-5">
       <CardHeader>
-        <CardTitle className="font-heading text-lg">Portfolio outlook</CardTitle>
+        <CardTitle className="font-heading text-lg">Future value breakdown</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Project portfolio growth using expected returns from your plan vs your current actual
-          returns. Monthly SIP of{" "}
+          Exact invested capital vs interest at your chosen horizon. Assumes monthly SIP of{" "}
           <span className="font-medium tabular-nums text-foreground">
-            {formatINR(inputs.monthlyInvestments, { compact: true })}
+            {formatINR(inputs.monthlyInvestments)}
           </span>{" "}
-          is assumed to continue.
+          continues and current portfolio of{" "}
+          <span className="font-medium tabular-nums text-foreground">
+            {formatINR(inputs.currentPortfolioValue)}
+          </span>
+          .
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -187,16 +187,18 @@ export function FuturePredictionPanel({
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <ScenarioCard
+          <ProjectionBreakdown
             title="Expected returns"
             subtitle={`${formatPercent(inputs.expectedReturnPct)} p.a. from your investment plan`}
             projection={expectedAtHorizon}
+            years={years}
             accentClass="border-l-[3px] border-l-chart-1 bg-chart-1/5"
           />
-          <ScenarioCard
+          <ProjectionBreakdown
             title="Current returns"
             subtitle={`${formatPercent(inputs.currentReturnPct)} p.a. based on actual portfolio performance`}
             projection={currentAtHorizon}
+            years={years}
             accentClass="border-l-[3px] border-l-chart-2 bg-chart-2/5"
           />
         </div>
@@ -223,78 +225,7 @@ export function FuturePredictionPanel({
             />
           </div>
         </div>
-
-        <ChartArea className="h-64">
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-            <XAxis
-              dataKey="year"
-              tick={{ fontSize: 10 }}
-              tickFormatter={(v) => `${v}y`}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tickFormatter={(v) => formatINR(v, { compact: true })}
-              tick={{ fontSize: 10 }}
-              width={52}
-            />
-            <Tooltip
-              content={
-                <ProjectionTooltip label={`Year ${years}`} />
-              }
-            />
-            <ReferenceLine x={years} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
-            <Line
-              type="monotone"
-              dataKey="expected"
-              name="Expected"
-              stroke={expectedColor}
-              strokeWidth={2}
-              dot={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="current"
-              name="Current returns"
-              stroke={currentColor}
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="5 3"
-            />
-          </LineChart>
-        </ChartArea>
       </CardContent>
     </Card>
-  );
-}
-
-function InflationStat({
-  label,
-  futureValue,
-  todayValue,
-  years,
-}: {
-  label: string;
-  futureValue: number;
-  todayValue: number;
-  years: number;
-}) {
-  const erosionPct =
-    futureValue > 0 ? ((futureValue - todayValue) / futureValue) * 100 : 0;
-
-  return (
-    <div className="rounded-lg bg-background/80 px-3 py-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm tabular-nums">
-        <span className="font-medium">{formatINR(futureValue, { compact: true })}</span>
-        <span className="text-muted-foreground"> in {years} yr → </span>
-        <span className="font-medium text-foreground">
-          {formatINR(todayValue, { compact: true })} today
-        </span>
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        ~{formatPercent(erosionPct)} less buying power than the headline number suggests
-      </p>
-    </div>
   );
 }
