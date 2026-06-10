@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, startTransition } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { loginAction, registerAction, type ActionResult } from "@/actions/auth";
 
 const initialState: ActionResult = { success: false };
+
+const TRIMMED_FIELDS = new Set(["identifier", "username", "email", "name"]);
 
 type AuthField = {
   name: string;
@@ -21,7 +23,8 @@ type AuthField = {
 
 function getFieldValue(form: HTMLFormElement, name: string) {
   const field = form.querySelector<HTMLInputElement>(`[name="${name}"]`);
-  return field?.value ?? "";
+  const value = field?.value ?? "";
+  return TRIMMED_FIELDS.has(name) ? value.trim() : value;
 }
 
 function AuthForm({
@@ -35,6 +38,13 @@ function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const fieldErrors = state.fieldErrors ?? {};
+  const [dismissedErrors, setDismissedErrors] = useState<Set<string>>(new Set());
+  const [dismissedGeneralError, setDismissedGeneralError] = useState(false);
+
+  useEffect(() => {
+    setDismissedErrors(new Set());
+    setDismissedGeneralError(false);
+  }, [state.fieldErrors, state.error]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,16 +57,25 @@ function AuthForm({
     });
   }
 
+  function dismissFieldError(fieldName: string) {
+    setDismissedErrors((prev) => new Set(prev).add(fieldName));
+    setDismissedGeneralError(true);
+  }
+
+  const showGeneralError =
+    state.error && !Object.keys(fieldErrors).length && !dismissedGeneralError;
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {fields.map((field) => {
-        const error = fieldErrors[field.name];
+        const error = dismissedErrors.has(field.name) ? undefined : fieldErrors[field.name];
         const inputProps = {
           id: field.name,
           name: field.name,
           autoComplete: field.autoComplete,
           placeholder: field.placeholder,
           "aria-invalid": error ? true : undefined,
+          onChange: () => dismissFieldError(field.name),
         };
 
         return (
@@ -71,7 +90,7 @@ function AuthForm({
           </div>
         );
       })}
-      {state.error && !Object.keys(fieldErrors).length ? (
+      {showGeneralError ? (
         <p className="text-sm text-destructive">{state.error}</p>
       ) : null}
       <Button type="submit" className="w-full" disabled={pending}>

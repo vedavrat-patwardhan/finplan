@@ -23,11 +23,13 @@ import {
   upiValidationMessage,
 } from "@/lib/finance/account-details";
 
+function trimField(val: unknown): string {
+  if (val == null) return "";
+  return String(val).trim();
+}
+
 export const loginSchema = z.object({
-  identifier: z.preprocess(
-    (val) => (val == null ? "" : val),
-    z.string().min(1, "Email or username is required")
-  ),
+  identifier: z.preprocess(trimField, z.string().min(1, "Email or username is required")),
   password: z.preprocess(
     (val) => (val == null ? "" : val),
     z.string().min(1, "Password is required")
@@ -56,11 +58,11 @@ export const changePasswordSchema = z
 
 export const registerSchema = z.object({
   email: z.preprocess(
-    (val) => (val == null ? "" : val),
+    (val) => trimField(val).toLowerCase(),
     z.string().email("Enter a valid email")
   ),
   username: z.preprocess(
-    (val) => (val == null ? "" : val),
+    trimField,
     z
       .string()
       .min(3, "Username must be at least 3 characters")
@@ -71,10 +73,7 @@ export const registerSchema = z.object({
     (val) => (val == null ? "" : val),
     z.string().min(8, "Password must be at least 8 characters")
   ),
-  name: z.preprocess(
-    (val) => (val == null ? "" : val),
-    z.string().min(1, "Name is required").max(100)
-  ),
+  name: z.preprocess(trimField, z.string().min(1, "Name is required").max(100)),
 });
 
 export const householdSchema = z
@@ -91,9 +90,10 @@ export const householdSchema = z
   });
 
 export const personalProfileSchema = z.object({
-  name: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(100),
   username: z
     .string()
+    .trim()
     .min(3, "Username must be at least 3 characters")
     .max(30)
     .regex(/^[a-zA-Z0-9_]+$/, "Letters, numbers, and underscores only"),
