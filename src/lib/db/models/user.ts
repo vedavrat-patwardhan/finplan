@@ -16,6 +16,11 @@ const UserSchema = new Schema(
     retirementMultiplier: { type: Number, default: 25 },
     onboardingCompleted: { type: Boolean, default: false },
     useCompactNumbers: { type: Boolean, default: true },
+    householdEnabled: { type: Boolean, default: false },
+    spouseName: { type: String, default: "" },
+    spouseAnnualInHandSalary: { type: Number, default: 0 },
+    spouseAnnualInHandBonus: { type: Number, default: 0 },
+    spouseTaxRegime: { type: String, enum: ["new", "old"], default: "new" },
   },
   { timestamps: true }
 );

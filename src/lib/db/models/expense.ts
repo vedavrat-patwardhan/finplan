@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { EXPENSE_CLASSES, FREQUENCIES } from "@/lib/finance/constants";
+import { EXPENSE_CLASSES, FREQUENCIES, HOUSEHOLD_OWNERS } from "@/lib/finance/constants";
 
 const ExpenseSchema = new Schema(
   {
@@ -11,6 +11,7 @@ const ExpenseSchema = new Schema(
     frequency: { type: String, enum: FREQUENCIES, required: true },
     isEssential: { type: Boolean, default: true },
     notes: { type: String, default: "" },
+    owner: { type: String, enum: HOUSEHOLD_OWNERS, default: "self" },
   },
   { timestamps: true }
 );

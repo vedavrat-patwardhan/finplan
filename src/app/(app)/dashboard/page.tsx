@@ -91,9 +91,11 @@ export default async function DashboardPage() {
       <PageHeader
         title="Dashboard"
         description={
-          profile?.name
-            ? `${profile.name}, here's how your plan and actual spending compare.`
-            : "Your monthly plan, actual spending, and goal progress in one place."
+          profile?.householdEnabled && profile.spouseName
+            ? `Household plan for you and ${profile.spouseName} — planned vs actual spending.`
+            : profile?.name
+              ? `${profile.name}, here's how your plan and actual spending compare.`
+              : "Your monthly plan, actual spending, and goal progress in one place."
         }
         meta={
           <>

@@ -1,3 +1,5 @@
+export const HOUSEHOLD_OWNERS = ["self", "spouse", "joint"] as const;
+
 export const EXPENSE_CLASSES = [
   "obligation",
   "routine",

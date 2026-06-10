@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
 import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
-import { Target } from "lucide-react";
+import { Target, Users } from "lucide-react";
 
 const STEPS = ["Welcome", "Income", "Expenses", "Investments", "Goals"] as const;
 
@@ -34,6 +35,11 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
     monthlyInHandSalary: "",
     annualInHandBonus: "",
     taxRegime: "new" as "new" | "old",
+    householdEnabled: false,
+    spouseName: "",
+    spouseMonthlyInHandSalary: "",
+    spouseAnnualInHandBonus: "",
+    spouseTaxRegime: "new" as "new" | "old",
   });
   const [selectedExpenses, setSelectedExpenses] = useState<Set<number>>(new Set());
   const [selectedInvestments, setSelectedInvestments] = useState<Set<number>>(new Set());
@@ -42,6 +48,9 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
   const monthlySalary = Number(income.monthlyInHandSalary) || 0;
   const annualSalary = monthlySalary * 12;
   const annualBonus = Number(income.annualInHandBonus) || 0;
+  const spouseMonthlySalary = Number(income.spouseMonthlyInHandSalary) || 0;
+  const spouseAnnualSalary = spouseMonthlySalary * 12;
+  const spouseAnnualBonus = Number(income.spouseAnnualInHandBonus) || 0;
 
   const taxPreview = useMemo(() => {
     if (income.skipIncome || (monthlySalary === 0 && annualBonus === 0)) return null;
@@ -54,7 +63,20 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
 
   function canContinue() {
     if (step === 0) return initialName.trim().length > 0;
-    if (step === 1 && !income.skipIncome && !revisit) {
+    if (step === 1 && !revisit) {
+      if (income.skipIncome) {
+        if (!income.householdEnabled) return true;
+        return (
+          income.spouseName.trim().length > 0 &&
+          (spouseMonthlySalary > 0 || spouseAnnualBonus > 0)
+        );
+      }
+      if (income.householdEnabled) {
+        if (!income.spouseName.trim()) return false;
+        const hasSelf = monthlySalary > 0 || annualBonus > 0;
+        const hasSpouse = spouseMonthlySalary > 0 || spouseAnnualBonus > 0;
+        return hasSelf || hasSpouse;
+      }
       return monthlySalary > 0 || annualBonus > 0;
     }
     return true;
@@ -69,6 +91,11 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
     formData.set("annualInHandSalary", String(annualSalary));
     formData.set("annualInHandBonus", String(annualBonus));
     formData.set("taxRegime", income.taxRegime);
+    formData.set("householdEnabled", income.householdEnabled ? "true" : "false");
+    formData.set("spouseName", income.spouseName.trim());
+    formData.set("spouseAnnualInHandSalary", String(spouseAnnualSalary));
+    formData.set("spouseAnnualInHandBonus", String(spouseAnnualBonus));
+    formData.set("spouseTaxRegime", income.spouseTaxRegime);
 
     selectedExpenses.forEach((i) => formData.append("expenseTemplates", String(i)));
     selectedInvestments.forEach((i) => formData.append("investmentTemplates", String(i)));
@@ -248,6 +275,102 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                   )}
                 </>
               )}
+
+              {!revisit ? (
+                <div className="space-y-4 border-t border-border pt-5">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={income.householdEnabled}
+                      onChange={(e) =>
+                        setIncome((p) => ({ ...p, householdEnabled: e.target.checked }))
+                      }
+                      className="mt-0.5 size-4"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Users className="size-4 text-primary" />
+                        My partner also earns
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Plan together in one account — tag income and expenses as yours, theirs, or
+                        shared.
+                      </p>
+                    </div>
+                  </label>
+
+                  {income.householdEnabled ? (
+                    <div className="space-y-4 rounded-xl bg-muted/30 p-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="spouseName">Partner&apos;s name</Label>
+                        <Input
+                          id="spouseName"
+                          value={income.spouseName}
+                          onChange={(e) =>
+                            setIncome((p) => ({ ...p, spouseName: e.target.value }))
+                          }
+                          placeholder="e.g. Priya"
+                        />
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="spouseMonthlySalary">
+                            Partner monthly in-hand salary (₹)
+                          </Label>
+                          <MoneyInput
+                            id="spouseMonthlySalary"
+                            value={income.spouseMonthlyInHandSalary}
+                            onChange={(e) =>
+                              setIncome((p) => ({
+                                ...p,
+                                spouseMonthlyInHandSalary: e.target.value,
+                              }))
+                            }
+                            placeholder="120000"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="spouseAnnualBonus">
+                            Partner annual bonus in-hand (₹, optional)
+                          </Label>
+                          <MoneyInput
+                            id="spouseAnnualBonus"
+                            value={income.spouseAnnualInHandBonus}
+                            onChange={(e) =>
+                              setIncome((p) => ({
+                                ...p,
+                                spouseAnnualInHandBonus: e.target.value,
+                              }))
+                            }
+                            placeholder="200000"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Partner tax regime</Label>
+                        <div className="flex gap-2">
+                          {(["new", "old"] as const).map((regime) => (
+                            <button
+                              key={regime}
+                              type="button"
+                              onClick={() =>
+                                setIncome((p) => ({ ...p, spouseTaxRegime: regime }))
+                              }
+                              className={`rounded-full px-4 py-1.5 text-sm capitalize transition-colors ${
+                                income.spouseTaxRegime === regime
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              }`}
+                            >
+                              {regime} regime
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         )}

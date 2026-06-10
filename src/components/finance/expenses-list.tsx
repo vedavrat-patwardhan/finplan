@@ -18,6 +18,8 @@ import { LabeledSelect } from "@/components/ui/labeled-select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatINR, formatEnumLabel, formatFrequency } from "@/lib/format";
 import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
+import { expenseOwnerFormField, formatOwnerLabel } from "@/lib/finance/household";
+import { ResourceBadge } from "@/components/finance/resource-row";
 import { toMonthlyEquivalent as calcMonthly } from "@/lib/finance/engine";
 import type { Frequency } from "@/lib/finance/constants";
 
@@ -29,6 +31,7 @@ export type ExpenseListItem = {
   amount: number;
   frequency: Frequency;
   isEssential: boolean;
+  owner?: "self" | "spouse" | "joint";
 };
 
 const sortOptions = [
@@ -88,7 +91,18 @@ function matchesSearch(item: ExpenseListItem, query: string) {
   return haystack.includes(query);
 }
 
-export function ExpensesList({ items }: { items: ExpenseListItem[] }) {
+export function ExpensesList({
+  items,
+  householdEnabled = false,
+  spouseName = "",
+}: {
+  items: ExpenseListItem[];
+  householdEnabled?: boolean;
+  spouseName?: string;
+}) {
+  const expenseFields = householdEnabled
+    ? [...expenseFormFields, expenseOwnerFormField(spouseName)]
+    : expenseFormFields;
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortValue>("monthly-desc");
   const debouncedSearch = useDebouncedValue(search.trim().toLowerCase(), 300);
@@ -137,6 +151,11 @@ export function ExpensesList({ items }: { items: ExpenseListItem[] }) {
             <ResourceRow
               key={item.id}
               title={item.name}
+              badges={
+                householdEnabled && item.owner ? (
+                  <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
+                ) : undefined
+              }
               subtitle={
                 <span>
                   {item.category} · {formatExpenseClassLabel(item.expenseClass)} ·{" "}
@@ -156,7 +175,7 @@ export function ExpensesList({ items }: { items: ExpenseListItem[] }) {
                     title="Edit expense budget"
                     description="Update amount, category, or whether this is essential spending."
                     triggerLabel="Edit"
-                    fields={expenseFormFields}
+                    fields={expenseFields}
                     action={createExpenseAction}
                     updateAction={updateExpenseAction}
                     itemId={item.id}
@@ -167,6 +186,7 @@ export function ExpensesList({ items }: { items: ExpenseListItem[] }) {
                       amount: String(item.amount),
                       frequency: item.frequency,
                       isEssential: String(item.isEssential),
+                      owner: item.owner ?? "self",
                     }}
                   />
                   <DeleteButton

@@ -54,6 +54,11 @@ export const getUserProfile = cache(async (userId: string) => {
     retirementMultiplier: user.retirementMultiplier,
     onboardingCompleted: user.onboardingCompleted,
     useCompactNumbers: user.useCompactNumbers,
+    householdEnabled: user.householdEnabled ?? false,
+    spouseName: user.spouseName ?? "",
+    spouseAnnualInHandSalary: user.spouseAnnualInHandSalary ?? 0,
+    spouseAnnualInHandBonus: user.spouseAnnualInHandBonus ?? 0,
+    spouseTaxRegime: (user.spouseTaxRegime ?? "new") as "new" | "old",
   };
 });
 
@@ -74,6 +79,7 @@ export const getIncomeSources = cache(async (userId: string) => {
     startDate: item.startDate,
     endDate: item.endDate,
     notes: item.notes,
+    owner: (item.owner ?? "self") as "self" | "spouse" | "joint",
   }));
 });
 
@@ -91,6 +97,7 @@ export const getExpenses = cache(async (userId: string) => {
     frequency: item.frequency as Frequency,
     isEssential: item.isEssential,
     notes: item.notes,
+    owner: (item.owner ?? "self") as "self" | "spouse" | "joint",
   }));
 });
 

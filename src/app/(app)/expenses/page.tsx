@@ -1,8 +1,9 @@
 import { getSession } from "@/lib/auth/session";
-import { getExpenses } from "@/lib/db/queries/finance";
+import { getExpenses, getUserProfile } from "@/lib/db/queries/finance";
 import { formatINR } from "@/lib/format";
 import { createExpenseAction } from "@/actions/finance";
 import { expenseFormFields } from "@/lib/form-fields";
+import { expenseOwnerFormField } from "@/lib/finance/household";
 import { ResourceFormSheet } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
 import { ExpenseClassTabs } from "@/components/finance/expense-class-tabs";
@@ -23,7 +24,15 @@ export default async function ExpensesPage({
   const activeClass = params.class ?? "all";
   const normalizedClass =
     activeClass === "all" ? "all" : normalizeExpenseClass(activeClass) ?? activeClass;
-  const allItems = await getExpenses(session.userId);
+  const [allItems, profile] = await Promise.all([
+    getExpenses(session.userId),
+    getUserProfile(session.userId),
+  ]);
+  const householdEnabled = profile?.householdEnabled ?? false;
+  const spouseName = profile?.spouseName ?? "";
+  const expenseFields = householdEnabled
+    ? [...expenseFormFields, expenseOwnerFormField(spouseName)]
+    : expenseFormFields;
 
   const items =
     normalizedClass === "all"
@@ -53,7 +62,7 @@ export default async function ExpensesPage({
           title="Add expense budget"
           description="Rent, EMIs, subscriptions, and discretionary spending you expect each month."
           triggerLabel="Add budget"
-          fields={expenseFormFields}
+          fields={expenseFields}
           action={createExpenseAction}
         />
       </PageHeader>
@@ -72,7 +81,11 @@ export default async function ExpensesPage({
           actionHref="/transactions"
         />
       ) : (
-        <ExpensesList items={items} />
+        <ExpensesList
+          items={items}
+          householdEnabled={householdEnabled}
+          spouseName={spouseName}
+        />
       )}
     </PageShell>
   );

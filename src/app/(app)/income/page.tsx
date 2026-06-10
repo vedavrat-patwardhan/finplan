@@ -4,6 +4,7 @@ import { formatINR, formatIncomeType, formatFrequency } from "@/lib/format";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { createIncomeAction, deleteIncomeAction } from "@/actions/finance";
 import { incomeFormFields } from "@/lib/form-fields";
+import { incomeOwnerFormField, formatOwnerLabel } from "@/lib/finance/household";
 import {
   ResourceFormSheet,
   DeleteButton,
@@ -28,6 +29,11 @@ export default async function IncomePage() {
   ]);
 
   const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
+  const householdEnabled = profile?.householdEnabled ?? false;
+  const spouseName = profile?.spouseName ?? "";
+  const incomeFields = householdEnabled
+    ? [...incomeFormFields, incomeOwnerFormField(spouseName)]
+    : incomeFormFields;
 
   const monthlyInHand = items.reduce(
     (sum, i) =>
@@ -39,21 +45,67 @@ export default async function IncomePage() {
     0
   );
 
+  const monthlyByOwner = items.reduce(
+    (acc, item) => {
+      const monthly = toMonthlyEquivalent(item.amount, item.frequency, {
+        type: item.type,
+        bonusSpreadMonthly,
+      });
+      const owner = item.owner ?? "self";
+      acc[owner] = (acc[owner] ?? 0) + monthly;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
   return (
     <PageShell>
       <PageHeader
         title="Income"
-        description="Plan with in-hand amounts — what actually lands in your account after TDS."
+        description={
+          householdEnabled
+            ? "Household income in one place — tag each source as yours, your partner's, or shared."
+            : "Plan with in-hand amounts — what actually lands in your account after TDS."
+        }
         meta={<MetaStat label="Monthly equivalent" value={`${formatINR(monthlyInHand, { compact: true })}/mo`} />}
       >
         <ResourceFormSheet
           title="Add income source"
           description="Salary, bonus, freelance, or rental — use amounts after tax is deducted."
           triggerLabel="Add income"
-          fields={incomeFormFields}
+          fields={incomeFields}
           action={createIncomeAction}
         />
       </PageHeader>
+
+      {householdEnabled ? (
+        <PageSection title="Household breakdown">
+          <Card>
+            <CardContent className="grid gap-4 pt-6 text-sm sm:grid-cols-3">
+              <div>
+                <p className="text-muted-foreground">Your income</p>
+                <p className="mt-0.5 font-medium tabular-nums">
+                  {formatINR(monthlyByOwner.self ?? 0, { compact: true })}/mo
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">
+                  {spouseName || "Partner"}&apos;s income
+                </p>
+                <p className="mt-0.5 font-medium tabular-nums">
+                  {formatINR(monthlyByOwner.spouse ?? 0, { compact: true })}/mo
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Shared / household</p>
+                <p className="mt-0.5 font-medium tabular-nums">
+                  {formatINR(monthlyByOwner.joint ?? 0, { compact: true })}/mo
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </PageSection>
+      ) : null}
 
       {profile && profile.monthlyTakeHome > 0 ? (
         <PageSection title="Profile summary">
@@ -108,7 +160,14 @@ export default async function IncomePage() {
               <ResourceRow
                 key={item.id}
                 title={item.name}
-                badges={<ResourceBadge>{formatIncomeType(item.type)}</ResourceBadge>}
+                badges={
+                  <>
+                    <ResourceBadge>{formatIncomeType(item.type)}</ResourceBadge>
+                    {householdEnabled ? (
+                      <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
+                    ) : null}
+                  </>
+                }
                 subtitle={
                   <>
                     {item.notes ? <p>{item.notes}</p> : null}

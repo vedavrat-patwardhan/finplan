@@ -4,6 +4,7 @@ import {
   EXPENSE_CATEGORIES,
   FREQUENCIES,
   GOAL_TYPES,
+  HOUSEHOLD_OWNERS,
   INCOME_TYPES,
   INSURANCE_TYPES,
   INVESTMENT_TYPES,
@@ -76,6 +77,19 @@ export const registerSchema = z.object({
   ),
 });
 
+export const householdSchema = z
+  .object({
+    householdEnabled: z.coerce.boolean(),
+    spouseName: z.string().max(100),
+    spouseMonthlyInHandSalary: z.coerce.number().min(0),
+    spouseAnnualInHandBonus: z.coerce.number().min(0),
+    spouseTaxRegime: z.enum(["new", "old"]),
+  })
+  .refine((data) => !data.householdEnabled || data.spouseName.trim().length > 0, {
+    message: "Partner name is required",
+    path: ["spouseName"],
+  });
+
 export const personalProfileSchema = z.object({
   name: z.string().min(1).max(100),
   username: z
@@ -100,6 +114,7 @@ export const incomeSchema = z.object({
   type: z.enum(INCOME_TYPES),
   amount: z.coerce.number().min(0),
   frequency: z.enum(FREQUENCIES),
+  owner: z.enum(HOUSEHOLD_OWNERS).default("self"),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
   notes: z.string().max(500).optional(),
@@ -112,6 +127,7 @@ export const expenseSchema = z.object({
   amount: z.coerce.number().min(0),
   frequency: z.enum(FREQUENCIES),
   isEssential: z.boolean(),
+  owner: z.enum(HOUSEHOLD_OWNERS).default("self"),
   notes: z.string().max(500).optional(),
 });
 
@@ -257,6 +273,11 @@ export const onboardingSchema = z.object({
   annualInHandBonus: z.coerce.number().min(0).optional(),
   taxRegime: z.enum(["new", "old"]).default("new"),
   skipIncome: z.coerce.boolean().optional(),
+  householdEnabled: z.coerce.boolean().optional(),
+  spouseName: z.string().max(100).optional(),
+  spouseAnnualInHandSalary: z.coerce.number().min(0).optional(),
+  spouseAnnualInHandBonus: z.coerce.number().min(0).optional(),
+  spouseTaxRegime: z.enum(["new", "old"]).optional(),
   selectedExpenseTemplates: z.array(z.string()),
   selectedInvestmentTemplates: z.array(z.string()),
   selectedGoalOptions: z.array(z.string()),

@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { FREQUENCIES, INCOME_TYPES } from "@/lib/finance/constants";
+import { FREQUENCIES, HOUSEHOLD_OWNERS, INCOME_TYPES } from "@/lib/finance/constants";
 
 const IncomeSourceSchema = new Schema(
   {
@@ -15,6 +15,7 @@ const IncomeSourceSchema = new Schema(
     startDate: { type: Date, default: Date.now },
     endDate: { type: Date },
     notes: { type: String, default: "" },
+    owner: { type: String, enum: HOUSEHOLD_OWNERS, default: "self" },
   },
   { timestamps: true }
 );

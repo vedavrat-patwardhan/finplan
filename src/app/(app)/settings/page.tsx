@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { getUserProfile, getMonthlySnapshot } from "@/lib/db/queries/finance";
 import { PersonalProfileForm } from "@/components/settings/personal-profile-form";
+import { HouseholdForm } from "@/components/settings/household-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { AccountSecurity } from "@/components/settings/account-security";
 import { SettingsFooter } from "@/components/settings/settings-footer";
@@ -43,6 +44,25 @@ export default async function SettingsPage() {
                 annualInHandSalary: profile.annualInHandSalary,
                 annualInHandBonus: profile.annualInHandBonus,
                 taxRegime: profile.taxRegime,
+              }}
+            />
+          </CardContent>
+        </Card>
+      </PageSection>
+
+      <PageSection
+        title="Household"
+        description="Plan together with a partner — combined income and expenses in one account"
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <HouseholdForm
+              household={{
+                householdEnabled: profile.householdEnabled,
+                spouseName: profile.spouseName,
+                spouseAnnualInHandSalary: profile.spouseAnnualInHandSalary,
+                spouseAnnualInHandBonus: profile.spouseAnnualInHandBonus,
+                spouseTaxRegime: profile.spouseTaxRegime,
               }}
             />
           </CardContent>
