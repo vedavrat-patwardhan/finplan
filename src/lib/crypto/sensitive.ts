@@ -3,12 +3,18 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypt
 const PREFIX = "v1:";
 const SALT = "finplan-sensitive-v1";
 
+let cachedEncryptionKey: Buffer | null = null;
+
 function getEncryptionKey(): Buffer {
+  if (cachedEncryptionKey) return cachedEncryptionKey;
+
   const secret = process.env.ENCRYPTION_KEY ?? process.env.JWT_SECRET;
   if (!secret) {
     throw new Error("ENCRYPTION_KEY or JWT_SECRET must be set for sensitive field encryption");
   }
-  return scryptSync(secret, SALT, 32);
+
+  cachedEncryptionKey = scryptSync(secret, SALT, 32);
+  return cachedEncryptionKey;
 }
 
 export function encryptSensitive(plaintext: string): string {

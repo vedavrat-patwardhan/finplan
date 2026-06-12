@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, startTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export function QuickTransactionSheet({
   });
   const wasPending = useRef(false);
 
-  const sortedAccounts = sortPaymentAccounts(accounts);
+  const sortedAccounts = useMemo(() => sortPaymentAccounts(accounts), [accounts]);
 
   const defaultAccount =
     typeof window !== "undefined"
@@ -72,22 +72,27 @@ export function QuickTransactionSheet({
   );
   const [txType, setTxType] = useState<"debit" | "credit">("debit");
   const [showDate, setShowDate] = useState(false);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
-    if (open && sortedAccounts.length > 0) {
-      if (transaction) {
-        setAccountId(transaction.accountId);
-        setCategory(transaction.category);
-        setTxType(transaction.type);
-        setShowDate(true);
-      } else {
-        const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
-        setAccountId(pickPreferredAccountId(sortedAccounts, stored));
-        setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
-        setTxType("debit");
-        setShowDate(false);
-      }
+    const justOpened = open && !wasOpen.current;
+    wasOpen.current = open;
+
+    if (!justOpened || sortedAccounts.length === 0) return;
+
+    if (transaction) {
+      setAccountId(transaction.accountId);
+      setCategory(transaction.category);
+      setTxType(transaction.type);
+      setShowDate(true);
+      return;
     }
+
+    const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
+    setAccountId(pickPreferredAccountId(sortedAccounts, stored));
+    setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
+    setTxType("debit");
+    setShowDate(false);
   }, [open, sortedAccounts, transaction]);
 
   useEffect(() => {
@@ -188,7 +193,7 @@ export function QuickTransactionSheet({
 
               <div className="space-y-2">
                 <Label>Category</Label>
-                <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex flex-wrap gap-2">
                   {QUICK_TRANSACTION_CATEGORIES.map((cat) => (
                     <button
                       key={cat}

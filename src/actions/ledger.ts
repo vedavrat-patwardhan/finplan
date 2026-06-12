@@ -10,6 +10,7 @@ import {
   IncomeSource,
 } from "@/lib/db/models";
 import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
+import { connectDB } from "@/lib/db/mongoose";
 import { requireSession } from "@/lib/auth/session";
 import {
   paymentAccountSchema,
@@ -516,6 +517,8 @@ export async function revealAccountFieldAction(
     return { success: false, error: "Invalid field" };
   }
 
+  await connectDB();
+
   const account = await PaymentAccount.findOne({
     _id: accountId,
     userId: userObjectId(session.userId),
@@ -555,6 +558,8 @@ export async function revealCardDetailsAction(
   error?: string;
 }> {
   const session = await requireSession();
+
+  await connectDB();
 
   const account = await PaymentAccount.findOne({
     _id: accountId,

@@ -15,18 +15,16 @@ import { AccountFormSheet } from "@/components/ledger/account-form-sheet";
 import { FavoriteAccountButton } from "@/components/ledger/favorite-account-button";
 import { sortPaymentAccounts } from "@/lib/finance/ledger";
 import { DeleteAccountButton } from "@/components/ledger/delete-account-button";
-import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { CopyField } from "@/components/ledger/copy-field";
+import { CardExpandedDetails } from "@/components/ledger/card-expanded-details";
+import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { PaymentCardFlip } from "@/components/ledger/payment-card-flip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import type { PaymentAccountType } from "@/lib/finance/constants";
 import {
-  formatCardNumberDisplay,
-  formatExpiry,
   formatMaskedAccountFromLastFour,
-  formatMaskedCardFromLastFour,
   isCardType,
 } from "@/lib/finance/account-details";
 import { cn } from "@/lib/utils";
@@ -149,45 +147,12 @@ function CardWalletItem({
         </Button>
 
         {expanded ? (
-          <div className="space-y-2 border-t border-border pt-3">
-            {account.hasCardNumber ? (
-              <SensitiveField
-                accountId={account.id}
-                field="cardNumber"
-                label="Card number"
-                maskedDisplay={formatMaskedCardFromLastFour(account.lastFour)}
-                formatRevealed={(v) => formatCardNumberDisplay(v, false)}
-              />
-            ) : null}
-            {account.holderName ? (
-              <CopyField
-                label="Name on card"
-                value={account.holderName}
-                mono={false}
-              />
-            ) : null}
-            {account.expiryMonth && account.expiryYear ? (
-              <CopyField
-                label="Expiry"
-                value={formatExpiry(account.expiryMonth, account.expiryYear)}
-              />
-            ) : null}
-            {isCredit ? (
-              account.hasCardCvv ? (
-                <SensitiveField
-                  accountId={account.id}
-                  field="cardCvv"
-                  label="CVV"
-                  maskedDisplay="•••"
-                />
-              ) : (
-                <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-                  <p className="text-[11px] uppercase tracking-wider">CVV</p>
-                  <p className="mt-0.5 text-xs">Not saved. Edit this card to add your CVV.</p>
-                </div>
-              )
-            ) : null}
-            <AccountNotesDisplay notes={account.notes} />
+          <div className="border-t border-border pt-3">
+            <CardExpandedDetails
+              account={account}
+              isCredit={isCredit}
+              notes={<AccountNotesDisplay notes={account.notes} />}
+            />
           </div>
         ) : null}
 
