@@ -8,7 +8,8 @@ import {
   getInvestments,
   getExpenses,
 } from "@/lib/db/queries/finance";
-import { getLedgerSummary } from "@/lib/db/queries/ledger";
+import { getLedgerSummary, getPaymentAccounts } from "@/lib/db/queries/ledger";
+import { sumAvailableBalance } from "@/lib/finance/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments, expenses] =
+  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments, expenses, accounts] =
     await Promise.all([
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
@@ -43,7 +44,10 @@ export default async function DashboardPage() {
       getLedgerSummary(session.userId),
       getInvestments(session.userId),
       getExpenses(session.userId),
+      getPaymentAccounts(session.userId),
     ]);
+
+  const availableBalance = sumAvailableBalance(accounts);
 
   const showGetStarted =
     expenses.length === 0 && investments.length === 0 && goals.length === 0;
@@ -70,6 +74,11 @@ export default async function DashboardPage() {
         }
         meta={
           <>
+            <MetaStat
+              label="Available balance"
+              value={formatINR(availableBalance, { compact: profile?.useCompactNumbers })}
+              tone={availableBalance >= 0 ? "positive" : "default"}
+            />
             <MetaStat
               label="Monthly surplus"
               value={formatINR(snapshot.netSurplus, { compact: profile?.useCompactNumbers })}

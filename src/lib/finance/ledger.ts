@@ -18,6 +18,21 @@ export function transactionBalanceDelta(
   return txType === "debit" ? sign * -amount : sign * amount;
 }
 
+/**
+ * Total liquid funds on hand — sums balances of bank, cash, wallet and debit
+ * accounts. Credit cards are excluded: their balance is money owed, not money
+ * available.
+ */
+export function sumAvailableBalance<
+  T extends { type: PaymentAccountType; currentBalance: number }
+>(accounts: T[]): number {
+  return accounts.reduce(
+    (sum, account) =>
+      account.type === "credit_card" ? sum : sum + account.currentBalance,
+    0
+  );
+}
+
 export function formatAccountLabel(
   name: string,
   institution?: string,
