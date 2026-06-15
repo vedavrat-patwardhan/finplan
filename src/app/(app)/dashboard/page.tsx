@@ -13,6 +13,8 @@ import { sumAvailableBalance } from "@/lib/finance/ledger";
 import { formatINR, formatPercent, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
+import { CashBufferPanel } from "@/components/finance/cash-buffer-panel";
+import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
 import { chartColorAt } from "@/lib/finance/chart-colors";
 import {
@@ -48,6 +50,9 @@ export default async function DashboardPage() {
     ]);
 
   const availableBalance = sumAvailableBalance(accounts);
+  const monthlyEssential = expenses
+    .filter((e) => e.isEssential)
+    .reduce((sum, e) => sum + toMonthlyEquivalent(e.amount, e.frequency), 0);
 
   const showGetStarted =
     expenses.length === 0 && investments.length === 0 && goals.length === 0;
@@ -94,6 +99,17 @@ export default async function DashboardPage() {
       />
 
       {showGetStarted ? <GetStartedBanner /> : null}
+
+      <PageSection
+        title="Cash buffer"
+        description="The ideal amount to keep on hand — your monthly essentials, plus an optional emergency fund"
+      >
+        <CashBufferPanel
+          availableBalance={availableBalance}
+          monthlyEssential={monthlyEssential}
+          compact={profile?.useCompactNumbers}
+        />
+      </PageSection>
 
       <InsightPanel>
         <p>
