@@ -88,7 +88,10 @@ export function calculateMonthlySnapshot(input: MonthlySnapshotInput) {
 
   const totalOutflow = fixedExpenses + investments + insurance;
   const netSurplus = grossIncome - totalOutflow;
-  const savingsRate = grossIncome > 0 ? (netSurplus / grossIncome) * 100 : 0;
+  // Savings rate reflects money actually saved — i.e. what's invested each
+  // month — as a share of income. Surplus left unspent in the bank is not
+  // counted as savings; only investments are.
+  const savingsRate = grossIncome > 0 ? (investments / grossIncome) * 100 : 0;
 
   return {
     grossIncome,
