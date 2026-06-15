@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import { ExpenseCategoryField } from "@/components/finance/expense-category-field";
+import { MoneyInput } from "@/components/finance/money-input";
 import {
   Sheet,
   SheetContent,
@@ -181,6 +182,10 @@ function Field({ field }: { field: FieldOption }) {
     );
   }
 
+  if (field.type === "number" && field.label.includes("₹")) {
+    return <MoneyField field={field} required={isRequired} />;
+  }
+
   if (field.type === "date") {
     return (
       <div className="space-y-2">
@@ -236,6 +241,30 @@ function Field({ field }: { field: FieldOption }) {
         required={isRequired}
         className="w-full"
       />
+    </div>
+  );
+}
+
+function MoneyField({ field, required }: { field: FieldOption; required: boolean }) {
+  const [raw, setRaw] = useState(field.defaultValue ?? "");
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={field.name}>
+        {field.label}
+        {!required ? (
+          <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
+        ) : null}
+      </Label>
+      <MoneyInput
+        id={field.name}
+        value={raw}
+        onChange={(e) => setRaw(e.target.value)}
+        placeholder={fieldPlaceholder(field)}
+        required={required}
+      />
+      {/* Hidden field carries the clean numeric value into FormData. */}
+      <input type="hidden" name={field.name} value={raw} />
     </div>
   );
 }

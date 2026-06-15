@@ -25,6 +25,43 @@ export function formatPercent(value: number, digits = 1): string {
   return `${value.toFixed(digits)}%`;
 }
 
+/**
+ * Strip a raw user-typed amount down to a plain numeric string: digits, at
+ * most one decimal point, and an optional leading minus (only when allowed).
+ * Used so number inputs can show grouping separators while submitting a clean
+ * value the backend can parse.
+ */
+export function sanitizeAmountInput(raw: string, allowNegative = false): string {
+  if (!raw) return "";
+  let s = raw.replace(/[^0-9.-]/g, "");
+  const negative = allowNegative && s.startsWith("-");
+  s = s.replace(/-/g, "");
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+  }
+  return (negative ? "-" : "") + s;
+}
+
+/**
+ * Add Indian thousands separators to the integer part of a sanitized numeric
+ * string, preserving any in-progress decimal portion (e.g. "1234." → "1,234.").
+ */
+export function groupIndianDigits(raw: string): string {
+  if (raw === "" || raw === "-" || raw === ".") return raw;
+  const negative = raw.startsWith("-");
+  const unsigned = negative ? raw.slice(1) : raw;
+  const dotIndex = unsigned.indexOf(".");
+  const intPart = dotIndex === -1 ? unsigned : unsigned.slice(0, dotIndex);
+  const decimalPart = dotIndex === -1 ? "" : unsigned.slice(dotIndex + 1);
+  const grouped =
+    intPart === ""
+      ? ""
+      : new Intl.NumberFormat("en-IN").format(BigInt(intPart));
+  const result = dotIndex === -1 ? grouped : `${grouped}.${decimalPart}`;
+  return (negative ? "-" : "") + result;
+}
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Intl.DateTimeFormat("en-IN", {

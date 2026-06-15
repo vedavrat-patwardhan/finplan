@@ -408,9 +408,6 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                       </p>
                     </div>
                   </div>
-                  <span className="text-sm tabular-nums">
-                    {formatINR(template.amount, { compact: true })}/mo
-                  </span>
                 </label>
               ))}
             </CardContent>
@@ -499,11 +496,6 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                         <p className="text-xs text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
-                    {option.targetAmount > 0 && (
-                      <span className="text-sm tabular-nums text-muted-foreground">
-                        {formatINR(option.targetAmount, { compact: true })}
-                      </span>
-                    )}
                   </label>
                 );
               })}

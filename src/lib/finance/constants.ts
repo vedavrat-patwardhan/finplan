@@ -54,6 +54,15 @@ export const GOAL_TYPES = [
   "custom",
 ] as const;
 
+/**
+ * Goal types offered when creating a new goal. "marriage" is retained in
+ * GOAL_TYPES for planning logic and existing records, but is no longer
+ * selectable — most users are already married, so it's obsolete.
+ */
+export const SELECTABLE_GOAL_TYPES = GOAL_TYPES.filter(
+  (type) => type !== "marriage"
+) as Exclude<GoalType, "marriage">[];
+
 export const EXPENSE_CATEGORIES = [
   "Housing",
   "Utilities",

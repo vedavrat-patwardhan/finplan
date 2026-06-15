@@ -5,7 +5,7 @@ import {
   EXPENSE_CATEGORIES,
   INVESTMENT_TYPES,
   INSURANCE_TYPES,
-  GOAL_TYPES,
+  SELECTABLE_GOAL_TYPES,
 } from "@/lib/finance/constants";
 import { formatEnumLabel } from "@/lib/format";
 import { EXPENSE_CLASS_META } from "@/lib/finance/expense-classes";
@@ -219,7 +219,7 @@ export const goalFormFields = [
     name: "goalType",
     label: "Type",
     type: "select" as const,
-    options: GOAL_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
+    options: SELECTABLE_GOAL_TYPES.map((v) => ({ value: v, label: formatEnumLabel(v) })),
     defaultValue: "custom",
   },
   {

@@ -20,7 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { GOAL_TYPES, type GoalType } from "@/lib/finance/constants";
+import { SELECTABLE_GOAL_TYPES, type GoalType } from "@/lib/finance/constants";
 import {
   calculateTargetFromDetails,
   getGoalTypeDefaults,
@@ -374,7 +374,7 @@ export function GoalFormSheet({
                     id="goal-type"
                     value={formValues.goalType}
                     onValueChange={(value) => applyTypeDefaults(value as GoalType)}
-                    options={GOAL_TYPES.map((value) => ({
+                    options={SELECTABLE_GOAL_TYPES.map((value) => ({
                       value,
                       label: formatEnumLabel(value),
                     }))}

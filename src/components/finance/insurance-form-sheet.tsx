@@ -29,10 +29,13 @@ import {
   isLifeInsuranceType,
 } from "@/lib/finance/constants";
 import type { Frequency, InsuranceType } from "@/lib/finance/constants";
+import { addYears } from "date-fns";
 import {
+  formatDate,
   formatDateInputValue,
   formatFrequency,
   formatInsuranceType,
+  parseDateInputValue,
 } from "@/lib/format";
 
 const FIELD_CLASS = "h-8 w-full";
@@ -62,6 +65,8 @@ type FormValues = {
   renewalDate: string;
   premiumStartDate: string;
   premiumEndDate: string;
+  premiumEndMode: "date" | "tenure";
+  premiumTenureYears: string;
   validTill: string;
 };
 
@@ -76,8 +81,25 @@ function buildInitialValues(policy?: InsuranceListItem): FormValues {
     renewalDate: formatDateInputValue(policy?.renewalDate),
     premiumStartDate: formatDateInputValue(policy?.premiumStartDate),
     premiumEndDate: formatDateInputValue(policy?.premiumEndDate),
+    premiumEndMode: "date",
+    premiumTenureYears: "",
     validTill: formatDateInputValue(policy?.validTill),
   };
+}
+
+/**
+ * Resolve the "paying premiums until" date the user intends to save. In tenure
+ * mode it's derived from the start date (or today, if blank) plus the number of
+ * years entered; in date mode it's the date picked directly.
+ */
+function resolvePremiumEndDate(values: FormValues): string {
+  if (values.premiumEndMode === "tenure") {
+    const years = Number(values.premiumTenureYears);
+    if (!Number.isFinite(years) || years <= 0) return "";
+    const anchor = parseDateInputValue(values.premiumStartDate) ?? new Date();
+    return formatDateInputValue(addYears(anchor, years));
+  }
+  return values.premiumEndDate;
 }
 
 export function InsuranceFormSheet({
@@ -140,8 +162,9 @@ export function InsuranceFormSheet({
       if (formValues.premiumStartDate) {
         fd.set("premiumStartDate", formValues.premiumStartDate);
       }
-      if (formValues.premiumEndDate) {
-        fd.set("premiumEndDate", formValues.premiumEndDate);
+      const premiumEndDate = resolvePremiumEndDate(formValues);
+      if (premiumEndDate) {
+        fd.set("premiumEndDate", premiumEndDate);
       }
       if (formValues.validTill) {
         fd.set("validTill", formValues.validTill);
@@ -307,17 +330,66 @@ export function InsuranceFormSheet({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="insurance-premium-end">
-                      Paying premiums until
-                    </Label>
-                    <DatePicker
-                      id="insurance-premium-end"
-                      value={formValues.premiumEndDate}
-                      onChange={(value) =>
-                        patchForm({ premiumEndDate: value })
-                      }
-                      className={FIELD_CLASS}
-                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="insurance-premium-end">
+                        Paying premiums until
+                      </Label>
+                      <div className="inline-flex rounded-lg bg-muted p-0.5 text-xs">
+                        {(
+                          [
+                            ["date", "End date"],
+                            ["tenure", "Tenure"],
+                          ] as const
+                        ).map(([mode, label]) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => patchForm({ premiumEndMode: mode })}
+                            className={`rounded-md px-2.5 py-1 transition-colors ${
+                              formValues.premiumEndMode === mode
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {formValues.premiumEndMode === "date" ? (
+                      <DatePicker
+                        id="insurance-premium-end"
+                        value={formValues.premiumEndDate}
+                        onChange={(value) =>
+                          patchForm({ premiumEndDate: value })
+                        }
+                        className={FIELD_CLASS}
+                      />
+                    ) : (
+                      <>
+                        <Input
+                          id="insurance-premium-end"
+                          type="number"
+                          min={1}
+                          step={1}
+                          inputMode="numeric"
+                          className={FIELD_CLASS}
+                          value={formValues.premiumTenureYears}
+                          onChange={(e) =>
+                            patchForm({ premiumTenureYears: e.target.value })
+                          }
+                          placeholder="e.g. 10 (years)"
+                        />
+                        <p className="text-xs leading-relaxed text-muted-foreground">
+                          {formValues.premiumTenureYears &&
+                          Number(formValues.premiumTenureYears) > 0
+                            ? `Premiums end on ${formatDate(resolvePremiumEndDate(formValues))}, counted from the start date${
+                                formValues.premiumStartDate ? "" : " (today)"
+                              }.`
+                            : "Counted from the start date above (or today, if blank)."}
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   <div className="space-y-2">
