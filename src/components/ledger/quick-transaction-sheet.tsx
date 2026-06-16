@@ -65,6 +65,7 @@ export function QuickTransactionSheet({
       : pickPreferredAccountId(sortedAccounts);
 
   const [accountId, setAccountId] = useState(defaultAccount);
+  const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
   const [category, setCategory] = useState(
     typeof window !== "undefined"
       ? localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food"
@@ -82,6 +83,7 @@ export function QuickTransactionSheet({
 
     if (transaction) {
       setAccountId(transaction.accountId);
+      setAmount(String(transaction.amount));
       setCategory(transaction.category);
       setTxType(transaction.type);
       setShowDate(true);
@@ -90,6 +92,7 @@ export function QuickTransactionSheet({
 
     const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
     setAccountId(pickPreferredAccountId(sortedAccounts, stored));
+    setAmount("");
     setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
     setTxType("debit");
     setShowDate(false);
@@ -120,6 +123,7 @@ export function QuickTransactionSheet({
     }
     const fd = new FormData(e.currentTarget);
     fd.set("accountId", accountId);
+    fd.set("amount", amount);
     fd.set("type", txType);
     fd.set("category", category);
     startTransition(() => formAction(fd));
@@ -181,10 +185,10 @@ export function QuickTransactionSheet({
                 <Label htmlFor="quick-amount">Amount (₹)</Label>
                 <MoneyInput
                   id="quick-amount"
-                  name="amount"
                   inputMode="decimal"
                   placeholder="e.g. 450"
-                  defaultValue={transaction ? String(transaction.amount) : undefined}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                   required
                   autoFocus={!isEdit}
                   className="h-12 text-lg"
