@@ -6,6 +6,7 @@ import {
   LedgerTransaction,
   Document,
   Expense,
+  SavedPassword,
 } from "@/lib/db/models";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { sortPaymentAccounts } from "@/lib/finance/ledger";
@@ -288,3 +289,21 @@ export async function getCardMonthlySpend(
 
   return spend;
 }
+
+export interface SavedPasswordDTO {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
+export const getSavedPasswords = cache(async (userId: string): Promise<SavedPasswordDTO[]> => {
+  await connectDB();
+  const items = await SavedPassword.find({ userId: oid(userId) })
+    .sort({ createdAt: -1 })
+    .lean();
+  return items.map((p) => ({
+    id: p._id.toString(),
+    title: p.title,
+    createdAt: p.createdAt.toISOString(),
+  }));
+});

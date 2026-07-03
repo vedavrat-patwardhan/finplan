@@ -29,6 +29,10 @@ const PaymentAccountSchema = new Schema(
     billingDay: { type: Number, min: 1, max: 31 },
     /** Monthly spending cap for debit/credit cards (tracked against ledger debits). */
     monthlySpendTarget: { type: Number, min: 0 },
+    /** Credit card bill total amount due, updated on statement import. */
+    billTotalDue: { type: Number, default: 0 },
+    /** Credit card payment due date, updated on statement import. */
+    billDueDate: { type: Date },
     isDefault: { type: Boolean, default: false },
     isFavorite: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

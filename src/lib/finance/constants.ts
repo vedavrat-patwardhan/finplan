@@ -104,11 +104,16 @@ export const TRANSACTION_TYPES = ["debit", "credit"] as const;
 export const LEDGER_CATEGORIES = [...EXPENSE_CATEGORIES, "Income", "Transfer"] as const;
 export const DOCUMENT_TYPES = [
   "salary_slip",
+  "bank_statement",
   "credit_card_bill",
   "utility_bill",
   "receipt",
   "other",
 ] as const;
+
+/** Banks with a built-in statement parser. */
+export const STATEMENT_BANKS = ["hdfc", "yes", "axis", "bob"] as const;
+export type StatementBank = (typeof STATEMENT_BANKS)[number];
 export const EXTRACTION_STATUSES = ["none", "pending", "ready"] as const;
 
 export type PaymentAccountType = (typeof PAYMENT_ACCOUNT_TYPES)[number];

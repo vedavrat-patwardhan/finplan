@@ -1,8 +1,0 @@
-1. Credit/debit card spend targets
-2. Future prediction
-3. Temp planner with custom formulas
-4. Historical investment returns based on portfolio
-5.⁠ ⁠Income screen: Annual In-hand, Annual Bonus In-hand looks complicated.. monthly in-hand is much easier to add as a user or if annual is needed calculate based on monthly inputs. 
-6.⁠ ⁠Expenses: If users can edit later showing tentative amounts on this page seems misleading. (Dashboard)
-7.⁠ ⁠Goals: Shows already married achieved. Remove that
-8.⁠ ⁠Web app pop-up opens too frequently (PWA install app popup)

@@ -6,14 +6,18 @@ import { DocumentUpload } from "@/components/ledger/document-upload";
 import { SalarySlipForm } from "@/components/ledger/salary-slip-form";
 import { BillForm } from "@/components/ledger/bill-form";
 import { DocumentRow } from "@/components/ledger/document-row";
-import type { DocumentDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
+import { SavedPasswordManager } from "@/components/ledger/saved-password-manager";
+import { StatementImport } from "@/components/ledger/statement-import";
+import type { DocumentDTO, PaymentAccountDTO, SavedPasswordDTO } from "@/lib/db/queries/ledger";
 
 export function DocumentsClient({
   documents,
   accounts,
+  savedPasswords,
 }: {
   documents: DocumentDTO[];
   accounts: PaymentAccountDTO[];
+  savedPasswords: SavedPasswordDTO[];
 }) {
   const router = useRouter();
   const [pendingDoc, setPendingDoc] = useState<{
@@ -28,7 +32,14 @@ export function DocumentsClient({
 
   return (
     <div className="space-y-8">
+      <StatementImport
+        accounts={accounts}
+        savedPasswords={savedPasswords}
+        onImported={refresh}
+      />
+
       <DocumentUpload
+        savedPasswords={savedPasswords}
         onUploaded={(id, type) => setPendingDoc({ id, type })}
       />
 
@@ -60,6 +71,8 @@ export function DocumentsClient({
           ))
         )}
       </section>
+
+      <SavedPasswordManager savedPasswords={savedPasswords} onChanged={refresh} />
     </div>
   );
 }

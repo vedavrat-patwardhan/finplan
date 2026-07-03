@@ -8,6 +8,7 @@ import {
   Document,
   User,
   IncomeSource,
+  SavedPassword,
 } from "@/lib/db/models";
 import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
 import { connectDB } from "@/lib/db/mongoose";
@@ -19,6 +20,7 @@ import {
   documentSchema,
   salarySlipManualSchema,
   billManualSchema,
+  savedPasswordSchema,
 } from "@/lib/validations/finance";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
 import {
@@ -1141,4 +1143,54 @@ export async function saveBillManualDataAction(
 
   revalidateLedger();
   return { success: true };
+}
+
+export async function createSavedPasswordAction(
+  _prev: ActionResult,
+  formData: FormData
+): Promise<ActionResult & { savedId?: string }> {
+  const session = await requireSession();
+
+  const parsed = savedPasswordSchema.safeParse({
+    title: formData.get("title"),
+    value: formData.get("value"),
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message };
+  }
+
+  await connectDB();
+  const doc = await SavedPassword.create({
+    userId: userObjectId(session.userId),
+    title: parsed.data.title,
+    encryptedValue: encryptSensitive(parsed.data.value),
+  });
+
+  revalidatePath("/documents");
+  return { success: true, savedId: doc._id.toString() };
+}
+
+export async function deleteSavedPasswordAction(id: string): Promise<ActionResult> {
+  const session = await requireSession();
+  await connectDB();
+  const result = await SavedPassword.deleteOne({
+    _id: new mongoose.Types.ObjectId(id),
+    userId: userObjectId(session.userId),
+  });
+  if (result.deletedCount === 0) return { success: false, error: "Not found" };
+  revalidatePath("/documents");
+  return { success: true };
+}
+
+export async function revealSavedPasswordAction(
+  id: string
+): Promise<ActionResult & { value?: string }> {
+  const session = await requireSession();
+  await connectDB();
+  const item = await SavedPassword.findOne({
+    _id: new mongoose.Types.ObjectId(id),
+    userId: userObjectId(session.userId),
+  }).lean();
+  if (!item) return { success: false, error: "Not found" };
+  return { success: true, value: decryptSensitive(item.encryptedValue) };
 }

@@ -31,6 +31,7 @@ const obligationTypeStyles: Record<string, string> = {
   insurance: "border-l-chart-2 bg-chart-2/5",
   expense: "border-l-chart-3 bg-chart-3/5",
   income: "border-l-chart-6 bg-chart-6/5",
+  credit_card_bill: "border-l-chart-4 bg-chart-4/5",
 };
 
 export default async function DashboardPage() {

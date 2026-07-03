@@ -37,7 +37,7 @@ export interface UpcomingObligation {
   name: string;
   amount: number;
   dueDate: Date;
-  type: "insurance" | "expense" | "investment" | "income";
+  type: "insurance" | "expense" | "investment" | "income" | "credit_card_bill";
 }
 
 const FREQUENCY_DIVISORS: Record<Frequency, number> = {

@@ -8,6 +8,7 @@ import {
   Investment,
   InsurancePolicy,
   LifeGoal,
+  PaymentAccount,
 } from "@/lib/db/models";
 import {
   calculateGoalFeasibility,
@@ -256,11 +257,16 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
 
 export const getUpcomingObligationsForUser = cache(
   async (userId: string): Promise<UpcomingObligation[]> => {
-    const [insurance, expenses, investments, income] = await Promise.all([
+    await connectDB();
+    const [insurance, expenses, investments, income, creditCards] = await Promise.all([
       getInsurancePolicies(userId),
       getExpenses(userId),
       getInvestments(userId),
       getIncomeSources(userId),
+      PaymentAccount.find(
+        { userId: toObjectId(userId), type: "credit_card", isActive: true, billTotalDue: { $gt: 0 } },
+        { name: 1, billTotalDue: 1, billDueDate: 1 }
+      ).lean(),
     ]);
 
     const investmentItems = investments
@@ -299,7 +305,19 @@ export const getUpcomingObligationsForUser = cache(
         })),
     ];
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const creditCardBills: UpcomingObligation[] = creditCards
+      .filter((a) => a.billDueDate && new Date(a.billDueDate as Date) >= today)
+      .map((a) => ({
+        name: `${a.name} bill`,
+        amount: (a.billTotalDue as number) ?? 0,
+        dueDate: new Date(a.billDueDate as Date),
+        type: "credit_card_bill" as const,
+      }));
+
     return [
+      ...creditCardBills,
       ...getUpcomingObligations(investmentItems, 31),
       ...getUpcomingObligations(otherItems, 90),
     ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());

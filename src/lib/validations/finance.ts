@@ -478,8 +478,14 @@ export type InvestmentInput = z.infer<typeof investmentSchema>;
 export type InsuranceInput = z.infer<typeof insuranceSchema>;
 export type GoalInput = z.infer<typeof goalSchema>;
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
+export const savedPasswordSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100),
+  value: z.string().min(1, "Password is required"),
+});
+
 export type PaymentAccountInput = z.infer<typeof paymentAccountSchema>;
 export type LedgerTransactionInput = z.infer<typeof ledgerTransactionSchema>;
 export type DocumentInput = z.infer<typeof documentSchema>;
 export type SalarySlipManualInput = z.infer<typeof salarySlipManualSchema>;
 export type BillManualInput = z.infer<typeof billManualSchema>;
+export type SavedPasswordInput = z.infer<typeof savedPasswordSchema>;
