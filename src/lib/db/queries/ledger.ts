@@ -38,6 +38,8 @@ export interface PaymentAccountDTO {
   creditLimit?: number;
   billingDay?: number;
   monthlySpendTarget?: number;
+  billTotalDue: number;
+  billDueDate?: string;
   isDefault: boolean;
   isFavorite: boolean;
   isActive: boolean;
@@ -112,6 +114,8 @@ export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentA
     creditLimit: a.creditLimit ?? undefined,
     billingDay: a.billingDay ?? undefined,
     monthlySpendTarget: a.monthlySpendTarget ?? undefined,
+    billTotalDue: a.billTotalDue ?? 0,
+    billDueDate: a.billDueDate?.toISOString(),
     isDefault: a.isDefault ?? false,
     isFavorite: a.isFavorite ?? false,
     isActive: a.isActive ?? true,

@@ -9,3 +9,5 @@ export { PaymentAccount } from "./payment-account";
 export { LedgerTransaction } from "./ledger-transaction";
 export { Document } from "./document";
 export { SavedPassword } from "./saved-password";
+export { IntegrationSetting } from "./integration-setting";
+export { MessageIngestion } from "./message-ingestion";

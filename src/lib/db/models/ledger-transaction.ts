@@ -19,11 +19,20 @@ const LedgerTransactionSchema = new Schema(
     notes: { type: String, default: "" },
     documentId: { type: Schema.Types.ObjectId, ref: "Document" },
     tags: { type: [String], default: [] },
+    source: {
+      type: String,
+      enum: ["manual", "statement", "sms"],
+      default: "manual",
+      index: true,
+    },
+    sourceReference: { type: String, default: "", trim: true },
+    ingestionId: { type: Schema.Types.ObjectId, ref: "MessageIngestion" },
   },
   { timestamps: true }
 );
 
 LedgerTransactionSchema.index({ userId: 1, date: -1 });
+LedgerTransactionSchema.index({ userId: 1, ingestionId: 1 }, { unique: true, sparse: true });
 
 export type ILedgerTransaction = InferSchemaType<typeof LedgerTransactionSchema> & {
   _id: mongoose.Types.ObjectId;

@@ -18,6 +18,8 @@ import {
   ListOrdered,
   Landmark,
   FileText,
+  RadioTower,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,7 +30,7 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/brand/app-logo";
 
-const navItems = [
+const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Ledger", icon: ListOrdered },
   { href: "/accounts", label: "Accounts", icon: Landmark },
@@ -40,10 +42,11 @@ const navItems = [
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/calculators", label: "Calculators", icon: Calculator },
   { href: "/cashflow", label: "Cashflow", icon: BarChart3 },
+  { href: "/automations", label: "Automations", icon: RadioTower },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const moreNavItems = navItems.slice(3);
+type NavItem = (typeof baseNavItems)[number];
 
 function NavLink({
   href,
@@ -80,11 +83,14 @@ function NavLink({
 function MobileBottomNav({
   moreOpen,
   onMoreOpenChange,
+  navItems,
 }: {
   moreOpen: boolean;
   onMoreOpenChange: (open: boolean) => void;
+  navItems: NavItem[];
 }) {
   const pathname = usePathname();
+  const moreNavItems = navItems.slice(3);
   const accountsActive =
     pathname === "/accounts" || pathname.startsWith("/accounts/");
   const moreActive = moreNavItems.some(
@@ -183,7 +189,7 @@ function MobileBottomNav({
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ onNavigate, navItems }: { onNavigate?: () => void; navItems: NavItem[] }) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-sidebar-border px-5 py-6">
@@ -227,11 +233,18 @@ export function AppShell({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const navItems: NavItem[] = userName?.trim().toLowerCase() === "vedavrat"
+    ? [
+        ...baseNavItems.slice(0, 3),
+        { href: "/assistant", label: "AI Assistant", icon: Sparkles },
+        ...baseNavItems.slice(3),
+      ]
+    : baseNavItems;
 
   return (
     <div className="min-h-screen bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-60 border-r border-border bg-sidebar md:block">
-        <SidebarContent />
+        <SidebarContent navItems={navItems} />
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
@@ -242,7 +255,7 @@ export function AppShell({
               <span className="sr-only">Open navigation</span>
             </SheetTrigger>
             <SheetContent side="left" className="flex h-full w-72 flex-col p-0">
-              <SidebarContent onNavigate={() => setSidebarOpen(false)} />
+              <SidebarContent navItems={navItems} onNavigate={() => setSidebarOpen(false)} />
             </SheetContent>
           </Sheet>
 
@@ -258,7 +271,7 @@ export function AppShell({
 
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
         <InstallPrompt />
-        <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} />
+        <MobileBottomNav moreOpen={moreOpen} onMoreOpenChange={setMoreOpen} navItems={navItems} />
       </div>
     </div>
   );
