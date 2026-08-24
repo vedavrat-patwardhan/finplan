@@ -35,6 +35,8 @@ export interface ExtractStatementResult extends ActionResult {
   totalAmountDue?: number;
   /** Credit card payment due date (ISO yyyy-mm-dd), if detected. */
   paymentDueDate?: string;
+  /** Absolute closing balance reported by a bank-account statement. */
+  closingBalance?: number;
 }
 
 function userObjectId(userId: string) {
@@ -101,6 +103,7 @@ export async function extractStatementAction(
       accountNumberLast4: parsed.accountNumberLast4,
       totalAmountDue: parsed.totalAmountDue,
       paymentDueDate: parsed.paymentDueDate,
+      closingBalance: parsed.closingBalance,
     };
   } catch (err) {
     if (err instanceof PdfPasswordError) {
@@ -137,7 +140,7 @@ function txnDedupKey(date: Date, amount: number, type: string, description: stri
 export async function importStatementTransactionsAction(
   _prev: ActionResult,
   formData: FormData
-): Promise<ActionResult & { imported?: number; duplicates?: number }> {
+): Promise<ActionResult & { imported?: number; duplicates?: number; balanceUpdated?: boolean }> {
   const session = await requireSession();
 
   const accountId = String(formData.get("accountId") ?? "");
@@ -145,6 +148,11 @@ export async function importStatementTransactionsAction(
 
   const billTotalDue = Number(formData.get("billTotalDue") ?? 0) || 0;
   const billDueDate = String(formData.get("billDueDate") ?? "");
+  const rawClosingBalance = String(formData.get("statementClosingBalance") ?? "").trim();
+  const statementClosingBalance = rawClosingBalance ? Number(rawClosingBalance) : undefined;
+  if (statementClosingBalance !== undefined && !Number.isFinite(statementClosingBalance)) {
+    return { success: false, error: "Invalid statement closing balance" };
+  }
 
   let rows: ImportTxnInput[];
   try {
@@ -173,6 +181,7 @@ export async function importStatementTransactionsAction(
 
   let imported = 0;
   let duplicates = 0;
+  let balanceUpdated = false;
 
   try {
     await withTransaction(async (dbSession) => {
@@ -208,38 +217,48 @@ export async function importStatementTransactionsAction(
       duplicates = clean.length - fresh.length;
       imported = fresh.length;
 
-      if (fresh.length === 0) return;
+      if (fresh.length > 0) {
+        await LedgerTransaction.insertMany(
+          fresh.map((r) => ({
+            userId: userObjectId(session.userId),
+            accountId: account._id,
+            type: r.type,
+            amount: r.amount,
+            category: r.category,
+            merchant: r.merchant,
+            description: r.description,
+            date: r.date,
+            source: "statement",
+          })),
+          { session: dbSession }
+        );
+      }
 
-      await LedgerTransaction.insertMany(
-        fresh.map((r) => ({
-          userId: userObjectId(session.userId),
-          accountId: account._id,
-          type: r.type,
-          amount: r.amount,
-          category: r.category,
-          merchant: r.merchant,
-          description: r.description,
-          date: r.date,
-        })),
-        { session: dbSession }
-      );
-
-      const netDelta = fresh.reduce(
-        (sum, r) =>
-          sum +
-          transactionBalanceDelta(
-            account.type as PaymentAccountType,
-            r.type as "debit" | "credit",
-            r.amount,
-            "apply"
-          ),
-        0
-      );
-      await PaymentAccount.findByIdAndUpdate(
-        account._id,
-        { $inc: { currentBalance: netDelta } },
-        { session: dbSession }
-      );
+      if (account.type === "bank" && statementClosingBalance !== undefined) {
+        await PaymentAccount.findByIdAndUpdate(
+          account._id,
+          { $set: { currentBalance: statementClosingBalance } },
+          { session: dbSession }
+        );
+        balanceUpdated = true;
+      } else if (fresh.length > 0) {
+        const netDelta = fresh.reduce(
+          (sum, r) =>
+            sum +
+            transactionBalanceDelta(
+              account.type as PaymentAccountType,
+              r.type as "debit" | "credit",
+              r.amount,
+              "apply"
+            ),
+          0
+        );
+        await PaymentAccount.findByIdAndUpdate(
+          account._id,
+          { $inc: { currentBalance: netDelta } },
+          { session: dbSession }
+        );
+      }
 
       // Update credit card bill due if the statement provided that data
       if (account.type === "credit_card" && billTotalDue > 0 && billDueDate) {
@@ -258,5 +277,5 @@ export async function importStatementTransactionsAction(
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/documents");
-  return { success: true, imported, duplicates };
+  return { success: true, imported, duplicates, balanceUpdated };
 }

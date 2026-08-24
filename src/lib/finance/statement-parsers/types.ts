@@ -24,6 +24,10 @@ export interface ParsedStatement {
   accountNumberLast4?: string;
   /** Rows the parser saw but could not confidently parse. */
   skipped: number;
+  /** Statement opening balance, when the bank provides it. */
+  openingBalance?: number;
+  /** Statement closing balance, used for optional absolute account reconciliation. */
+  closingBalance?: number;
   /** Credit card total amount due, extracted from the statement summary. */
   totalAmountDue?: number;
   /** Payment due date (ISO yyyy-mm-dd), extracted from the statement summary. */

@@ -9,6 +9,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ShieldCheck,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/actions/statement-import";
 import type { ParsedTransaction } from "@/lib/finance/statement-parsers";
 import { LEDGER_CATEGORIES, STATEMENT_BANKS } from "@/lib/finance/constants";
+import type { StatementBank } from "@/lib/finance/constants";
 import { STATEMENT_BANK_LABELS } from "@/lib/finance/statement-parsers";
 import { formatINR, formatDate } from "@/lib/format";
 import { sortPaymentAccounts } from "@/lib/finance/ledger";
@@ -42,6 +44,14 @@ const bankOptions = STATEMENT_BANKS.map((b) => ({
 }));
 
 const categoryOptions = LEDGER_CATEGORIES.map((c) => ({ value: c, label: c }));
+
+const BANK_INSTITUTION_MATCH: Record<StatementBank, string> = {
+  hdfc: "hdfc",
+  kotak: "kotak",
+  yes: "yes bank",
+  axis: "axis",
+  bob: "bank of baroda",
+};
 
 function Divider() {
   return <span aria-hidden className="hidden h-8 w-px bg-border sm:block" />;
@@ -97,8 +107,14 @@ export function StatementImport({
   const [stmtLast4, setStmtLast4] = useState<string | undefined>();
   const [autoMatched, setAutoMatched] = useState(false);
   const [billData, setBillData] = useState<{ totalAmountDue?: number; paymentDueDate?: string }>({});
+  const [closingBalance, setClosingBalance] = useState<number | undefined>();
+  const [syncClosingBalance, setSyncClosingBalance] = useState(true);
 
   const importableAccounts = useMemo(() => sortPaymentAccounts(accounts), [accounts]);
+  const selectedAccount = useMemo(
+    () => accounts.find((account) => account.id === accountId),
+    [accountId, accounts]
+  );
 
   const included = useMemo(() => rows?.filter((r) => r.include) ?? [], [rows]);
   const totals = useMemo(() => {
@@ -130,13 +146,20 @@ export function StatementImport({
         setPeriod({ start: result.periodStart, end: result.periodEnd });
         // Suggest an account whose last 4 matches the statement — but make the match
         // visible so the user can confirm or override before importing.
-        const match = result.accountNumberLast4
-          ? accounts.find((a) => a.lastFour === result.accountNumberLast4)
-          : undefined;
+        const lastFourMatches = result.accountNumberLast4
+          ? accounts.filter((account) => account.lastFour === result.accountNumberLast4)
+          : [];
+        const institutionNeedle = BANK_INSTITUTION_MATCH[bank as StatementBank];
+        const match =
+          lastFourMatches.find((account) =>
+            account.institution.toLowerCase().includes(institutionNeedle)
+          ) ?? (lastFourMatches.length === 1 ? lastFourMatches[0] : undefined);
         setStmtLast4(result.accountNumberLast4);
         setAccountId(match?.id ?? "");
         setAutoMatched(Boolean(match));
         setBillData({ totalAmountDue: result.totalAmountDue, paymentDueDate: result.paymentDueDate });
+        setClosingBalance(result.closingBalance);
+        setSyncClosingBalance(result.closingBalance !== undefined);
         toast.success(`Found ${result.transactions.length} transactions`);
       } else {
         toast.error(result.error ?? "Could not read the statement");
@@ -157,6 +180,9 @@ export function StatementImport({
     fd.set("accountId", accountId);
     if (billData.totalAmountDue != null) fd.set("billTotalDue", String(billData.totalAmountDue));
     if (billData.paymentDueDate) fd.set("billDueDate", billData.paymentDueDate);
+    if (syncClosingBalance && closingBalance !== undefined && selectedAccount?.type === "bank") {
+      fd.set("statementClosingBalance", String(closingBalance));
+    }
     fd.set(
       "transactions",
       JSON.stringify(
@@ -178,8 +204,10 @@ export function StatementImport({
           : "";
         toast.success(
           result.imported === 0
-            ? "All transactions already imported — nothing new to add."
-            : `Imported ${result.imported} transaction${result.imported === 1 ? "" : "s"}${dupNote}`
+            ? result.balanceUpdated
+              ? "Transactions were already imported; the account balance was refreshed."
+              : "All transactions already imported — nothing new to add."
+            : `Imported ${result.imported} transaction${result.imported === 1 ? "" : "s"}${dupNote}${result.balanceUpdated ? " and synced the closing balance" : ""}`
         );
         resetAll();
         onImported();
@@ -198,6 +226,8 @@ export function StatementImport({
     setStmtLast4(undefined);
     setAutoMatched(false);
     setBillData({});
+    setClosingBalance(undefined);
+    setSyncClosingBalance(true);
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -404,6 +434,33 @@ export function StatementImport({
               </Button>
             </div>
           </div>
+
+          {closingBalance !== undefined ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.035] p-4">
+              <input
+                type="checkbox"
+                checked={syncClosingBalance}
+                disabled={selectedAccount?.type !== "bank"}
+                onChange={(event) => setSyncClosingBalance(event.target.checked)}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <Landmark className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-sm font-medium">Set account to statement closing balance</span>
+                  <span className="font-heading text-base font-semibold tabular-nums text-primary">
+                    {formatINR(closingBalance)}
+                  </span>
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                  Recommended for a complete bank statement. This sets the balance once instead of replaying every transaction against the balance already in FinPlan.
+                </span>
+                {selectedAccount && selectedAccount.type !== "bank" ? (
+                  <span className="mt-1 block text-xs text-warning">Choose a bank account to enable balance reconciliation.</span>
+                ) : null}
+              </span>
+            </label>
+          ) : null}
 
           {/* Transactions table */}
           <div className="max-h-[26rem] overflow-auto rounded-xl border border-border">

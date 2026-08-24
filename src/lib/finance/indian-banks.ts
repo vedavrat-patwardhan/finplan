@@ -56,6 +56,7 @@ export const INDIAN_BANKS = [
   "State Bank of India",
   "Suryoday Small Finance Bank",
   "Tamilnad Mercantile Bank",
+  "TJSB Sahakari Bank",
   "UCO Bank",
   "Ujjivan Small Finance Bank",
   "Union Bank of India",

@@ -112,7 +112,7 @@ export const DOCUMENT_TYPES = [
 ] as const;
 
 /** Banks with a built-in statement parser. */
-export const STATEMENT_BANKS = ["hdfc", "yes", "axis", "bob"] as const;
+export const STATEMENT_BANKS = ["hdfc", "kotak", "yes", "axis", "bob"] as const;
 export type StatementBank = (typeof STATEMENT_BANKS)[number];
 export const EXTRACTION_STATUSES = ["none", "pending", "ready"] as const;
 

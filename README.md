@@ -11,6 +11,7 @@ Goal-first personal finance app for planning life milestones in INR. Built with 
 - **Dashboard** — monthly surplus, goal timeline, upcoming obligations
 - **Scenario modeling** — what-if surplus changes
 - **CSV export** — financial summary download
+- **Statement import** — review and import HDFC, Kotak Mahindra, YES, Axis, and Bank of Baroda PDFs with account matching and optional closing-balance reconciliation
 - **Android SMS automation** — secure webhook ingestion for bank, UPI, balance, and card-due messages with duplicate protection and a review queue
 - **Historical SMS backfill** — locally scans an SMS Backup & Restore XML file, uploads only financial candidates, and safely reconciles explicit bank-reported balances
 - **Vedavrat AI assistant** — encrypted per-user OpenAI key and finance-aware affordability/goal planning through the Responses API
