@@ -8,10 +8,11 @@ import {
   Expense,
   SavedPassword,
   CategoryRule,
+  LedgerCategoryModel,
 } from "@/lib/db/models";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { sortPaymentAccounts } from "@/lib/finance/ledger";
-import type { PaymentAccountType, TransactionType, LedgerCategory } from "@/lib/finance/constants";
+import type { PaymentAccountType, TransactionType } from "@/lib/finance/constants";
 
 function oid(userId: string) {
   return new mongoose.Types.ObjectId(userId);
@@ -57,7 +58,7 @@ export interface LedgerTransactionDTO {
   accountLastFour: string;
   type: TransactionType;
   amount: number;
-  category: LedgerCategory;
+  category: string;
   merchant: string;
   description: string;
   date: string;
@@ -91,8 +92,23 @@ export interface LedgerSummary {
 export interface CategoryRuleDTO {
   id: string;
   keyword: string;
-  category: LedgerCategory;
+  category: string;
 }
+
+export interface CustomLedgerCategoryDTO {
+  id: string;
+  name: string;
+}
+
+export const getCustomLedgerCategories = cache(
+  async (userId: string): Promise<CustomLedgerCategoryDTO[]> => {
+    await connectDB();
+    const items = await LedgerCategoryModel.find({ userId: oid(userId) })
+      .sort({ name: 1 })
+      .lean();
+    return items.map((item) => ({ id: item._id.toString(), name: item.name }));
+  }
+);
 
 export const getCategoryRules = cache(async (userId: string): Promise<CategoryRuleDTO[]> => {
   await connectDB();
@@ -101,7 +117,7 @@ export const getCategoryRules = cache(async (userId: string): Promise<CategoryRu
     .map((item) => ({
       id: item._id.toString(),
       keyword: item.keyword,
-      category: item.category as LedgerCategory,
+      category: item.category,
     }))
     .sort((a, b) => b.keyword.length - a.keyword.length || a.keyword.localeCompare(b.keyword));
 });
@@ -207,7 +223,7 @@ export const getTransactions = cache(
         accountLastFour: acc?.lastFour ?? "",
         type: t.type as TransactionType,
         amount: t.amount,
-        category: t.category as LedgerCategory,
+        category: t.category,
         merchant: t.merchant ?? "",
         description: t.description ?? "",
         date: t.date.toISOString(),

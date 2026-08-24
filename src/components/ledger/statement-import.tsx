@@ -29,7 +29,7 @@ import {
   importStatementTransactionsAction,
 } from "@/actions/statement-import";
 import type { ParsedTransaction } from "@/lib/finance/statement-parsers";
-import { LEDGER_CATEGORIES, STATEMENT_BANKS } from "@/lib/finance/constants";
+import { STATEMENT_BANKS } from "@/lib/finance/constants";
 import type { StatementBank } from "@/lib/finance/constants";
 import { STATEMENT_BANK_LABELS } from "@/lib/finance/statement-parsers";
 import { formatINR, formatDate } from "@/lib/format";
@@ -43,7 +43,6 @@ const bankOptions = STATEMENT_BANKS.map((b) => ({
   label: STATEMENT_BANK_LABELS[b],
 }));
 
-const categoryOptions = LEDGER_CATEGORIES.map((c) => ({ value: c, label: c }));
 const MANUAL_PASSWORD = "__manual__";
 const BANK_ACCOUNT_STATEMENTS = new Set<StatementBank>(["hdfc", "kotak"]);
 
@@ -88,10 +87,12 @@ function Stat({
 export function StatementImport({
   accounts,
   savedPasswords,
+  categories,
   onImported,
 }: {
   accounts: PaymentAccountDTO[];
   savedPasswords: SavedPasswordDTO[];
+  categories: string[];
   onImported: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -111,6 +112,10 @@ export function StatementImport({
   const [billData, setBillData] = useState<{ totalAmountDue?: number; paymentDueDate?: string }>({});
   const [closingBalance, setClosingBalance] = useState<number | undefined>();
   const [syncClosingBalance, setSyncClosingBalance] = useState(true);
+  const categoryOptions = categories.map((category) => ({
+    value: category,
+    label: category,
+  }));
 
   const destinationType = BANK_ACCOUNT_STATEMENTS.has(bank as StatementBank)
     ? "bank"
@@ -538,7 +543,7 @@ export function StatementImport({
                     <TableCell>
                       <LabeledSelect
                         value={r.category}
-                        onValueChange={(v) => updateRow(i, { category: v as never })}
+                        onValueChange={(value) => updateRow(i, { category: value })}
                         options={categoryOptions}
                         placeholder="Category"
                       />

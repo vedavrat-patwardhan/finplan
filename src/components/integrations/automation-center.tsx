@@ -26,7 +26,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDate, formatINR } from "@/lib/format";
-import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
 import { HistoricalSmsImport } from "@/components/integrations/historical-sms-import";
@@ -163,7 +162,15 @@ function ManualMessageTest() {
   );
 }
 
-function MessageRow({ item, accounts }: { item: IngestionItem; accounts: PaymentAccountDTO[] }) {
+function MessageRow({
+  item,
+  accounts,
+  categories,
+}: {
+  item: IngestionItem;
+  accounts: PaymentAccountDTO[];
+  categories: string[];
+}) {
   const needsReview = item.status === "needs_review";
   const amount = item.parsed.amount ?? item.parsed.billTotalDue ?? item.parsed.availableBalance;
   return (
@@ -198,7 +205,7 @@ function MessageRow({ item, accounts }: { item: IngestionItem; accounts: Payment
             <input type="hidden" name="category" value="Miscellaneous" />
           ) : (
             <select name="category" defaultValue={item.parsed.category ?? "Miscellaneous"} className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm">
-              {LEDGER_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+              {categories.map((category) => <option key={category} value={category}>{category}</option>)}
             </select>
           )}
           <Button type="submit" className="h-10"><Check /> Approve</Button>
@@ -214,11 +221,12 @@ function MessageRow({ item, accounts }: { item: IngestionItem; accounts: Payment
   );
 }
 
-export function AutomationCenter({ settings, webhookUrl, ingestions, accounts }: {
+export function AutomationCenter({ settings, webhookUrl, ingestions, accounts, categories }: {
   settings: { smsEnabled: boolean; smsTokenHint: string };
   webhookUrl: string;
   ingestions: IngestionItem[];
   accounts: PaymentAccountDTO[];
+  categories: string[];
 }) {
   const reviewCount = ingestions.filter((item) => item.status === "needs_review").length;
   return (
@@ -257,7 +265,7 @@ export function AutomationCenter({ settings, webhookUrl, ingestions, accounts }:
           <Link href="/transactions" className="text-sm font-medium text-primary hover:underline">Open ledger</Link>
         </div>
         {ingestions.length ? (
-          <div className="space-y-2">{ingestions.map((item) => <MessageRow key={item.id} item={item} accounts={accounts} />)}</div>
+          <div className="space-y-2">{ingestions.map((item) => <MessageRow key={item.id} item={item} accounts={accounts} categories={categories} />)}</div>
         ) : (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No messages yet. Paste one above to test the flow.</div>
         )}

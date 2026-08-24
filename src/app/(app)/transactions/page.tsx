@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSession } from "@/lib/auth/session";
 import {
   getCategoryRules,
+  getCustomLedgerCategories,
   getTransactions,
   getLedgerSummary,
 } from "@/lib/db/queries/ledger";
@@ -33,7 +34,7 @@ export default async function TransactionsPage({
     ? { dateFrom, dateTo }
     : { month };
 
-  const [transactions, summary, categoryRules] = await Promise.all([
+  const [transactions, summary, categoryRules, customCategories] = await Promise.all([
     getTransactions(session.userId, {
       ...period,
       accountId: params.account,
@@ -41,6 +42,7 @@ export default async function TransactionsPage({
     }),
     getLedgerSummary(session.userId, period),
     getCategoryRules(session.userId),
+    getCustomLedgerCategories(session.userId),
   ]);
 
   return (
@@ -62,7 +64,7 @@ export default async function TransactionsPage({
       </Suspense>
 
       <div className="flex justify-end">
-        <CategoryRulesSheet rules={categoryRules} />
+        <CategoryRulesSheet rules={categoryRules} customCategories={customCategories} />
       </div>
 
       <InsightPanel>

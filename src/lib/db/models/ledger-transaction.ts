@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { LEDGER_CATEGORIES, TRANSACTION_TYPES } from "@/lib/finance/constants";
+import { TRANSACTION_TYPES } from "@/lib/finance/constants";
 
 const LedgerTransactionSchema = new Schema(
   {
@@ -12,7 +12,7 @@ const LedgerTransactionSchema = new Schema(
     },
     type: { type: String, enum: TRANSACTION_TYPES, required: true },
     amount: { type: Number, required: true, min: 0 },
-    category: { type: String, enum: LEDGER_CATEGORIES, required: true },
+    category: { type: String, required: true, trim: true, maxlength: 40 },
     merchant: { type: String, default: "", trim: true },
     description: { type: String, default: "", trim: true },
     date: { type: Date, required: true, index: true },

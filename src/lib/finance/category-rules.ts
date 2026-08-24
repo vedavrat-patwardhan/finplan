@@ -1,8 +1,6 @@
-import type { LedgerCategory } from "@/lib/finance/constants";
-
 export interface CategoryKeywordRule {
   keyword: string;
-  category: LedgerCategory;
+  category: string;
 }
 
 export function normalizeCategoryKeyword(value: string): string {
@@ -19,9 +17,9 @@ export function sortCategoryRules<T extends CategoryKeywordRule>(rules: T[]): T[
 
 export function applyCategoryRules(
   text: string,
-  fallback: LedgerCategory,
+  fallback: string,
   rules: CategoryKeywordRule[]
-): LedgerCategory {
+): string {
   const haystack = normalizeCategoryKeyword(text);
   if (!haystack) return fallback;
 

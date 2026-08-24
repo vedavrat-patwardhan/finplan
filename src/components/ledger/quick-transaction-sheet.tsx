@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/sheet";
 import Link from "next/link";
 import { createTransactionAction, updateTransactionAction } from "@/actions/ledger";
-import { QUICK_TRANSACTION_CATEGORIES } from "@/lib/finance/constants";
 import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
 import { pickPreferredAccountId, sortPaymentAccounts } from "@/lib/finance/ledger";
@@ -40,11 +39,13 @@ function toDatetimeLocalValue(iso: string) {
 
 export function QuickTransactionSheet({
   accounts,
+  categories,
   open,
   onOpenChange,
   transaction,
 }: {
   accounts: PaymentAccountDTO[];
+  categories: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transaction?: LedgerTransactionDTO | null;
@@ -64,39 +65,17 @@ export function QuickTransactionSheet({
       ? pickPreferredAccountId(sortedAccounts, localStorage.getItem(LAST_ACCOUNT_KEY))
       : pickPreferredAccountId(sortedAccounts);
 
-  const [accountId, setAccountId] = useState(defaultAccount);
+  const [accountId, setAccountId] = useState(transaction?.accountId ?? defaultAccount);
   const [amount, setAmount] = useState(transaction ? String(transaction.amount) : "");
-  const [category, setCategory] = useState(
-    typeof window !== "undefined"
-      ? localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food"
-      : "Food"
+  const [category, setCategory] = useState(() =>
+    transaction?.category ?? (typeof window !== "undefined"
+      ? categories.includes(localStorage.getItem(LAST_CATEGORY_KEY) ?? "")
+        ? localStorage.getItem(LAST_CATEGORY_KEY)!
+        : "Food"
+      : "Food")
   );
-  const [txType, setTxType] = useState<"debit" | "credit">("debit");
-  const [showDate, setShowDate] = useState(false);
-  const wasOpen = useRef(false);
-
-  useEffect(() => {
-    const justOpened = open && !wasOpen.current;
-    wasOpen.current = open;
-
-    if (!justOpened || sortedAccounts.length === 0) return;
-
-    if (transaction) {
-      setAccountId(transaction.accountId);
-      setAmount(String(transaction.amount));
-      setCategory(transaction.category);
-      setTxType(transaction.type);
-      setShowDate(true);
-      return;
-    }
-
-    const stored = localStorage.getItem(LAST_ACCOUNT_KEY);
-    setAccountId(pickPreferredAccountId(sortedAccounts, stored));
-    setAmount("");
-    setCategory(localStorage.getItem(LAST_CATEGORY_KEY) ?? "Food");
-    setTxType("debit");
-    setShowDate(false);
-  }, [open, sortedAccounts, transaction]);
+  const [txType, setTxType] = useState<"debit" | "credit">(transaction?.type ?? "debit");
+  const [showDate, setShowDate] = useState(Boolean(transaction));
 
   useEffect(() => {
     if (wasPending.current && !pending) {
@@ -198,7 +177,7 @@ export function QuickTransactionSheet({
               <div className="space-y-2">
                 <Label>Category</Label>
                 <div className="flex flex-wrap gap-2">
-                  {QUICK_TRANSACTION_CATEGORIES.map((cat) => (
+                  {categories.map((cat) => (
                     <button
                       key={cat}
                       type="button"

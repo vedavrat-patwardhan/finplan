@@ -25,7 +25,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { LEDGER_CATEGORIES, type LedgerCategory } from "@/lib/finance/constants";
 import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
@@ -46,12 +45,7 @@ const obligationTypeStyles: Record<UpcomingObligationItem["type"], string> = {
   credit_card_bill: "border-l-chart-4 bg-chart-4/5",
 };
 
-const categoryOptions = LEDGER_CATEGORIES.map((category) => ({
-  value: category,
-  label: category,
-}));
-
-function defaultCategory(type: UpcomingObligationItem["type"]): LedgerCategory {
+function defaultCategory(type: UpcomingObligationItem["type"]): string {
   if (type === "investment") return "Investment";
   if (type === "insurance") return "Healthcare";
   if (type === "credit_card_bill") return "Transfer";
@@ -73,11 +67,13 @@ export function ObligationList({
   obligations,
   transactions,
   accounts,
+  categories,
   emptyMessage = "Nothing due soon — monthly SIPs and half-yearly investments appear here before their next payment date.",
 }: {
   obligations: UpcomingObligationItem[];
   transactions: LedgerTransactionDTO[];
   accounts: PaymentAccountDTO[];
+  categories: string[];
   emptyMessage?: string;
 }) {
   const router = useRouter();
@@ -86,7 +82,7 @@ export function ObligationList({
   const [mode, setMode] = useState<"link" | "create">("link");
   const [transactionId, setTransactionId] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [category, setCategory] = useState<LedgerCategory>("Miscellaneous");
+  const [category, setCategory] = useState("Miscellaneous");
   const [pending, setPending] = useState(false);
 
   const linkableTransactions = useMemo(() => {
@@ -105,6 +101,7 @@ export function ObligationList({
     value: transaction.id,
     label: `${formatINR(transaction.amount)} · ${transaction.merchant || transaction.description || transaction.category} · ${formatDate(transaction.date)}`,
   }));
+  const categoryOptions = categories.map((item) => ({ value: item, label: item }));
   const payableAccounts =
     paying?.type === "credit_card_bill"
       ? accounts.filter((account) => !["credit_card", "debit_card"].includes(account.type))
@@ -357,7 +354,7 @@ export function ObligationList({
                   <LabeledSelect
                     id="obligation-category"
                     value={category}
-                    onValueChange={(value) => setCategory(value as LedgerCategory)}
+                    onValueChange={setCategory}
                     options={categoryOptions}
                   />
                 </div>

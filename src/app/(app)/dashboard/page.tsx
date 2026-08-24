@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/queries/finance";
 import {
   getLedgerSummary,
+  getCustomLedgerCategories,
   getPaymentAccounts,
   getTransactions,
 } from "@/lib/db/queries/ledger";
@@ -27,6 +28,7 @@ import {
 } from "@/components/layout/page-chrome";
 import { GetStartedBanner } from "@/components/finance/get-started-banner";
 import { ObligationList } from "@/components/finance/upcoming-obligations";
+import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 
 const summaryCardTones = {
   default: "border-border/70 bg-card",
@@ -93,7 +95,7 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions] =
+  const [dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions, customCategories] =
     await Promise.all([
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
@@ -102,8 +104,10 @@ export default async function DashboardPage() {
       getExpenses(session.userId),
       getPaymentAccounts(session.userId),
       getTransactions(session.userId, { limit: 250 }),
+      getCustomLedgerCategories(session.userId),
     ]);
   const { profile, snapshot, goals, obligations, pastDueObligations } = dashboard;
+  const ledgerCategories = [...LEDGER_CATEGORIES, ...customCategories.map((item) => item.name)];
 
   const availableBalance = sumAvailableBalance(accounts);
   const liquidAccounts = accounts.filter(
@@ -355,6 +359,7 @@ export default async function DashboardPage() {
           }))}
           transactions={recentTransactions}
           accounts={accounts}
+          categories={ledgerCategories}
         />
       </PageSection>
 
@@ -369,6 +374,7 @@ export default async function DashboardPage() {
           }))}
           transactions={recentTransactions}
           accounts={accounts}
+          categories={ledgerCategories}
           emptyMessage="No unmarked obligations from the past 30 days."
         />
       </PageSection>

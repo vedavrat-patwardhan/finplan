@@ -16,8 +16,12 @@ import {
 } from "@/lib/db/models";
 import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
 import { calculateInvestmentMetrics } from "@/lib/finance/investment-metrics";
-import { LEDGER_CATEGORIES, type PaymentAccountType } from "@/lib/finance/constants";
+import { type PaymentAccountType } from "@/lib/finance/constants";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
+import {
+  getAllowedLedgerCategoryNames,
+  resolveAllowedLedgerCategory,
+} from "@/lib/finance/ledger-categories";
 import type { ActionResult } from "@/actions/auth";
 
 const obligationIdentitySchema = z.object({
@@ -31,7 +35,7 @@ const paidObligationSchema = obligationIdentitySchema.extend({
   transactionId: z.string().optional(),
   accountId: z.string().optional(),
   transactionDate: z.coerce.date().optional(),
-  category: z.enum(LEDGER_CATEGORIES),
+  category: z.string().trim().min(1).max(40),
 });
 
 type ObligationIdentity = z.infer<typeof obligationIdentitySchema>;
@@ -227,6 +231,11 @@ export async function payObligationAction(
       const userId = oid(session.userId);
       const obligation = await resolveObligation(userId, parsed.data, dbSession);
       await ensureNotHandled(userId, parsed.data, obligation.dueDate, dbSession);
+      const category = resolveAllowedLedgerCategory(
+        parsed.data.category,
+        await getAllowedLedgerCategoryNames(userId, dbSession)
+      );
+      if (!category) throw new ObligationActionError("Choose one of your ledger categories");
       const expectedType = parsed.data.sourceType === "income" ? "credit" : "debit";
       let transaction;
 
@@ -248,7 +257,7 @@ export async function payObligationAction(
         if (alreadyLinked) {
           throw new ObligationActionError("That ledger transaction is linked to another obligation");
         }
-        transaction.category = parsed.data.category;
+        transaction.category = category;
         await transaction.save({ session: dbSession });
       } else {
         if (!parsed.data.accountId || !mongoose.isValidObjectId(parsed.data.accountId)) {
@@ -271,7 +280,7 @@ export async function payObligationAction(
             accountId: account._id,
             type: expectedType,
             amount: obligation.amount,
-            category: parsed.data.category,
+            category,
             merchant: obligation.name,
             description: `Payment for ${obligation.name}`,
             date: transactionDate,

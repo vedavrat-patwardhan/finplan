@@ -2,10 +2,12 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Tags, Trash2 } from "lucide-react";
+import { Plus, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteCategoryRuleAction,
+  createCustomLedgerCategoryAction,
+  deleteCustomLedgerCategoryAction,
   saveCategoryRuleAction,
 } from "@/actions/category-rules";
 import { Button } from "@/components/ui/button";
@@ -21,19 +23,62 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
-import type { CategoryRuleDTO } from "@/lib/db/queries/ledger";
+import type {
+  CategoryRuleDTO,
+  CustomLedgerCategoryDTO,
+} from "@/lib/db/queries/ledger";
 
-const categoryOptions = LEDGER_CATEGORIES.map((category) => ({
-  value: category,
-  label: category,
-}));
-
-export function CategoryRulesSheet({ rules }: { rules: CategoryRuleDTO[] }) {
+export function CategoryRulesSheet({
+  rules,
+  customCategories,
+}: {
+  rules: CategoryRuleDTO[];
+  customCategories: CustomLedgerCategoryDTO[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState("Miscellaneous");
   const [pending, setPending] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
   const [deletingId, setDeletingId] = useState("");
+  const categoryOptions = [
+    ...LEDGER_CATEGORIES,
+    ...customCategories.map((item) => item.name),
+  ].map((item) => ({ value: item, label: item }));
+
+  function handleAddCategory(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    setAddingCategory(true);
+    startTransition(async () => {
+      const result = await createCustomLedgerCategoryAction(
+        { success: false },
+        new FormData(form)
+      );
+      setAddingCategory(false);
+      if (!result.success) {
+        toast.error(result.error ?? "Could not add category");
+        return;
+      }
+      form.reset();
+      router.refresh();
+      toast.success("Ledger category added");
+    });
+  }
+
+  function handleDeleteCategory(id: string) {
+    setDeletingId(id);
+    startTransition(async () => {
+      const result = await deleteCustomLedgerCategoryAction(id);
+      setDeletingId("");
+      if (!result.success) {
+        toast.error(result.error ?? "Could not remove category");
+        return;
+      }
+      router.refresh();
+      toast.success("Ledger category removed");
+    });
+  }
 
   function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,10 +126,10 @@ export function CategoryRulesSheet({ rules }: { rules: CategoryRuleDTO[] }) {
         onClick={() => setOpen(true)}
       >
         <Tags className="size-4" />
-        Category rules
-        {rules.length > 0 ? (
+        Categories & rules
+        {rules.length + customCategories.length > 0 ? (
           <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
-            {rules.length}
+            {rules.length + customCategories.length}
           </span>
         ) : null}
       </Button>
@@ -96,13 +141,67 @@ export function CategoryRulesSheet({ rules }: { rules: CategoryRuleDTO[] }) {
         >
           <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
           <SheetHeader className="border-b border-border px-5 py-4">
-            <SheetTitle className="font-heading text-xl">Category rules</SheetTitle>
+            <SheetTitle className="font-heading text-xl">Categories & rules</SheetTitle>
             <SheetDescription>
-              Match words in a merchant or transaction description. Longer matching keywords win.
+              Add your own ledger categories, then automate them with merchant keywords.
             </SheetDescription>
           </SheetHeader>
 
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
+            <section className="space-y-3">
+              <div>
+                <h3 className="text-sm font-medium">Your categories</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Custom categories appear anywhere you choose a ledger category.
+                </p>
+              </div>
+              <form onSubmit={handleAddCategory} className="flex gap-2">
+                <Input
+                  name="name"
+                  placeholder="e.g. Travel, Education"
+                  minLength={2}
+                  maxLength={40}
+                  required
+                  className="h-11"
+                />
+                <Button
+                  type="submit"
+                  className="size-11 shrink-0"
+                  aria-label="Add ledger category"
+                  disabled={addingCategory}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </form>
+              {customCategories.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {customCategories.map((item) => (
+                    <span
+                      key={item.id}
+                      className="inline-flex min-h-10 items-center gap-1 rounded-full border border-primary/25 bg-primary/[0.06] py-1 pr-1 pl-3 text-sm text-primary"
+                    >
+                      {item.name}
+                      <button
+                        type="button"
+                        className="grid size-8 place-items-center rounded-full text-primary/70 hover:bg-primary/10 hover:text-destructive"
+                        aria-label={`Remove ${item.name} category`}
+                        disabled={deletingId === item.id}
+                        onClick={() => handleDeleteCategory(item.id)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                  No custom categories yet.
+                </p>
+              )}
+            </section>
+
+            <div className="h-px bg-border" />
+
             <form onSubmit={handleSave} className="rounded-xl border border-border bg-muted/20 p-4">
               <div className="space-y-2">
                 <Label htmlFor="category-keyword">Keyword</Label>

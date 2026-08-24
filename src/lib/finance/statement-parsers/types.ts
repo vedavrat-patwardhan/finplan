@@ -1,4 +1,4 @@
-import type { LedgerCategory, TransactionType } from "@/lib/finance/constants";
+import type { TransactionType } from "@/lib/finance/constants";
 
 export interface ParsedTransaction {
   /** ISO date (yyyy-mm-dd). */
@@ -10,7 +10,7 @@ export interface ParsedTransaction {
   amount: number;
   type: TransactionType;
   /** Suggested category — user can override before importing. */
-  category: LedgerCategory;
+  category: string;
   /** Closing balance after this row, when the statement provides it. */
   balance?: number;
 }

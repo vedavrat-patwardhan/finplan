@@ -21,9 +21,11 @@ export function useLedger() {
 
 export function LedgerProvider({
   accounts,
+  categories,
   children,
 }: {
   accounts: PaymentAccountDTO[];
+  categories: string[];
   children: React.ReactNode;
 }) {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -52,7 +54,9 @@ export function LedgerProvider({
     >
       {children}
       <QuickTransactionSheet
+        key={sheetOpen ? editTransaction?.id ?? "new-transaction" : "closed"}
         accounts={accounts}
+        categories={categories}
         open={sheetOpen}
         onOpenChange={(open) => {
           if (!open) closeQuickAdd();

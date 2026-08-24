@@ -1,5 +1,5 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { LEDGER_CATEGORIES, TRANSACTION_TYPES } from "@/lib/finance/constants";
+import { TRANSACTION_TYPES } from "@/lib/finance/constants";
 
 const MessageIngestionSchema = new Schema(
   {
@@ -27,7 +27,7 @@ const MessageIngestionSchema = new Schema(
     parsed: {
       type: { type: String, enum: TRANSACTION_TYPES },
       amount: { type: Number, min: 0 },
-      category: { type: String, enum: LEDGER_CATEGORIES },
+      category: { type: String, trim: true, maxlength: 40 },
       merchant: { type: String, default: "" },
       description: { type: String, default: "" },
       accountLastFour: { type: String, default: "" },

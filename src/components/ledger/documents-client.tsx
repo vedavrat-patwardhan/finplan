@@ -14,10 +14,12 @@ export function DocumentsClient({
   documents,
   accounts,
   savedPasswords,
+  categories,
 }: {
   documents: DocumentDTO[];
   accounts: PaymentAccountDTO[];
   savedPasswords: SavedPasswordDTO[];
+  categories: string[];
 }) {
   const router = useRouter();
   const [pendingDoc, setPendingDoc] = useState<{
@@ -35,6 +37,7 @@ export function DocumentsClient({
       <StatementImport
         accounts={accounts}
         savedPasswords={savedPasswords}
+        categories={categories}
         onImported={refresh}
       />
 

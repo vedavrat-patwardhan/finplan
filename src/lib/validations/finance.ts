@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   EXPENSE_CLASSES,
-  EXPENSE_CATEGORIES,
   FREQUENCIES,
   GOAL_TYPES,
   HOUSEHOLD_OWNERS,
@@ -11,7 +10,6 @@ import {
   PAYMENT_ACCOUNT_TYPES,
   BANK_ACCOUNT_SUBTYPES,
   TRANSACTION_TYPES,
-  LEDGER_CATEGORIES,
   DOCUMENT_TYPES,
 } from "@/lib/finance/constants";
 import {
@@ -453,7 +451,7 @@ export const ledgerTransactionSchema = z.object({
   accountId: z.string().min(1),
   type: z.enum(TRANSACTION_TYPES),
   amount: z.coerce.number().positive(),
-  category: z.enum(LEDGER_CATEGORIES),
+  category: z.string().trim().min(1).max(40),
   merchant: z.string().max(100).optional(),
   description: z.string().max(200).optional(),
   date: z.coerce.date(),

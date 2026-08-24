@@ -19,10 +19,8 @@ import {
   type ParsedTransaction,
 } from "@/lib/finance/statement-parsers";
 import {
-  LEDGER_CATEGORIES,
   STATEMENT_BANKS,
   TRANSACTION_TYPES,
-  type LedgerCategory,
   type PaymentAccountType,
   type StatementBank,
   type TransactionType,
@@ -32,6 +30,10 @@ import {
   applyCategoryRules,
   transactionCategoryText,
 } from "@/lib/finance/category-rules";
+import {
+  getAllowedLedgerCategoryNames,
+  resolveAllowedLedgerCategory,
+} from "@/lib/finance/ledger-categories";
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -117,7 +119,7 @@ export async function extractStatementAction(
         transaction.category,
         categoryRules.map((rule) => ({
           keyword: rule.normalizedKeyword || rule.keyword,
-          category: rule.category as LedgerCategory,
+          category: rule.category,
         }))
       ),
     }));
@@ -163,7 +165,7 @@ interface CleanImportTxn {
   date: Date;
   amount: number;
   type: TransactionType;
-  category: LedgerCategory;
+  category: string;
   merchant: string;
   description: string;
 }
@@ -222,9 +224,7 @@ export async function importStatementTransactionsAction(
     date: new Date(r.date),
     amount: Number(r.amount),
     type: TRANSACTION_TYPES.includes(r.type as never) ? r.type : null,
-    category: LEDGER_CATEGORIES.includes(r.category as never)
-      ? r.category
-      : "Miscellaneous",
+    category: String(r.category ?? "Miscellaneous").trim().slice(0, 40),
     merchant: String(r.merchant ?? "").slice(0, 120),
     description: String(r.description ?? "").slice(0, 300),
   }));
@@ -234,7 +234,7 @@ export async function importStatementTransactionsAction(
   const clean: CleanImportTxn[] = candidates.map((row) => ({
     ...row,
     type: row.type as TransactionType,
-    category: row.category as LedgerCategory,
+    category: row.category || "Miscellaneous",
   }));
 
   let imported = 0;
@@ -243,20 +243,24 @@ export async function importStatementTransactionsAction(
 
   try {
     await withTransaction(async (dbSession) => {
-      const categoryRules = await CategoryRule.find({
-        userId: userObjectId(session.userId),
-      })
-        .session(dbSession)
-        .lean();
+      const userId = userObjectId(session.userId);
+      const [categoryRules, allowedCategories] = await Promise.all([
+        CategoryRule.find({ userId }).session(dbSession).lean(),
+        getAllowedLedgerCategoryNames(userId, dbSession),
+      ]);
       for (const row of clean) {
-        row.category = applyCategoryRules(
+        const submittedCategory =
+          resolveAllowedLedgerCategory(row.category, allowedCategories) ?? "Miscellaneous";
+        const ruledCategory = applyCategoryRules(
           transactionCategoryText(row),
-          row.category,
+          submittedCategory,
           categoryRules.map((rule) => ({
             keyword: rule.normalizedKeyword || rule.keyword,
-            category: rule.category as LedgerCategory,
+            category: rule.category,
           }))
         );
+        row.category =
+          resolveAllowedLedgerCategory(ruledCategory, allowedCategories) ?? "Miscellaneous";
       }
 
       const account = await PaymentAccount.findOne({

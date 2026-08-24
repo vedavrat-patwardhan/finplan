@@ -39,6 +39,10 @@ import {
 } from "@/lib/storage/s3";
 import type { ActionResult } from "./auth";
 import type { PaymentAccountType, TransactionType } from "@/lib/finance/constants";
+import {
+  getAllowedLedgerCategoryNames,
+  resolveAllowedLedgerCategory,
+} from "@/lib/finance/ledger-categories";
 
 function userObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
@@ -661,6 +665,12 @@ export async function createTransactionAction(
   }
 
   const data = parsed.data;
+  await connectDB();
+  const category = resolveAllowedLedgerCategory(
+    data.category,
+    await getAllowedLedgerCategoryNames(userObjectId(session.userId))
+  );
+  if (!category) return { success: false, error: "Choose one of your ledger categories" };
 
   try {
     await withTransaction(async (dbSession) => {
@@ -674,7 +684,7 @@ export async function createTransactionAction(
             accountId: account._id,
             type: data.type,
             amount: data.amount,
-            category: data.category,
+            category,
             merchant: data.merchant ?? "",
             description: data.description ?? "",
             date: data.date,
@@ -718,6 +728,12 @@ export async function updateTransactionAction(
   }
 
   const data = parsed.data;
+  await connectDB();
+  const category = resolveAllowedLedgerCategory(
+    data.category,
+    await getAllowedLedgerCategoryNames(userObjectId(session.userId))
+  );
+  if (!category) return { success: false, error: "Choose one of your ledger categories" };
 
   try {
     await withTransaction(async (dbSession) => {
@@ -751,7 +767,7 @@ export async function updateTransactionAction(
           accountId: newAccount._id,
           type: data.type,
           amount: data.amount,
-          category: data.category,
+          category,
           merchant: data.merchant ?? "",
           description: data.description ?? "",
           date: data.date,

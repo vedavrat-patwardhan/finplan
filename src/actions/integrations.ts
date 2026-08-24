@@ -16,7 +16,11 @@ import { encryptSensitive } from "@/lib/crypto/sensitive";
 import { ingestFinanceMessage } from "@/lib/automation/message-ingestion";
 import { reconcileAccountsFromMessageHistory } from "@/lib/automation/history-reconciliation";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
-import { LEDGER_CATEGORIES, type PaymentAccountType } from "@/lib/finance/constants";
+import { type PaymentAccountType } from "@/lib/finance/constants";
+import {
+  getAllowedLedgerCategoryNames,
+  resolveAllowedLedgerCategory,
+} from "@/lib/finance/ledger-categories";
 
 export interface IntegrationActionState {
   success: boolean;
@@ -157,12 +161,17 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
   const parsed = z.object({
     eventId: z.string().trim().min(1),
     accountId: z.string().trim().min(1),
-    category: z.enum(LEDGER_CATEGORIES),
+    category: z.string().trim().min(1).max(40),
   }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
 
   await connectDB();
   const userId = oid(session.userId);
+  const category = resolveAllowedLedgerCategory(
+    parsed.data.category,
+    await getAllowedLedgerCategoryNames(userId)
+  );
+  if (!category) return;
   const [event, account] = await Promise.all([
     MessageIngestion.findOne({ _id: oid(parsed.data.eventId), userId, status: "needs_review" }),
     PaymentAccount.findOne({ _id: oid(parsed.data.accountId), userId, isActive: true }),
@@ -214,7 +223,7 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
           accountId: account._id,
           type: transactionType,
           amount: transactionAmount,
-          category: parsed.data.category,
+          category,
           merchant,
           description,
           date: event.occurredAt,

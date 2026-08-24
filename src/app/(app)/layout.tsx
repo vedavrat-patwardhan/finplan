@@ -4,7 +4,8 @@ import { connection } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { AppShell } from "@/components/layout/app-shell";
 import { LedgerProvider } from "@/components/ledger/ledger-provider";
-import { getPaymentAccounts } from "@/lib/db/queries/ledger";
+import { getCustomLedgerCategories, getPaymentAccounts } from "@/lib/db/queries/ledger";
+import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageLoadingSkeleton } from "@/components/layout/page-loading-skeleton";
 
@@ -15,8 +16,12 @@ async function LedgerShell({
   userId: string;
   children: React.ReactNode;
 }) {
-  const accounts = await getPaymentAccounts(userId);
-  return <LedgerProvider accounts={accounts}>{children}</LedgerProvider>;
+  const [accounts, customCategories] = await Promise.all([
+    getPaymentAccounts(userId),
+    getCustomLedgerCategories(userId),
+  ]);
+  const categories = [...LEDGER_CATEGORIES, ...customCategories.map((item) => item.name)];
+  return <LedgerProvider accounts={accounts} categories={categories}>{children}</LedgerProvider>;
 }
 
 async function AppLayoutContent({ children }: { children: React.ReactNode }) {
