@@ -26,7 +26,7 @@ import {
   InsightPanel,
 } from "@/components/layout/page-chrome";
 import { GetStartedBanner } from "@/components/finance/get-started-banner";
-import { UpcomingObligations } from "@/components/finance/upcoming-obligations";
+import { ObligationList } from "@/components/finance/upcoming-obligations";
 
 const summaryCardTones = {
   default: "border-border/70 bg-card",
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
       getPaymentAccounts(session.userId),
       getTransactions(session.userId, { limit: 250 }),
     ]);
-  const { profile, snapshot, goals, obligations } = dashboard;
+  const { profile, snapshot, goals, obligations, pastDueObligations } = dashboard;
 
   const availableBalance = sumAvailableBalance(accounts);
   const liquidAccounts = accounts.filter(
@@ -348,13 +348,28 @@ export default async function DashboardPage() {
         title="Upcoming obligations"
         description="SIP payments, renewals, and other items due in the next 31–90 days"
       >
-        <UpcomingObligations
+        <ObligationList
           obligations={obligations.map((item) => ({
             ...item,
             dueDate: item.dueDate.toISOString(),
           }))}
           transactions={recentTransactions}
           accounts={accounts}
+        />
+      </PageSection>
+
+      <PageSection
+        title="Past 30 days obligations"
+        description="Past-due items that have not been marked paid or skipped"
+      >
+        <ObligationList
+          obligations={pastDueObligations.map((item) => ({
+            ...item,
+            dueDate: item.dueDate.toISOString(),
+          }))}
+          transactions={recentTransactions}
+          accounts={accounts}
+          emptyMessage="No unmarked obligations from the past 30 days."
         />
       </PageSection>
     </PageShell>

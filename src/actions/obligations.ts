@@ -94,10 +94,13 @@ async function resolveObligation(
       absoluteReturnPct: item.absoluteReturnPct ?? undefined,
       monthlyWithdrawalPct: item.monthlyWithdrawalPct ?? undefined,
     });
-    if (!metrics.nextPaymentOn || dayKey(metrics.nextPaymentOn) !== dayKey(input.dueDate)) {
+    const matchingDate = [metrics.nextPaymentOn, metrics.lastPaidOn]
+      .filter((date): date is Date => Boolean(date))
+      .find((date) => dayKey(date) === dayKey(input.dueDate));
+    if (!matchingDate) {
       throw new ObligationActionError("This investment payment is no longer pending");
     }
-    return { name: item.name, amount: item.amount, dueDate: metrics.nextPaymentOn };
+    return { name: item.name, amount: item.amount, dueDate: matchingDate };
   }
 
   if (input.sourceType === "insurance") {

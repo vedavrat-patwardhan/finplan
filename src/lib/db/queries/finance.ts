@@ -275,6 +275,49 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
   });
 });
 
+async function removeHandledObligations(
+  userId: string,
+  candidates: UpcomingObligation[]
+): Promise<UpcomingObligation[]> {
+  if (candidates.length === 0) return candidates;
+
+  const candidateSourceIds = candidates.map(
+    (item) => new mongoose.Types.ObjectId(item.sourceId)
+  );
+  let firstDue = candidates[0].dueDate.getTime();
+  let lastDue = firstDue;
+  for (const candidate of candidates) {
+    const dueTime = candidate.dueDate.getTime();
+    firstDue = Math.min(firstDue, dueTime);
+    lastDue = Math.max(lastDue, dueTime);
+  }
+
+  const handled = await ObligationEvent.find(
+    {
+      userId: toObjectId(userId),
+      sourceId: { $in: candidateSourceIds },
+      dueDate: {
+        $gte: new Date(firstDue - 24 * 60 * 60 * 1000),
+        $lte: new Date(lastDue + 24 * 60 * 60 * 1000),
+      },
+    },
+    { sourceType: 1, sourceId: 1, dueDate: 1 }
+  ).lean();
+  const handledKeys = new Set(
+    handled.map(
+      (event) =>
+        `${event.sourceType}|${event.sourceId.toString()}|${new Date(event.dueDate).toISOString().slice(0, 10)}`
+    )
+  );
+
+  return candidates.filter(
+    (item) =>
+      !handledKeys.has(
+        `${item.type}|${item.sourceId}|${item.dueDate.toISOString().slice(0, 10)}`
+      )
+  );
+}
+
 export const getUpcomingObligationsForUser = cache(
   async (userId: string): Promise<UpcomingObligation[]> => {
     await connectDB();
@@ -347,43 +390,104 @@ export const getUpcomingObligationsForUser = cache(
       ...getUpcomingObligations(otherItems, 90),
     ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
-    if (candidates.length === 0) return candidates;
-    const candidateSourceIds = candidates.map((item) => new mongoose.Types.ObjectId(item.sourceId));
-    const firstDue = candidates[0].dueDate.getTime() - 24 * 60 * 60 * 1000;
-    const lastDue = candidates[candidates.length - 1].dueDate.getTime() + 24 * 60 * 60 * 1000;
-    const handled = await ObligationEvent.find(
-      {
-        userId: toObjectId(userId),
-        sourceId: { $in: candidateSourceIds },
-        dueDate: { $gte: new Date(firstDue), $lte: new Date(lastDue) },
-      },
-      { sourceType: 1, sourceId: 1, dueDate: 1 }
-    ).lean();
-    const handledKeys = new Set(
-      handled.map(
-        (event) =>
-          `${event.sourceType}|${event.sourceId.toString()}|${new Date(event.dueDate).toISOString().slice(0, 10)}`
-      )
-    );
+    return removeHandledObligations(userId, candidates);
+  }
+);
 
-    return candidates.filter(
-      (item) =>
-        !handledKeys.has(
-          `${item.type}|${item.sourceId}|${item.dueDate.toISOString().slice(0, 10)}`
-        )
-    );
+export const getPastDueObligationsForUser = cache(
+  async (userId: string): Promise<UpcomingObligation[]> => {
+    await connectDB();
+    const [insurance, investments, creditCards] = await Promise.all([
+      getInsurancePolicies(userId),
+      getInvestments(userId),
+      PaymentAccount.find(
+        {
+          userId: toObjectId(userId),
+          type: "credit_card",
+          isActive: true,
+          billTotalDue: { $gt: 0 },
+          billDueDate: { $exists: true },
+        },
+        { name: 1, billTotalDue: 1, billDueDate: 1 }
+      ).lean(),
+    ]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - 30);
+    const isPastThirtyDays = (date: Date) => date >= cutoff && date < today;
+
+    const investmentItems: UpcomingObligation[] = investments.flatMap((item) => {
+      const dueDate = item.metrics.lastPaidOn
+        ? new Date(item.metrics.lastPaidOn)
+        : undefined;
+      const explicitlyPaid =
+        item.lastPaidDate &&
+        dueDate &&
+        new Date(item.lastPaidDate).toISOString().slice(0, 10) ===
+          dueDate.toISOString().slice(0, 10);
+      if (
+        !dueDate ||
+        explicitlyPaid ||
+        item.frequency === "one_time" ||
+        !isPastThirtyDays(dueDate)
+      ) {
+        return [];
+      }
+      return [{
+        sourceId: item.id,
+        name: item.name,
+        amount: item.amount,
+        dueDate,
+        type: "investment" as const,
+      }];
+    });
+
+    const insuranceItems: UpcomingObligation[] = insurance.flatMap((item) => {
+      const dueDate = item.renewalDate ? new Date(item.renewalDate) : undefined;
+      if (!dueDate || !isPastThirtyDays(dueDate)) return [];
+      return [{
+        sourceId: item.id,
+        name: item.name,
+        amount: item.premium,
+        dueDate,
+        type: "insurance" as const,
+      }];
+    });
+
+    const creditCardItems: UpcomingObligation[] = creditCards.flatMap((item) => {
+      const dueDate = item.billDueDate ? new Date(item.billDueDate) : undefined;
+      if (!dueDate || !isPastThirtyDays(dueDate)) return [];
+      return [{
+        sourceId: item._id.toString(),
+        name: `${item.name} bill`,
+        amount: item.billTotalDue ?? 0,
+        dueDate,
+        type: "credit_card_bill" as const,
+      }];
+    });
+
+    const candidates = [
+      ...investmentItems,
+      ...insuranceItems,
+      ...creditCardItems,
+    ].sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime());
+
+    return removeHandledObligations(userId, candidates);
   }
 );
 
 export const getDashboardData = cache(async (userId: string) => {
-  const [profile, snapshot, goals, obligations] = await Promise.all([
+  const [profile, snapshot, goals, obligations, pastDueObligations] = await Promise.all([
     getUserProfile(userId),
     getMonthlySnapshot(userId),
     getGoalsWithFeasibility(userId),
     getUpcomingObligationsForUser(userId),
+    getPastDueObligationsForUser(userId),
   ]);
 
-  return { profile, snapshot, goals, obligations };
+  return { profile, snapshot, goals, obligations, pastDueObligations };
 });
 
 export const getCashflowBreakdown = cache(async (userId: string) => {

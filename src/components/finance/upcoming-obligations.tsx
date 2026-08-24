@@ -69,14 +69,16 @@ function typeLabel(type: UpcomingObligationItem["type"]) {
   return type === "credit_card_bill" ? "Credit card bill" : type;
 }
 
-export function UpcomingObligations({
+export function ObligationList({
   obligations,
   transactions,
   accounts,
+  emptyMessage = "Nothing due soon — monthly SIPs and half-yearly investments appear here before their next payment date.",
 }: {
   obligations: UpcomingObligationItem[];
   transactions: LedgerTransactionDTO[];
   accounts: PaymentAccountDTO[];
+  emptyMessage?: string;
 }) {
   const router = useRouter();
   const [paying, setPaying] = useState<UpcomingObligationItem | null>(null);
@@ -195,8 +197,7 @@ export function UpcomingObligations({
   if (obligations.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Nothing due soon — monthly SIPs and half-yearly investments appear here before
-        their next payment date.
+        {emptyMessage}
       </p>
     );
   }
