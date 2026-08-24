@@ -14,6 +14,7 @@ import {
 } from "@/lib/db/models";
 import { encryptSensitive } from "@/lib/crypto/sensitive";
 import { ingestFinanceMessage } from "@/lib/automation/message-ingestion";
+import { reconcileAccountsFromMessageHistory } from "@/lib/automation/history-reconciliation";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
 import { LEDGER_CATEGORIES, type PaymentAccountType } from "@/lib/finance/constants";
 
@@ -177,6 +178,23 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
     event.accountId = account._id;
     event.status = "imported";
     await event.save();
+    if (event.historical) await reconcileAccountsFromMessageHistory(session.userId);
+    refreshAutomationPages();
+    return;
+  }
+
+  if (event.kind === "balance" && account.type !== "credit_card" && message?.availableBalance !== undefined) {
+    event.accountId = account._id;
+    event.status = "imported";
+    await event.save();
+    if (event.historical) {
+      await reconcileAccountsFromMessageHistory(session.userId);
+    } else {
+      await PaymentAccount.updateOne(
+        { _id: account._id, userId },
+        { $set: { currentBalance: message.availableBalance } }
+      );
+    }
     refreshAutomationPages();
     return;
   }
@@ -208,19 +226,21 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
       );
       const transaction = transactions[0];
       if (!transaction) throw new Error("Transaction was not created");
-      await PaymentAccount.findByIdAndUpdate(
-        account._id,
-        {
-          $inc: {
-            currentBalance: transactionBalanceDelta(
-              account.type as PaymentAccountType,
-              transactionType,
-              transactionAmount
-            ),
+      if (!event.historical) {
+        await PaymentAccount.findByIdAndUpdate(
+          account._id,
+          {
+            $inc: {
+              currentBalance: transactionBalanceDelta(
+                account.type as PaymentAccountType,
+                transactionType,
+                transactionAmount
+              ),
+            },
           },
-        },
-        { session: dbSession }
-      );
+          { session: dbSession }
+        );
+      }
       await MessageIngestion.updateOne(
         { _id: event._id },
         { status: "imported", accountId: account._id, transactionId: transaction._id },
@@ -230,6 +250,7 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
   } finally {
     await dbSession.endSession();
   }
+  if (event.historical) await reconcileAccountsFromMessageHistory(session.userId);
   refreshAutomationPages();
 }
 

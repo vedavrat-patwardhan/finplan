@@ -9,6 +9,7 @@ const MessageIngestionSchema = new Schema(
     messageHash: { type: String, required: true },
     occurredAt: { type: Date, required: true, index: true },
     receivedAt: { type: Date, default: Date.now },
+    historical: { type: Boolean, default: false, index: true },
     kind: {
       type: String,
       enum: ["transaction", "bill", "balance", "unknown"],

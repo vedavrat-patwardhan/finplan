@@ -12,6 +12,7 @@ Goal-first personal finance app for planning life milestones in INR. Built with 
 - **Scenario modeling** — what-if surplus changes
 - **CSV export** — financial summary download
 - **Android SMS automation** — secure webhook ingestion for bank, UPI, balance, and card-due messages with duplicate protection and a review queue
+- **Historical SMS backfill** — locally scans an SMS Backup & Restore XML file, uploads only financial candidates, and safely reconciles explicit bank-reported balances
 - **Vedavrat AI assistant** — encrypted per-user OpenAI key and finance-aware affordability/goal planning through the Responses API
 
 ## Getting started
@@ -57,6 +58,8 @@ The JSON body is:
 ```
 
 Send the generated token as `Authorization: Bearer <token>` or `X-FinPlan-Token`.
+
+For older messages, export an unencrypted SMS-only XML file with **SMS Backup & Restore by SyncTech**, then open **Automations → Backfill message history**. The XML is parsed in the browser; OTPs, sent messages, and non-financial conversations are not uploaded. Historical transactions populate the ledger but are never replayed against the current account balance. If enabled, reconciliation uses only the newest explicit available balance found for each matched bank account.
 
 ## Stack
 

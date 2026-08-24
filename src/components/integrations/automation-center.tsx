@@ -29,12 +29,14 @@ import { formatDate, formatINR } from "@/lib/format";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
+import { HistoricalSmsImport } from "@/components/integrations/historical-sms-import";
 
 type IngestionItem = {
   id: string;
   sender: string;
   message: string;
   occurredAt: string;
+  historical: boolean;
   kind: string;
   status: string;
   confidence: number;
@@ -46,6 +48,7 @@ type IngestionItem = {
     category?: string;
     merchant: string;
     accountLastFour: string;
+    availableBalance?: number;
     billTotalDue?: number;
     billDueDate?: string;
   };
@@ -162,7 +165,7 @@ function ManualMessageTest() {
 
 function MessageRow({ item, accounts }: { item: IngestionItem; accounts: PaymentAccountDTO[] }) {
   const needsReview = item.status === "needs_review";
-  const amount = item.parsed.amount ?? item.parsed.billTotalDue;
+  const amount = item.parsed.amount ?? item.parsed.billTotalDue ?? item.parsed.availableBalance;
   return (
     <article className={cn("rounded-xl border p-4", needsReview ? "border-chart-2/30 bg-chart-2/5" : "border-border bg-card")}>
       <div className="flex items-start justify-between gap-3">
@@ -172,6 +175,7 @@ function MessageRow({ item, accounts }: { item: IngestionItem; accounts: Payment
             <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide", item.status === "imported" ? "bg-success/15 text-success" : item.status === "needs_review" ? "bg-chart-2/15 text-chart-2" : "bg-muted text-muted-foreground")}>
               {item.status.replace("_", " ")}
             </span>
+            {item.historical ? <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">history</span> : null}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{item.sender || "Unknown sender"} · {formatDate(item.occurredAt)}</p>
         </div>
@@ -183,14 +187,14 @@ function MessageRow({ item, accounts }: { item: IngestionItem; accounts: Payment
       </div>
       <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.message}</p>
 
-      {needsReview && (item.kind === "transaction" || item.kind === "bill") ? (
+      {needsReview && (item.kind === "transaction" || item.kind === "bill" || item.kind === "balance") ? (
         <form action={approveMessageAction} className="mt-4 grid gap-2 border-t border-border/60 pt-3 sm:grid-cols-[1fr_1fr_auto]">
           <input type="hidden" name="eventId" value={item.id} />
           <select name="accountId" required defaultValue={item.accountId ?? ""} className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm">
             <option value="" disabled>Choose account</option>
             {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}{account.lastFour ? ` · ${account.lastFour}` : ""}</option>)}
           </select>
-          {item.kind === "bill" ? (
+          {item.kind === "bill" || item.kind === "balance" ? (
             <input type="hidden" name="category" value="Miscellaneous" />
           ) : (
             <select name="category" defaultValue={item.parsed.category ?? "Miscellaneous"} className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm">
@@ -241,6 +245,8 @@ export function AutomationCenter({ settings, webhookUrl, ingestions, accounts }:
         <SmsTokenPanel enabled={settings.smsEnabled} hint={settings.smsTokenHint} webhookUrl={webhookUrl} />
         <ManualMessageTest />
       </div>
+
+      <HistoricalSmsImport />
 
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3">

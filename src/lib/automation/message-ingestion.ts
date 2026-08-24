@@ -11,6 +11,7 @@ interface IngestInput {
   sender: string;
   message: string;
   occurredAt?: Date;
+  historical?: boolean;
 }
 
 function senderMatchesInstitution(sender: string, institution: string): boolean {
@@ -60,6 +61,12 @@ export async function ingestFinanceMessage(input: IngestInput) {
     parsed.billTotalDue !== undefined &&
     parsed.billDueDate &&
     parsed.confidence >= 0.8;
+  const canImportBalance =
+    parsed.kind === "balance" &&
+    parsed.availableBalance !== undefined &&
+    account &&
+    account.type !== "credit_card" &&
+    Boolean(parsed.accountLastFour);
 
   const dbSession = await mongoose.startSession();
   try {
@@ -73,8 +80,9 @@ export async function ingestFinanceMessage(input: IngestInput) {
             encryptedMessage: encryptSensitive(message),
             messageHash,
             occurredAt,
+            historical: input.historical ?? false,
             kind: parsed.kind,
-            status: canImportTransaction || canImportBill ? "imported" : "needs_review",
+            status: canImportTransaction || canImportBill || canImportBalance ? "imported" : "needs_review",
             confidence: parsed.confidence,
             accountId: account?._id,
             parsed,
@@ -103,9 +111,11 @@ export async function ingestFinanceMessage(input: IngestInput) {
           { session: dbSession }
         );
 
-        const update = parsed.availableBalance !== undefined && account.type !== "credit_card"
-          ? { $set: { currentBalance: parsed.availableBalance } }
-          : {
+        const update = input.historical
+          ? null
+          : parsed.availableBalance !== undefined && account.type !== "credit_card"
+            ? { $set: { currentBalance: parsed.availableBalance } }
+            : {
               $inc: {
                 currentBalance: transactionBalanceDelta(
                   account.type as PaymentAccountType,
@@ -114,20 +124,28 @@ export async function ingestFinanceMessage(input: IngestInput) {
                 ),
               },
             };
-        await PaymentAccount.findByIdAndUpdate(account._id, update, { session: dbSession });
+        if (update) {
+          await PaymentAccount.findByIdAndUpdate(account._id, update, { session: dbSession });
+        }
         event.transactionId = transaction._id;
         await event.save({ session: dbSession });
-      } else if (canImportBill && account) {
+      } else if (canImportBill && account && !input.historical) {
         await PaymentAccount.findByIdAndUpdate(
           account._id,
           { billTotalDue: parsed.billTotalDue, billDueDate: parsed.billDueDate },
+          { session: dbSession }
+        );
+      } else if (canImportBalance && account && !input.historical) {
+        await PaymentAccount.findByIdAndUpdate(
+          account._id,
+          { currentBalance: parsed.availableBalance },
           { session: dbSession }
         );
       }
 
       result = {
         id: event._id.toString(),
-        status: canImportTransaction || canImportBill ? "imported" : "needs_review",
+        status: canImportTransaction || canImportBill || canImportBalance ? "imported" : "needs_review",
         parsed,
       };
     });
