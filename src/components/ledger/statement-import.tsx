@@ -45,6 +45,7 @@ const bankOptions = STATEMENT_BANKS.map((b) => ({
 
 const categoryOptions = LEDGER_CATEGORIES.map((c) => ({ value: c, label: c }));
 const MANUAL_PASSWORD = "__manual__";
+const BANK_ACCOUNT_STATEMENTS = new Set<StatementBank>(["hdfc", "kotak"]);
 
 const BANK_INSTITUTION_MATCH: Record<StatementBank, string> = {
   hdfc: "hdfc",
@@ -111,7 +112,13 @@ export function StatementImport({
   const [closingBalance, setClosingBalance] = useState<number | undefined>();
   const [syncClosingBalance, setSyncClosingBalance] = useState(true);
 
-  const importableAccounts = useMemo(() => sortPaymentAccounts(accounts), [accounts]);
+  const destinationType = BANK_ACCOUNT_STATEMENTS.has(bank as StatementBank)
+    ? "bank"
+    : "credit_card";
+  const importableAccounts = useMemo(
+    () => sortPaymentAccounts(accounts.filter((account) => account.type === destinationType)),
+    [accounts, destinationType]
+  );
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === accountId),
     [accountId, accounts]
@@ -151,7 +158,7 @@ export function StatementImport({
         // Suggest an account whose last 4 matches the statement — but make the match
         // visible so the user can confirm or override before importing.
         const lastFourMatches = result.accountNumberLast4
-          ? accounts.filter((account) => account.lastFour === result.accountNumberLast4)
+          ? importableAccounts.filter((account) => account.lastFour === result.accountNumberLast4)
           : [];
         const institutionNeedle = BANK_INSTITUTION_MATCH[bank as StatementBank];
         const match =
@@ -185,6 +192,7 @@ export function StatementImport({
     }
     const fd = new FormData();
     fd.set("accountId", accountId);
+    fd.set("statementBank", bank);
     if (billData.totalAmountDue != null) fd.set("billTotalDue", String(billData.totalAmountDue));
     if (billData.paymentDueDate) fd.set("billDueDate", billData.paymentDueDate);
     if (syncClosingBalance && closingBalance !== undefined && selectedAccount?.type === "bank") {
@@ -309,7 +317,10 @@ export function StatementImport({
               <Label>Bank</Label>
               <LabeledSelect
                 value={bank}
-                onValueChange={setBank}
+                onValueChange={(value) => {
+                  setBank(value);
+                  setAccountId("");
+                }}
                 options={bankOptions}
                 placeholder="Select bank"
               />
@@ -417,7 +428,9 @@ export function StatementImport({
                   value: a.id,
                   label: `${a.name}${a.lastFour ? ` •••• ${a.lastFour}` : ""}`,
                 }))}
-                placeholder="Select account"
+                placeholder={
+                  destinationType === "bank" ? "Select bank account" : "Select credit card"
+                }
               />
               {autoMatched && stmtLast4 ? (
                 <p className="flex items-center gap-1.5 text-xs text-success">
@@ -430,7 +443,13 @@ export function StatementImport({
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Choose which account these transactions belong to.
+                  {importableAccounts.length === 0
+                    ? destinationType === "bank"
+                      ? "Add a bank account first. Debit-card entries are not valid statement destinations."
+                      : "Add the matching credit card first."
+                    : destinationType === "bank"
+                      ? "All selected transactions will be saved only to this bank account."
+                      : "All selected transactions will be saved only to this credit card."}
                 </p>
               )}
             </div>

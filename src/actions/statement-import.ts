@@ -168,6 +168,12 @@ export async function importStatementTransactionsAction(
 
   const accountId = String(formData.get("accountId") ?? "");
   if (!accountId) return { success: false, error: "Select an account" };
+  const statementBank = String(formData.get("statementBank") ?? "") as StatementBank;
+  if (!STATEMENT_BANKS.includes(statementBank)) {
+    return { success: false, error: "Unsupported statement bank" };
+  }
+  const requiredAccountType =
+    statementBank === "hdfc" || statementBank === "kotak" ? "bank" : "credit_card";
 
   const billTotalDue = Number(formData.get("billTotalDue") ?? 0) || 0;
   const billDueDate = String(formData.get("billDueDate") ?? "");
@@ -217,8 +223,15 @@ export async function importStatementTransactionsAction(
         _id: new mongoose.Types.ObjectId(accountId),
         userId: userObjectId(session.userId),
         isActive: true,
+        type: requiredAccountType,
       }).session(dbSession);
-      if (!account) throw new Error("Account not found");
+      if (!account) {
+        throw new Error(
+          requiredAccountType === "bank"
+            ? "Select a bank account for this statement"
+            : "Select a credit card for this statement"
+        );
+      }
 
       // Query existing transactions covering the batch's date window.
       const dateTimes = clean.map((r) => r.date.getTime());
@@ -355,6 +368,9 @@ export async function importStatementTransactionsAction(
       }
     });
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Select a ")) {
+      return { success: false, error: error.message };
+    }
     return { success: false, error: transactionErrorMessage(error) };
   }
 
