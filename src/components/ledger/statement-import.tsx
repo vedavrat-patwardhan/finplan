@@ -44,6 +44,7 @@ const bankOptions = STATEMENT_BANKS.map((b) => ({
 }));
 
 const categoryOptions = LEDGER_CATEGORIES.map((c) => ({ value: c, label: c }));
+const MANUAL_PASSWORD = "__manual__";
 
 const BANK_INSTITUTION_MATCH: Record<StatementBank, string> = {
   hdfc: "hdfc",
@@ -136,8 +137,11 @@ export function StatementImport({
     const fd = new FormData();
     fd.set("bank", bank);
     fd.set("file", file);
-    fd.set("password", password);
-    fd.set("savedPasswordId", savedPasswordId);
+    fd.set("password", savedPasswordId === MANUAL_PASSWORD || savedPasswords.length === 0 ? password : "");
+    fd.set(
+      "savedPasswordId",
+      savedPasswordId && savedPasswordId !== MANUAL_PASSWORD ? savedPasswordId : ""
+    );
 
     startExtract(async () => {
       const result = await extractStatementAction({ success: false }, fd);
@@ -162,6 +166,9 @@ export function StatementImport({
         setSyncClosingBalance(result.closingBalance !== undefined);
         toast.success(`Found ${result.transactions.length} transactions`);
       } else {
+        if (result.needsPassword === "missing" && savedPasswords.length > 0) {
+          setSavedPasswordId(MANUAL_PASSWORD);
+        }
         toast.error(result.error ?? "Could not read the statement");
       }
     });
@@ -310,36 +317,37 @@ export function StatementImport({
 
             {savedPasswords.length > 0 ? (
               <div className="space-y-2">
-                <Label>PDF password</Label>
+                <Label>PDF password (optional)</Label>
                 <LabeledSelect
                   value={savedPasswordId}
                   onValueChange={(id) => {
                     setSavedPasswordId(id);
-                    if (id) setPassword("");
+                    if (id !== MANUAL_PASSWORD) setPassword("");
                   }}
                   options={[
-                    { value: "", label: "Type manually…" },
+                    { value: "", label: "No password" },
+                    { value: MANUAL_PASSWORD, label: "Enter password…" },
                     ...savedPasswords.map((p) => ({ value: p.id, label: p.title })),
                   ]}
-                  placeholder="Saved or type"
+                  placeholder="No password"
                 />
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="stmt-password">PDF password</Label>
+                <Label htmlFor="stmt-password">PDF password (optional)</Label>
                 <PasswordInput
                   id="stmt-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="If the PDF is protected"
+                  placeholder="Leave blank if it opens normally"
                 />
               </div>
             )}
           </div>
 
-          {savedPasswords.length > 0 && !savedPasswordId && (
+          {savedPasswords.length > 0 && savedPasswordId === MANUAL_PASSWORD && (
             <div className="space-y-2">
-              <Label htmlFor="stmt-password">Type password</Label>
+              <Label htmlFor="stmt-password">Enter PDF password</Label>
               <PasswordInput
                 id="stmt-password"
                 value={password}

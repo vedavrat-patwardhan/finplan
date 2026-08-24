@@ -3,8 +3,7 @@
  *
  * Returns positioned text items (x, y, right-edge) per page so layout-aware
  * parsers can reconstruct table rows and columns. pdfjs-dist is loaded
- * dynamically and bundled with the server function so hosted deployments do
- * not depend on a node_modules symlink being copied at runtime.
+ * dynamically and traced with its worker file for serverless deployments.
  */
 
 export interface PdfTextItem {
