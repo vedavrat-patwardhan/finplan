@@ -17,8 +17,10 @@ import {
   LEDGER_CATEGORIES,
   STATEMENT_BANKS,
   TRANSACTION_TYPES,
+  type LedgerCategory,
   type PaymentAccountType,
   type StatementBank,
+  type TransactionType,
 } from "@/lib/finance/constants";
 import type { ActionResult } from "./auth";
 
@@ -116,7 +118,11 @@ export async function extractStatementAction(
             : "Incorrect password. Please try again.",
       };
     }
-    return { success: false, error: transactionErrorMessage(err) };
+    console.error("Statement PDF extraction failed", err);
+    return {
+      success: false,
+      error: "Could not process this PDF. Check that it opens correctly, then try again.",
+    };
   }
 }
 
@@ -129,7 +135,16 @@ interface ImportTxnInput {
   description: string;
 }
 
-/** Dedup key: day-level date + amount + type + description. */
+interface CleanImportTxn {
+  date: Date;
+  amount: number;
+  type: TransactionType;
+  category: LedgerCategory;
+  merchant: string;
+  description: string;
+}
+
+/** Exact identity for a statement row. */
 function txnDedupKey(date: Date, amount: number, type: string, description: string): string {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -137,10 +152,18 @@ function txnDedupKey(date: Date, amount: number, type: string, description: stri
   return `${y}-${m}-${d}|${amount}|${type}|${description}`;
 }
 
+/** Fallback identity used only when exactly one older row can match. */
+function txnValueKey(date: Date, amount: number, type: string): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}|${amount}|${type}`;
+}
+
 export async function importStatementTransactionsAction(
   _prev: ActionResult,
   formData: FormData
-): Promise<ActionResult & { imported?: number; duplicates?: number; balanceUpdated?: boolean }> {
+): Promise<ActionResult & { imported?: number; overridden?: number; balanceUpdated?: boolean }> {
   const session = await requireSession();
 
   const accountId = String(formData.get("accountId") ?? "");
@@ -165,7 +188,7 @@ export async function importStatementTransactionsAction(
   }
 
   // Validate every row up front.
-  const clean = rows.map((r) => ({
+  const candidates = rows.map((r) => ({
     date: new Date(r.date),
     amount: Number(r.amount),
     type: TRANSACTION_TYPES.includes(r.type as never) ? r.type : null,
@@ -175,12 +198,17 @@ export async function importStatementTransactionsAction(
     merchant: String(r.merchant ?? "").slice(0, 120),
     description: String(r.description ?? "").slice(0, 300),
   }));
-  if (clean.some((r) => !r.type || !(r.amount >= 0) || isNaN(r.date.getTime()))) {
+  if (candidates.some((r) => !r.type || !(r.amount >= 0) || isNaN(r.date.getTime()))) {
     return { success: false, error: "Some transactions are invalid" };
   }
+  const clean: CleanImportTxn[] = candidates.map((row) => ({
+    ...row,
+    type: row.type as TransactionType,
+    category: row.category as LedgerCategory,
+  }));
 
   let imported = 0;
-  let duplicates = 0;
+  let overridden = 0;
   let balanceUpdated = false;
 
   try {
@@ -205,17 +233,74 @@ export async function importStatementTransactionsAction(
         { session: dbSession }
       ).lean();
 
-      const existingKeys = new Set(
-        existing.map((t) =>
-          txnDedupKey(new Date(t.date as Date), t.amount, t.type, (t.description as string) ?? "")
-        )
-      );
+      // Ignore identical repeats within the same uploaded batch. The final copy
+      // wins, matching the statement-as-source-of-truth rule.
+      const uniqueRows = new Map<string, (typeof clean)[number]>();
+      for (const row of clean) {
+        uniqueRows.set(txnDedupKey(row.date, row.amount, row.type, row.description), row);
+      }
 
-      const fresh = clean.filter(
-        (r) => !existingKeys.has(txnDedupKey(r.date, r.amount, r.type as string, r.description))
-      );
-      duplicates = clean.length - fresh.length;
+      const exactMatches = new Map<string, typeof existing>();
+      const valueMatches = new Map<string, typeof existing>();
+      for (const transaction of existing) {
+        const date = new Date(transaction.date as Date);
+        const exactKey = txnDedupKey(
+          date,
+          transaction.amount,
+          transaction.type,
+          (transaction.description as string) ?? ""
+        );
+        const valueKey = txnValueKey(date, transaction.amount, transaction.type);
+        exactMatches.set(exactKey, [...(exactMatches.get(exactKey) ?? []), transaction]);
+        valueMatches.set(valueKey, [...(valueMatches.get(valueKey) ?? []), transaction]);
+      }
+
+      const usedExistingIds = new Set<string>();
+      const replacements: Array<{ id: mongoose.Types.ObjectId; row: (typeof clean)[number] }> = [];
+      const fresh: typeof clean = [];
+
+      for (const row of uniqueRows.values()) {
+        const exactKey = txnDedupKey(row.date, row.amount, row.type, row.description);
+        const exact = (exactMatches.get(exactKey) ?? []).find(
+          (candidate) => !usedExistingIds.has(candidate._id.toString())
+        );
+        const valueCandidates = (valueMatches.get(
+          txnValueKey(row.date, row.amount, row.type)
+        ) ?? []).filter((candidate) => !usedExistingIds.has(candidate._id.toString()));
+        const match = exact ?? (valueCandidates.length === 1 ? valueCandidates[0] : undefined);
+
+        if (match) {
+          usedExistingIds.add(match._id.toString());
+          replacements.push({ id: match._id, row });
+        } else {
+          fresh.push(row);
+        }
+      }
+
+      overridden = replacements.length;
       imported = fresh.length;
+
+      if (replacements.length > 0) {
+        await LedgerTransaction.bulkWrite(
+          replacements.map(({ id, row }) => ({
+            updateOne: {
+              filter: { _id: id, accountId: account._id, userId: userObjectId(session.userId) },
+              update: {
+                $set: {
+                  type: row.type,
+                  amount: row.amount,
+                  category: row.category,
+                  merchant: row.merchant,
+                  description: row.description,
+                  date: row.date,
+                  source: "statement",
+                },
+              },
+            },
+          })),
+          { session: dbSession }
+        );
+      }
 
       if (fresh.length > 0) {
         await LedgerTransaction.insertMany(
@@ -247,7 +332,7 @@ export async function importStatementTransactionsAction(
             sum +
             transactionBalanceDelta(
               account.type as PaymentAccountType,
-              r.type as "debit" | "credit",
+              r.type,
               r.amount,
               "apply"
             ),
@@ -277,5 +362,5 @@ export async function importStatementTransactionsAction(
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/documents");
-  return { success: true, imported, duplicates, balanceUpdated };
+  return { success: true, imported, overridden, balanceUpdated };
 }

@@ -199,15 +199,17 @@ export function StatementImport({
     startImport(async () => {
       const result = await importStatementTransactionsAction({ success: false }, fd);
       if (result.success) {
-        const dupNote = result.duplicates
-          ? ` (${result.duplicates} duplicate${result.duplicates === 1 ? "" : "s"} skipped)`
+        const overrideNote = result.overridden
+          ? ` and refreshed ${result.overridden} matching transaction${result.overridden === 1 ? "" : "s"} from the statement`
           : "";
         toast.success(
           result.imported === 0
-            ? result.balanceUpdated
-              ? "Transactions were already imported; the account balance was refreshed."
-              : "All transactions already imported — nothing new to add."
-            : `Imported ${result.imported} transaction${result.imported === 1 ? "" : "s"}${dupNote}${result.balanceUpdated ? " and synced the closing balance" : ""}`
+            ? result.overridden
+              ? `Refreshed ${result.overridden} matching transaction${result.overridden === 1 ? "" : "s"} from the statement${result.balanceUpdated ? " and synced the closing balance" : ""}.`
+              : result.balanceUpdated
+                ? "The account balance was refreshed from the statement."
+                : "No new or matching transactions were found."
+            : `Imported ${result.imported} transaction${result.imported === 1 ? "" : "s"}${overrideNote}${result.balanceUpdated ? " and synced the closing balance" : ""}`
         );
         resetAll();
         onImported();

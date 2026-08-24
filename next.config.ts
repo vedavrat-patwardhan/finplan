@@ -2,8 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  // pdfjs-dist uses Node-specific features for server-side PDF text extraction.
-  serverExternalPackages: ["pdfjs-dist"],
   experimental: {
     staleTimes: {
       dynamic: 30,

@@ -22,9 +22,69 @@ import {
   PageHeader,
   PageSection,
   InsightPanel,
-  MetaStat,
 } from "@/components/layout/page-chrome";
 import { GetStartedBanner } from "@/components/finance/get-started-banner";
+
+const summaryCardTones = {
+  default: "border-border/70 bg-card",
+  positive: "border-success/25 bg-success/[0.06]",
+  info: "border-chart-4/25 bg-chart-4/[0.06]",
+} as const;
+
+function SummaryBreakdownCard({
+  label,
+  value,
+  items,
+  tone = "default",
+  note,
+}: {
+  label: string;
+  value: string;
+  items: Array<{ label: string; value: string; valueTone?: "positive" | "negative" }>;
+  tone?: keyof typeof summaryCardTones;
+  note?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "min-w-0 rounded-xl border px-4 py-3.5 shadow-sm",
+        summaryCardTones[tone]
+      )}
+    >
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 font-heading text-xl font-semibold tabular-nums",
+          tone === "positive" && "text-success",
+          tone === "info" && "text-chart-4"
+        )}
+      >
+        {value}
+      </p>
+      <div className="mt-3 divide-y divide-border/50 border-t border-border/60">
+        {items.map((item) => (
+          <div key={item.label} className="flex items-start justify-between gap-3 py-2 text-xs">
+            <span className="min-w-0 truncate text-muted-foreground" title={item.label}>
+              {item.label}
+            </span>
+            <span
+              className={cn(
+                "shrink-0 font-medium tabular-nums text-foreground",
+                item.valueTone === "positive" && "text-success",
+                item.valueTone === "negative" && "text-destructive"
+              )}
+            >
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+      {note ? <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">{note}</p> : null}
+    </section>
+  );
+}
 
 const obligationTypeStyles: Record<string, string> = {
   investment: "border-l-chart-1 bg-chart-1/5",
@@ -51,6 +111,7 @@ export default async function DashboardPage() {
     ]);
 
   const availableBalance = sumAvailableBalance(accounts);
+  const liquidAccounts = accounts.filter((account) => account.type !== "credit_card");
   const monthlyEssential = expenses
     .filter((e) => e.isEssential)
     .reduce((sum, e) => sum + toMonthlyEquivalent(e.amount, e.frequency), 0);
@@ -79,23 +140,48 @@ export default async function DashboardPage() {
               : "Your monthly plan, actual spending, and goal progress in one place."
         }
         meta={
-          <>
-            <MetaStat
+          <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <SummaryBreakdownCard
               label="Available balance"
               value={formatINR(availableBalance, { compact: profile?.useCompactNumbers })}
               tone={availableBalance >= 0 ? "positive" : "default"}
+              items={liquidAccounts.map((account) => ({
+                label: `${account.name}${account.lastFour ? ` · •••• ${account.lastFour}` : ""}`,
+                value: formatINR(account.currentBalance),
+                valueTone: account.currentBalance >= 0 ? "positive" : "negative",
+              }))}
+              note={
+                liquidAccounts.length === 0
+                  ? "No bank, cash, wallet, or debit accounts added yet."
+                  : "Credit-card balances are excluded because they are amounts owed."
+              }
             />
-            <MetaStat
+            <SummaryBreakdownCard
               label="Monthly surplus"
               value={formatINR(snapshot.netSurplus, { compact: profile?.useCompactNumbers })}
               tone={snapshot.netSurplus >= 0 ? "positive" : "default"}
+              items={[
+                {
+                  label: "Income",
+                  value: `+${formatINR(snapshot.grossIncome)}`,
+                  valueTone: "positive",
+                },
+                { label: "Expenses", value: `−${formatINR(snapshot.fixedExpenses)}` },
+                { label: "Investments", value: `−${formatINR(snapshot.investments)}` },
+                { label: "Insurance", value: `−${formatINR(snapshot.insurance)}` },
+              ]}
             />
-            <MetaStat
+            <SummaryBreakdownCard
               label="Savings rate"
               value={formatPercent(snapshot.savingsRate)}
               tone="info"
+              items={[
+                { label: "Monthly investments", value: formatINR(snapshot.investments) },
+                { label: "Monthly income", value: formatINR(snapshot.grossIncome) },
+              ]}
+              note="Monthly investments ÷ monthly income. Uninvested surplus is not counted."
             />
-          </>
+          </div>
         }
       />
 

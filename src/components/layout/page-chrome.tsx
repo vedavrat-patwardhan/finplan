@@ -31,7 +31,7 @@ export function PageHeader({
 }) {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {backHref ? (
           <Link
             href={backHref}
@@ -49,7 +49,7 @@ export function PageHeader({
             {description}
           </p>
         ) : null}
-        {meta ? <div className="mt-3 flex flex-wrap gap-2">{meta}</div> : null}
+        {meta ? <div className="mt-3 flex w-full flex-wrap gap-2">{meta}</div> : null}
       </div>
       {children ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>
