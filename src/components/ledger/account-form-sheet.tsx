@@ -36,6 +36,7 @@ import {
 import { BankCombobox } from "@/components/finance/bank-combobox";
 import { SensitiveField } from "@/components/ledger/sensitive-field";
 import { Pencil, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const typeLabels: Record<string, string> = {
   bank: "Bank account",
@@ -180,12 +181,16 @@ export function AccountFormSheet({
 
   const showBankFields = type === "bank";
   const showCardFields = isCardType(type as PaymentAccountDTO["type"]);
+  const showLinkedDebitCardFields = showBankFields;
+  const acceptsCardDetails = showCardFields || showLinkedDebitCardFields;
   const showWalletFields = type === "wallet";
   const isCredit = type === "credit_card";
   const hasFullAccountNumber = Boolean(account?.hasAccountNumber);
   const hasFullCardNumber = Boolean(account?.hasCardNumber);
   const hasStoredAccountNumber = hasFullAccountNumber || Boolean(account?.lastFour);
-  const hasStoredCardNumber = hasFullCardNumber || Boolean(account?.lastFour);
+  const storedCardLastFour =
+    account?.cardLastFour || (showCardFields ? account?.lastFour ?? "" : "");
+  const hasStoredCardNumber = hasFullCardNumber || Boolean(storedCardLastFour);
   const hasStoredCardCvv = Boolean(account?.hasCardCvv);
   const isKotak = isKotakInstitution(institution);
 
@@ -218,11 +223,16 @@ export function AccountFormSheet({
 
     if (showCardFields) {
       fd.set("holderName", formValues.holderName.trim());
-      fd.set("expiryMonth", formValues.expiryMonth);
-      fd.set("expiryYear", formValues.expiryYear);
+    }
+
+    if (acceptsCardDetails) {
       const cardNumber = formValues.cardNumber.trim();
+      if (showCardFields || cardNumber || hasStoredCardNumber) {
+        if (formValues.expiryMonth) fd.set("expiryMonth", formValues.expiryMonth);
+        if (formValues.expiryYear) fd.set("expiryYear", formValues.expiryYear);
+      }
       if (cardNumber) fd.set("cardNumber", cardNumber);
-      else if (!isEdit) fd.set("cardNumber", "");
+      else if (!isEdit && showCardFields) fd.set("cardNumber", "");
     }
 
     if (showWalletFields) {
@@ -456,31 +466,54 @@ export function AccountFormSheet({
                 </>
               ) : null}
 
-              {showCardFields ? (
-                <>
+              {acceptsCardDetails ? (
+                <div
+                  className={cn(
+                    "space-y-4",
+                    showLinkedDebitCardFields &&
+                      "rounded-xl border border-border bg-muted/20 p-4"
+                  )}
+                >
+                  {showLinkedDebitCardFields ? (
+                    <div>
+                      <p className="font-heading text-base font-semibold">Linked debit card</p>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Optional. Store the card with this bank account without counting its balance twice.
+                      </p>
+                    </div>
+                  ) : null}
+                  {showCardFields ? (
+                    <div className="space-y-2">
+                      <Label htmlFor={`card-holder-${account?.id ?? "new"}`}>
+                        Name on card
+                      </Label>
+                      <Input
+                        id={`card-holder-${account?.id ?? "new"}`}
+                        value={formValues.holderName}
+                        onChange={(e) => patchForm({ holderName: e.target.value })}
+                        placeholder="As printed on card"
+                        required
+                      />
+                    </div>
+                  ) : null}
                   <div className="space-y-2">
-                    <Label htmlFor={`card-holder-${account?.id ?? "new"}`}>Name on card</Label>
-                    <Input
-                      id={`card-holder-${account?.id ?? "new"}`}
-                      value={formValues.holderName}
-                      onChange={(e) => patchForm({ holderName: e.target.value })}
-                      placeholder="As printed on card"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`card-number-${account?.id ?? "new"}`}>Card number</Label>
+                    <Label htmlFor={`card-number-${account?.id ?? "new"}`}>
+                      {showLinkedDebitCardFields ? "Debit card number" : "Card number"}
+                      {showLinkedDebitCardFields ? (
+                        <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                      ) : null}
+                    </Label>
                     {isEdit && hasFullCardNumber && account ? (
                       <SensitiveField
                         accountId={account.id}
                         field="cardNumber"
                         label="Saved card number"
-                        maskedDisplay={formatMaskedCardFromLastFour(account.lastFour)}
+                        maskedDisplay={formatMaskedCardFromLastFour(storedCardLastFour)}
                       />
-                    ) : isEdit && hasStoredCardNumber && account?.lastFour ? (
+                    ) : isEdit && hasStoredCardNumber && storedCardLastFour ? (
                       <StoredNumberBanner
                         label="Saved card number"
-                        masked={formatMaskedCardFromLastFour(account.lastFour)}
+                        masked={formatMaskedCardFromLastFour(storedCardLastFour)}
                         hint="Only the last 4 digits are on file. Enter the full number below to save it."
                       />
                     ) : null}
@@ -501,7 +534,7 @@ export function AccountFormSheet({
                           ? "Enter new number only if replacing"
                           : "13–16 digit card number"
                       }
-                      required={!isEdit && !hasStoredCardNumber}
+                      required={showCardFields && !isEdit && !hasStoredCardNumber}
                       className="font-mono tracking-wider"
                     />
                   </div>
@@ -516,7 +549,12 @@ export function AccountFormSheet({
                         value={formValues.expiryMonth}
                         onChange={(e) => patchForm({ expiryMonth: e.target.value })}
                         placeholder="MM"
-                        required
+                        disabled={
+                          showLinkedDebitCardFields &&
+                          !formValues.cardNumber &&
+                          !hasStoredCardNumber
+                        }
+                        required={showCardFields || Boolean(formValues.cardNumber)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -529,7 +567,12 @@ export function AccountFormSheet({
                         value={formValues.expiryYear}
                         onChange={(e) => patchForm({ expiryYear: e.target.value })}
                         placeholder="YYYY"
-                        required
+                        disabled={
+                          showLinkedDebitCardFields &&
+                          !formValues.cardNumber &&
+                          !hasStoredCardNumber
+                        }
+                        required={showCardFields || Boolean(formValues.cardNumber)}
                       />
                     </div>
                   </div>
@@ -575,7 +618,7 @@ export function AccountFormSheet({
                       </p>
                     </div>
                   ) : null}
-                </>
+                </div>
               ) : null}
 
               {showWalletFields ? (

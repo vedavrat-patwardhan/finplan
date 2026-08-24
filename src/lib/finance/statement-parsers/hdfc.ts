@@ -142,6 +142,10 @@ export function parseHdfcStatement(pages: PdfPage[]): ParsedStatement {
     periodStart: period.start,
     periodEnd: period.end,
     accountNumberLast4: detectAccountLast4(pages),
+    // HDFC prints a running closing balance on every transaction row. The
+    // final parsed row is the statement's closing balance and matches the
+    // statement summary, even when the summary appears on a trailing page.
+    closingBalance: transactions.at(-1)?.balance,
     skipped,
   };
 }

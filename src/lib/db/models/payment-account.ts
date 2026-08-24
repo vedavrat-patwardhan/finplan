@@ -18,6 +18,8 @@ const PaymentAccountSchema = new Schema(
     crn: { type: String, default: "", trim: true },
     accountSubtype: { type: String, enum: BANK_ACCOUNT_SUBTYPES },
     cardNumber: { type: String, default: "" },
+    /** Last four of a linked card; separate from the bank account's lastFour. */
+    cardLastFour: { type: String, default: "", maxlength: 4 },
     cardCvv: { type: String, default: "" },
     expiryMonth: { type: Number, min: 1, max: 12 },
     expiryYear: { type: Number, min: 2020, max: 2100 },

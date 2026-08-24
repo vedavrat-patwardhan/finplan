@@ -119,6 +119,12 @@ function mergeAccountFormWithExisting(
     if (!raw.accountSubtype && existing.accountSubtype) {
       raw.accountSubtype = String(existing.accountSubtype);
     }
+    if (raw.expiryMonth === undefined && existing.expiryMonth != null) {
+      raw.expiryMonth = Number(existing.expiryMonth);
+    }
+    if (raw.expiryYear === undefined && existing.expiryYear != null) {
+      raw.expiryYear = Number(existing.expiryYear);
+    }
   }
 
   if (type === "wallet" && !raw.upiId && existing.upiId) {
@@ -178,11 +184,14 @@ function buildAccountUpdateDoc(
       update.accountNumber = normalized.accountNumber;
       update.lastFour = normalized.lastFour;
     }
+    if (normalized.cardNumber) {
+      update.cardNumber = normalized.cardNumber;
+      update.cardLastFour = normalized.cardLastFour;
+    }
+    if (normalized.expiryMonth != null) update.expiryMonth = normalized.expiryMonth;
+    if (normalized.expiryYear != null) update.expiryYear = normalized.expiryYear;
     if (typeChanged) {
-      update.cardNumber = "";
       update.cardCvv = "";
-      update.expiryMonth = undefined;
-      update.expiryYear = undefined;
       update.upiId = "";
       update.creditLimit = undefined;
       update.billingDay = undefined;
@@ -193,6 +202,7 @@ function buildAccountUpdateDoc(
   if (isCardType(newType)) {
     if (normalized.cardNumber) {
       update.cardNumber = normalized.cardNumber;
+      update.cardLastFour = normalized.cardLastFour;
       update.lastFour = normalized.lastFour;
     }
     if (normalized.expiryMonth != null) update.expiryMonth = normalized.expiryMonth;
@@ -269,7 +279,10 @@ function normalizeAccountPayload(data: {
 
   if (payload.cardNumber) {
     const digits = digitsOnly(String(payload.cardNumber));
-    payload.lastFour = deriveLastFour(digits);
+    payload.cardLastFour = deriveLastFour(digits);
+    if (isCardType(payload.type as PaymentAccountType)) {
+      payload.lastFour = payload.cardLastFour;
+    }
     payload.cardNumber = encryptSensitive(digits);
   }
 
@@ -428,7 +441,6 @@ export async function updateAccountAction(
   if (!accountId) return { success: false, error: "Account ID required" };
 
   const incomingCardCvv = formDigits(formData, "cardCvv");
-  const formAccountType = formData.get("type") as PaymentAccountType | null;
 
   const userId = userObjectId(session.userId);
 

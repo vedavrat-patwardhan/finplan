@@ -19,16 +19,18 @@ export function transactionBalanceDelta(
 }
 
 /**
- * Total liquid funds on hand — sums balances of bank, cash, wallet and debit
- * accounts. Credit cards are excluded: their balance is money owed, not money
- * available.
+ * Total liquid funds on hand — sums balances of bank, cash, and wallet
+ * accounts. Cards are payment instruments, not separate pools of money: debit
+ * cards point at a bank balance and credit cards represent borrowed funds.
  */
 export function sumAvailableBalance<
   T extends { type: PaymentAccountType; currentBalance: number }
 >(accounts: T[]): number {
   return accounts.reduce(
     (sum, account) =>
-      account.type === "credit_card" ? sum : sum + account.currentBalance,
+      account.type === "credit_card" || account.type === "debit_card"
+        ? sum
+        : sum + account.currentBalance,
     0
   );
 }

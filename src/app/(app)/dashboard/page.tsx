@@ -111,7 +111,9 @@ export default async function DashboardPage() {
     ]);
 
   const availableBalance = sumAvailableBalance(accounts);
-  const liquidAccounts = accounts.filter((account) => account.type !== "credit_card");
+  const liquidAccounts = accounts.filter(
+    (account) => account.type !== "credit_card" && account.type !== "debit_card"
+  );
   const monthlyEssential = expenses
     .filter((e) => e.isEssential)
     .reduce((sum, e) => sum + toMonthlyEquivalent(e.amount, e.frequency), 0);
@@ -152,8 +154,8 @@ export default async function DashboardPage() {
               }))}
               note={
                 liquidAccounts.length === 0
-                  ? "No bank, cash, wallet, or debit accounts added yet."
-                  : "Credit-card balances are excluded because they are amounts owed."
+                  ? "No bank, cash, or wallet accounts added yet."
+                  : "Debit and credit cards are excluded because their money belongs to a linked bank account or credit line."
               }
             />
             <SummaryBreakdownCard

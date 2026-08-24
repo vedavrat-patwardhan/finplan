@@ -25,6 +25,8 @@ import type { PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import type { PaymentAccountType } from "@/lib/finance/constants";
 import {
   formatMaskedAccountFromLastFour,
+  formatMaskedCardFromLastFour,
+  formatExpiry,
   isCardType,
 } from "@/lib/finance/account-details";
 import { cn } from "@/lib/utils";
@@ -203,6 +205,12 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
             <p className="font-mono text-xs text-muted-foreground">
               {formatMaskedAccountFromLastFour(account.lastFour)}
             </p>
+            {account.cardLastFour ? (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CreditCard className="size-3.5" />
+                Debit card {formatMaskedCardFromLastFour(account.cardLastFour)}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -260,6 +268,27 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
             />
           ) : null}
           {account.crn ? <CopyField label="CRN" value={account.crn} /> : null}
+          {account.hasCardNumber ? (
+            <SensitiveField
+              accountId={account.id}
+              field="cardNumber"
+              label="Linked debit card"
+              maskedDisplay={formatMaskedCardFromLastFour(account.cardLastFour)}
+            />
+          ) : account.cardLastFour ? (
+            <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-wider">Linked debit card</p>
+              <p className="mt-0.5 font-mono">
+                {formatMaskedCardFromLastFour(account.cardLastFour)}
+              </p>
+            </div>
+          ) : null}
+          {account.expiryMonth && account.expiryYear && account.cardLastFour ? (
+            <CopyField
+              label="Debit card expiry"
+              value={formatExpiry(account.expiryMonth, account.expiryYear)}
+            />
+          ) : null}
           <AccountNotesDisplay notes={account.notes} />
         </div>
       ) : null}

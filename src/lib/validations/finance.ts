@@ -353,6 +353,34 @@ function refinePaymentAccount(
         path: ["crn"],
       });
     }
+
+    const hasLinkedCardDetails = Boolean(
+      data.cardNumber?.trim() || data.expiryMonth || data.expiryYear
+    );
+    if (mode === "create" && hasLinkedCardDetails && !data.cardNumber?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Debit card number is required when linked card details are added",
+        path: ["cardNumber"],
+      });
+    }
+    if (data.cardNumber?.trim()) {
+      const cardError = cardNumberValidationMessage(data.cardNumber);
+      if (cardError) {
+        ctx.addIssue({
+          code: "custom",
+          message: cardError,
+          path: ["cardNumber"],
+        });
+      }
+    }
+    if (hasLinkedCardDetails && (!data.expiryMonth || !data.expiryYear)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Linked debit card expiry is required when card details are added",
+        path: ["expiryMonth"],
+      });
+    }
   }
 
   if (data.type === "debit_card" || data.type === "credit_card") {
