@@ -2,15 +2,17 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import {
   getDashboardData,
-  getGoalsWithFeasibility,
-  getUpcomingObligationsForUser,
   getPortfolioChartData,
   getInvestments,
   getExpenses,
 } from "@/lib/db/queries/finance";
-import { getLedgerSummary, getPaymentAccounts } from "@/lib/db/queries/ledger";
+import {
+  getLedgerSummary,
+  getPaymentAccounts,
+  getTransactions,
+} from "@/lib/db/queries/ledger";
 import { sumAvailableBalance } from "@/lib/finance/ledger";
-import { formatINR, formatPercent, formatDate } from "@/lib/format";
+import { formatINR, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { CashBufferPanel } from "@/components/finance/cash-buffer-panel";
@@ -24,6 +26,7 @@ import {
   InsightPanel,
 } from "@/components/layout/page-chrome";
 import { GetStartedBanner } from "@/components/finance/get-started-banner";
+import { UpcomingObligations } from "@/components/finance/upcoming-obligations";
 
 const summaryCardTones = {
   default: "border-border/70 bg-card",
@@ -86,29 +89,21 @@ function SummaryBreakdownCard({
   );
 }
 
-const obligationTypeStyles: Record<string, string> = {
-  investment: "border-l-chart-1 bg-chart-1/5",
-  insurance: "border-l-chart-2 bg-chart-2/5",
-  expense: "border-l-chart-3 bg-chart-3/5",
-  income: "border-l-chart-6 bg-chart-6/5",
-  credit_card_bill: "border-l-chart-4 bg-chart-4/5",
-};
-
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [{ profile, snapshot }, chartData, goals, obligations, ledger, investments, expenses, accounts] =
+  const [dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions] =
     await Promise.all([
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
-      getGoalsWithFeasibility(session.userId),
-      getUpcomingObligationsForUser(session.userId),
       getLedgerSummary(session.userId),
       getInvestments(session.userId),
       getExpenses(session.userId),
       getPaymentAccounts(session.userId),
+      getTransactions(session.userId, { limit: 250 }),
     ]);
+  const { profile, snapshot, goals, obligations } = dashboard;
 
   const availableBalance = sumAvailableBalance(accounts);
   const liquidAccounts = accounts.filter(
@@ -353,34 +348,14 @@ export default async function DashboardPage() {
         title="Upcoming obligations"
         description="SIP payments, renewals, and other items due in the next 31–90 days"
       >
-        {obligations.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nothing due soon — monthly SIPs and half-yearly investments appear here before
-            their next payment date.
-          </p>
-        ) : (
-          <div className="list-stack">
-            {obligations.map((item, i) => (
-              <div
-                key={`${item.name}-${i}`}
-                className={cn(
-                  "flex items-center justify-between rounded-xl border border-border border-l-[3px] px-4 py-3",
-                  obligationTypeStyles[item.type] ?? "border-l-chart-5 bg-chart-5/5"
-                )}
-              >
-                <div>
-                  <p className="text-sm font-medium">{item.name}</p>
-                  <p className="text-xs capitalize text-muted-foreground">
-                    {item.type} · {formatDate(item.dueDate)}
-                  </p>
-                </div>
-                <p className="text-sm font-medium tabular-nums">
-                  {formatINR(item.amount, { compact: true })}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <UpcomingObligations
+          obligations={obligations.map((item) => ({
+            ...item,
+            dueDate: item.dueDate.toISOString(),
+          }))}
+          transactions={recentTransactions}
+          accounts={accounts}
+        />
       </PageSection>
     </PageShell>
   );

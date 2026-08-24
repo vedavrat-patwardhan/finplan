@@ -14,6 +14,8 @@ const InsurancePolicySchema = new Schema(
     premiumStartDate: { type: Date },
     premiumEndDate: { type: Date },
     validTill: { type: Date },
+    lastPremiumPaidDate: { type: Date },
+    totalPremiumPaid: { type: Number, default: 0, min: 0 },
     notes: { type: String, default: "" },
   },
   { timestamps: true }

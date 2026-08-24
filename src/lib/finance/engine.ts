@@ -34,6 +34,7 @@ export interface GoalFeasibility {
 }
 
 export interface UpcomingObligation {
+  sourceId: string;
   name: string;
   amount: number;
   dueDate: Date;
@@ -383,6 +384,7 @@ export function getUpcomingObligations(
     dueDate?: Date;
     deductionDay?: number;
     type: UpcomingObligation["type"];
+    sourceId: string;
   }>,
   daysAhead = 90
 ): UpcomingObligation[] {
@@ -397,6 +399,7 @@ export function getUpcomingObligations(
       dueDate.setHours(0, 0, 0, 0);
       if (dueDate >= now && dueDate <= cutoff) {
         obligations.push({
+          sourceId: item.sourceId,
           name: item.name,
           amount: item.amount,
           dueDate,
@@ -411,6 +414,7 @@ export function getUpcomingObligations(
       dueDate.setHours(0, 0, 0, 0);
       if (dueDate >= now && dueDate <= cutoff) {
         obligations.push({
+          sourceId: item.sourceId,
           name: item.name,
           amount: item.amount,
           dueDate,
@@ -424,6 +428,7 @@ export function getUpcomingObligations(
       const dueDate = nextDeductionDate(item.deductionDay, now);
       if (dueDate <= cutoff) {
         obligations.push({
+          sourceId: item.sourceId,
           name: item.name,
           amount: item.amount,
           dueDate,

@@ -1,8 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarRange, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 function shiftMonth(monthKey: string, delta: number) {
   const [year, month] = monthKey.split("-").map(Number);
@@ -10,7 +15,33 @@ function shiftMonth(monthKey: string, delta: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function MonthNav({ month, accountId }: { month: string; accountId?: string }) {
+function displayRange(from: string, to: string) {
+  const format = (value: string) =>
+    new Date(`${value}T00:00:00+05:30`).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+  return `${format(from)} – ${format(to)}`;
+}
+
+export function MonthNav({
+  month,
+  accountId,
+  dateFrom,
+  dateTo,
+}: {
+  month: string;
+  accountId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const router = useRouter();
+  const rangeActive = Boolean(dateFrom && dateTo);
+  const [showRange, setShowRange] = useState(rangeActive);
+  const [from, setFrom] = useState(dateFrom ?? "");
+  const [to, setTo] = useState(dateTo ?? "");
   const base = accountId ? `account=${accountId}&` : "";
   const prev = shiftMonth(month, -1);
   const next = shiftMonth(month, 1);
@@ -23,31 +54,110 @@ export function MonthNav({ month, accountId }: { month: string; accountId?: stri
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const canGoForward = month < currentMonth;
 
+  function applyRange() {
+    if (!from || !to) {
+      toast.error("Choose both a start and end date");
+      return;
+    }
+    if (from > to) {
+      toast.error("Start date must be before the end date");
+      return;
+    }
+    const params = new URLSearchParams({ from, to });
+    if (accountId) params.set("account", accountId);
+    router.push(`/transactions?${params.toString()}`);
+  }
+
   return (
-    <div className="flex items-center justify-between gap-2">
-      <Button
-        variant="outline"
-        size="icon"
-        className="size-9"
-        render={<Link href={`/transactions?${base}month=${prev}`} aria-label="Previous month" />}
-      >
-        <ChevronLeft className="size-4" />
-      </Button>
-      <p className="font-heading text-base font-medium">{label}</p>
-      {canGoForward ? (
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        {rangeActive ? (
+          <>
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Custom range
+              </p>
+              <p className="truncate font-heading text-sm font-medium sm:text-base">
+                {displayRange(dateFrom!, dateTo!)}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="min-h-11 shrink-0 gap-2"
+              render={<Link href={`/transactions?${base}month=${currentMonth}`} />}
+            >
+              <RotateCcw className="size-4" />
+              Monthly
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-11"
+              render={<Link href={`/transactions?${base}month=${prev}`} aria-label="Previous month" />}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <p className="font-heading text-base font-medium">{label}</p>
+            {canGoForward ? (
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-11"
+                render={<Link href={`/transactions?${base}month=${next}`} aria-label="Next month" />}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            ) : (
+              <Button variant="outline" size="icon" className="size-11" disabled>
+                <ChevronRight className="size-4" />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+
+      {!rangeActive ? (
         <Button
-          variant="outline"
-          size="icon"
-          className="size-9"
-          render={<Link href={`/transactions?${base}month=${next}`} aria-label="Next month" />}
+          type="button"
+          variant="ghost"
+          className="mt-2 min-h-11 w-full gap-2 text-muted-foreground"
+          onClick={() => setShowRange((value) => !value)}
         >
-          <ChevronRight className="size-4" />
+          <CalendarRange className="size-4" />
+          {showRange ? "Hide custom range" : "Select custom date range"}
         </Button>
-      ) : (
-        <Button variant="outline" size="icon" className="size-9" disabled>
-          <ChevronRight className="size-4" />
-        </Button>
-      )}
+      ) : null}
+
+      {showRange ? (
+        <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <div className="space-y-2">
+            <Label htmlFor="ledger-date-from">From</Label>
+            <DatePicker
+              id="ledger-date-from"
+              value={from}
+              onChange={setFrom}
+              placeholder="Start date"
+              toYear={new Date().getFullYear()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ledger-date-to">To</Label>
+            <DatePicker
+              id="ledger-date-to"
+              value={to}
+              onChange={setTo}
+              placeholder="End date"
+              toYear={new Date().getFullYear()}
+            />
+          </div>
+          <Button type="button" className="h-11 px-5" onClick={applyRange}>
+            Apply range
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

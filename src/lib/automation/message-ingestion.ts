@@ -1,10 +1,19 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
-import { MessageIngestion, PaymentAccount, LedgerTransaction } from "@/lib/db/models";
+import {
+  CategoryRule,
+  MessageIngestion,
+  PaymentAccount,
+  LedgerTransaction,
+} from "@/lib/db/models";
 import { encryptSensitive } from "@/lib/crypto/sensitive";
 import { financeMessageHash, parseFinanceMessage } from "@/lib/finance/message-parser";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
 import type { PaymentAccountType } from "@/lib/finance/constants";
+import {
+  applyCategoryRules,
+  transactionCategoryText,
+} from "@/lib/finance/category-rules";
 
 interface IngestInput {
   userId: string;
@@ -37,8 +46,24 @@ export async function ingestFinanceMessage(input: IngestInput) {
     return { id: existing._id.toString(), status: "duplicate" as const, parsed: existing.parsed };
   }
 
-  const parsed = parseFinanceMessage(message);
-  const accounts = await PaymentAccount.find({ userId, isActive: true }).lean();
+  const parsedMessage = parseFinanceMessage(message);
+  const [accounts, categoryRules] = await Promise.all([
+    PaymentAccount.find({ userId, isActive: true }).lean(),
+    CategoryRule.find({ userId }).lean(),
+  ]);
+  const parsed = {
+    ...parsedMessage,
+    category: parsedMessage.category
+      ? applyCategoryRules(
+          transactionCategoryText(parsedMessage),
+          parsedMessage.category,
+          categoryRules.map((rule) => ({
+            keyword: rule.normalizedKeyword || rule.keyword,
+            category: rule.category,
+          }))
+        )
+      : parsedMessage.category,
+  };
   let account = parsed.accountLastFour
     ? accounts.find((item) => item.lastFour === parsed.accountLastFour)
     : undefined;

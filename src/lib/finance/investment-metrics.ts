@@ -8,6 +8,7 @@ export interface InvestmentMetricsInput {
   investmentType?: string;
   deductionDay?: number;
   lastPaidDate?: Date;
+  skippedPaymentDates?: Date[];
   absoluteReturnPct?: number;
   monthlyWithdrawalPct?: number;
   asOf?: Date;
@@ -250,7 +251,7 @@ export function calculateInvestmentMetrics(
 
   if (input.lastPaidDate) {
     const override = startOfDay(input.lastPaidDate);
-    if (override >= start && override <= asOf) {
+    if (override >= start) {
       lastPaidOn = override;
       paymentCount = countPaymentsUpTo(start, override, input.frequency, input.deductionDay);
       if (input.frequency !== "one_time") {
@@ -265,6 +266,12 @@ export function calculateInvestmentMetrics(
     }
   }
 
+  const countedThrough = lastPaidOn && lastPaidOn > asOf ? lastPaidOn : asOf;
+  const skippedPaymentCount = (input.skippedPaymentDates ?? []).filter((date) => {
+    const skipped = startOfDay(date);
+    return skipped >= start && skipped <= countedThrough;
+  }).length;
+  paymentCount = Math.max(0, paymentCount - skippedPaymentCount);
   const totalInvested = paymentCount * input.amount;
   const absoluteReturnPct = input.absoluteReturnPct;
   const fundValue =

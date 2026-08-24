@@ -7,6 +7,7 @@ import {
   Document,
   Expense,
   SavedPassword,
+  CategoryRule,
 } from "@/lib/db/models";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { sortPaymentAccounts } from "@/lib/finance/ledger";
@@ -87,6 +88,24 @@ export interface LedgerSummary {
   byCategory: Array<{ category: string; amount: number }>;
 }
 
+export interface CategoryRuleDTO {
+  id: string;
+  keyword: string;
+  category: LedgerCategory;
+}
+
+export const getCategoryRules = cache(async (userId: string): Promise<CategoryRuleDTO[]> => {
+  await connectDB();
+  const items = await CategoryRule.find({ userId: oid(userId) }).lean();
+  return items
+    .map((item) => ({
+      id: item._id.toString(),
+      keyword: item.keyword,
+      category: item.category as LedgerCategory,
+    }))
+    .sort((a, b) => b.keyword.length - a.keyword.length || a.keyword.localeCompare(b.keyword));
+});
+
 export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentAccountDTO[]> => {
   await connectDB();
   const items = await PaymentAccount.find({ userId: oid(userId), isActive: true })
@@ -132,16 +151,33 @@ export const getPaymentAccounts = cache(async (userId: string): Promise<PaymentA
 export const getTransactions = cache(
   async (
     userId: string,
-    options?: { month?: string; accountId?: string; limit?: number }
+    options?: {
+      month?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      accountId?: string;
+      limit?: number;
+    }
   ): Promise<LedgerTransactionDTO[]> => {
     await connectDB();
 
     const filter: Record<string, unknown> = { userId: oid(userId) };
 
-    if (options?.month) {
+    if (options?.dateFrom && options?.dateTo) {
+      const start = new Date(`${options.dateFrom}T00:00:00+05:30`);
+      const end = new Date(`${options.dateTo}T00:00:00+05:30`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      filter.date = { $gte: start, $lt: end };
+    } else if (options?.month) {
       const [year, month] = options.month.split("-").map(Number);
-      const start = new Date(year, month - 1, 1);
-      const end = new Date(year, month, 1);
+      const start = new Date(
+        `${year}-${String(month).padStart(2, "0")}-01T00:00:00+05:30`
+      );
+      const nextMonth = new Date(Date.UTC(year, month, 1));
+      const endKey = `${nextMonth.getUTCFullYear()}-${String(
+        nextMonth.getUTCMonth() + 1
+      ).padStart(2, "0")}-01`;
+      const end = new Date(`${endKey}T00:00:00+05:30`);
       filter.date = { $gte: start, $lt: end };
     }
 
@@ -208,17 +244,35 @@ export const getDocuments = cache(
 
 export async function getLedgerSummary(
   userId: string,
-  month?: string
+  period?: string | { month?: string; dateFrom?: string; dateTo?: string }
 ): Promise<LedgerSummary> {
   await connectDB();
 
   const now = new Date();
+  const options = typeof period === "string" ? { month: period } : period;
   const monthKey =
-    month ??
+    options?.month ??
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [year, monthNum] = monthKey.split("-").map(Number);
-  const start = new Date(year, monthNum - 1, 1);
-  const end = new Date(year, monthNum, 1);
+  let start: Date;
+  let end: Date;
+  let summaryKey = monthKey;
+
+  if (options?.dateFrom && options.dateTo) {
+    start = new Date(`${options.dateFrom}T00:00:00+05:30`);
+    end = new Date(`${options.dateTo}T00:00:00+05:30`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    summaryKey = `${options.dateFrom}:${options.dateTo}`;
+  } else {
+    const [year, monthNum] = monthKey.split("-").map(Number);
+    start = new Date(
+      `${year}-${String(monthNum).padStart(2, "0")}-01T00:00:00+05:30`
+    );
+    const nextMonth = new Date(Date.UTC(year, monthNum, 1));
+    const endKey = `${nextMonth.getUTCFullYear()}-${String(
+      nextMonth.getUTCMonth() + 1
+    ).padStart(2, "0")}-01`;
+    end = new Date(`${endKey}T00:00:00+05:30`);
+  }
 
   const [transactions, expenses] = await Promise.all([
     LedgerTransaction.find({
@@ -241,13 +295,19 @@ export async function getLedgerSummary(
     }
   }
 
-  const budgetMonthly = expenses.reduce(
+  const monthlyBudget = expenses.reduce(
     (sum, e) => sum + toMonthlyEquivalent(e.amount, e.frequency),
     0
   );
+  const rangeDays = options?.dateFrom && options.dateTo
+    ? Math.max(1, (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000))
+    : undefined;
+  const budgetMonthly = rangeDays
+    ? monthlyBudget * (rangeDays / 30.44)
+    : monthlyBudget;
 
   return {
-    month: monthKey,
+    month: summaryKey,
     totalDebits,
     totalCredits,
     transactionCount: transactions.length,

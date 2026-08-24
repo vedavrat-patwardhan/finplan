@@ -22,6 +22,7 @@ export default async function InsurancePage() {
     (sum, i) => sum + toMonthlyEquivalent(i.premium, i.frequency),
     0
   );
+  const totalPremiumPaid = items.reduce((sum, item) => sum + item.totalPremiumPaid, 0);
 
   return (
     <PageShell>
@@ -29,10 +30,16 @@ export default async function InsurancePage() {
         title="Insurance"
         description="Premiums and coverage for term life, health, and other policies."
         meta={
-          <MetaStat
-            label="Premium equivalent"
-            value={`${formatINR(monthlyTotal, { compact: true })}/mo`}
-          />
+          <>
+            <MetaStat
+              label="Premium equivalent"
+              value={`${formatINR(monthlyTotal, { compact: true })}/mo`}
+            />
+            <MetaStat
+              label="Premiums recorded paid"
+              value={formatINR(totalPremiumPaid, { compact: true })}
+            />
+          </>
         }
       >
         <InsuranceFormSheet />
@@ -78,6 +85,17 @@ export default async function InsurancePage() {
                     <div>
                       <p className="text-muted-foreground">Frequency</p>
                       <p>{formatFrequency(item.frequency)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Premiums paid</p>
+                      <p className="font-medium tabular-nums">
+                        {formatINR(item.totalPremiumPaid)}
+                      </p>
+                      {item.lastPremiumPaidDate ? (
+                        <p className="text-xs text-muted-foreground">
+                          Last {formatDate(item.lastPremiumPaidDate)}
+                        </p>
+                      ) : null}
                     </div>
 
                     {isLife ? (

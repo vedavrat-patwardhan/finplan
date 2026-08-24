@@ -9,6 +9,7 @@ import {
   InsurancePolicy,
   LifeGoal,
   PaymentAccount,
+  ObligationEvent,
 } from "@/lib/db/models";
 import {
   calculateGoalFeasibility,
@@ -104,9 +105,25 @@ export const getExpenses = cache(async (userId: string) => {
 
 export const getInvestments = cache(async (userId: string) => {
   await connectDB();
-  const items = await Investment.find({ userId: toObjectId(userId) })
-    .sort({ createdAt: -1 })
-    .lean();
+  const userObjectId = toObjectId(userId);
+  const [items, skippedPayments] = await Promise.all([
+    Investment.find({ userId: userObjectId }).sort({ createdAt: -1 }).lean(),
+    ObligationEvent.find({
+      userId: userObjectId,
+      sourceType: "investment",
+      status: "skipped",
+    })
+      .select({ sourceId: 1, dueDate: 1 })
+      .lean(),
+  ]);
+  const skippedByInvestment = new Map<string, Date[]>();
+  for (const payment of skippedPayments) {
+    const key = payment.sourceId.toString();
+    skippedByInvestment.set(key, [
+      ...(skippedByInvestment.get(key) ?? []),
+      new Date(payment.dueDate),
+    ]);
+  }
   return items.map((item) => {
     const startDate = item.startDate ?? item.createdAt ?? new Date();
     const absoluteReturnPct = item.absoluteReturnPct ?? undefined;
@@ -119,6 +136,7 @@ export const getInvestments = cache(async (userId: string) => {
       investmentType: item.type,
       deductionDay: item.deductionDay ?? undefined,
       lastPaidDate: lastPaidDate ? new Date(lastPaidDate) : undefined,
+      skippedPaymentDates: skippedByInvestment.get(item._id.toString()),
       absoluteReturnPct,
       monthlyWithdrawalPct,
     });
@@ -160,6 +178,8 @@ export const getInsurancePolicies = cache(async (userId: string) => {
     premiumStartDate: item.premiumStartDate,
     premiumEndDate: item.premiumEndDate,
     validTill: item.validTill,
+    lastPremiumPaidDate: item.lastPremiumPaidDate,
+    totalPremiumPaid: item.totalPremiumPaid ?? 0,
     notes: item.notes,
   }));
 });
@@ -272,6 +292,7 @@ export const getUpcomingObligationsForUser = cache(
     const investmentItems = investments
       .filter((i) => hasUpcomingInvestmentPayment(i))
       .map((i) => ({
+        sourceId: i.id,
         name: i.name,
         amount: i.amount,
         frequency: i.frequency,
@@ -281,6 +302,7 @@ export const getUpcomingObligationsForUser = cache(
 
     const otherItems = [
       ...insurance.map((i) => ({
+        sourceId: i.id,
         name: i.name,
         amount: i.premium,
         frequency: i.frequency,
@@ -290,6 +312,7 @@ export const getUpcomingObligationsForUser = cache(
       ...expenses
         .filter((e) => e.frequency !== "monthly")
         .map((e) => ({
+          sourceId: e.id,
           name: e.name,
           amount: e.amount,
           frequency: e.frequency,
@@ -298,6 +321,7 @@ export const getUpcomingObligationsForUser = cache(
       ...income
         .filter((i) => i.type === "bonus")
         .map((i) => ({
+          sourceId: i.id,
           name: i.name,
           amount: i.amount,
           frequency: i.frequency,
@@ -310,17 +334,44 @@ export const getUpcomingObligationsForUser = cache(
     const creditCardBills: UpcomingObligation[] = creditCards
       .filter((a) => a.billDueDate && new Date(a.billDueDate as Date) >= today)
       .map((a) => ({
+        sourceId: a._id.toString(),
         name: `${a.name} bill`,
         amount: (a.billTotalDue as number) ?? 0,
         dueDate: new Date(a.billDueDate as Date),
         type: "credit_card_bill" as const,
       }));
 
-    return [
+    const candidates = [
       ...creditCardBills,
       ...getUpcomingObligations(investmentItems, 31),
       ...getUpcomingObligations(otherItems, 90),
     ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+    if (candidates.length === 0) return candidates;
+    const candidateSourceIds = candidates.map((item) => new mongoose.Types.ObjectId(item.sourceId));
+    const firstDue = candidates[0].dueDate.getTime() - 24 * 60 * 60 * 1000;
+    const lastDue = candidates[candidates.length - 1].dueDate.getTime() + 24 * 60 * 60 * 1000;
+    const handled = await ObligationEvent.find(
+      {
+        userId: toObjectId(userId),
+        sourceId: { $in: candidateSourceIds },
+        dueDate: { $gte: new Date(firstDue), $lte: new Date(lastDue) },
+      },
+      { sourceType: 1, sourceId: 1, dueDate: 1 }
+    ).lean();
+    const handledKeys = new Set(
+      handled.map(
+        (event) =>
+          `${event.sourceType}|${event.sourceId.toString()}|${new Date(event.dueDate).toISOString().slice(0, 10)}`
+      )
+    );
+
+    return candidates.filter(
+      (item) =>
+        !handledKeys.has(
+          `${item.type}|${item.sourceId}|${item.dueDate.toISOString().slice(0, 10)}`
+        )
+    );
   }
 );
 
@@ -382,12 +433,10 @@ export const getCalculatorPrefill = cache(async (userId: string) => {
 });
 
 export const getPortfolioChartData = cache(async (userId: string) => {
-  const [income, expenses, investments, insurance, snapshot, goals, profile] =
+  const [income, expenses, snapshot, goals, profile] =
     await Promise.all([
       getIncomeSources(userId),
       getExpenses(userId),
-      getInvestments(userId),
-      getInsurancePolicies(userId),
       getMonthlySnapshot(userId),
       getLifeGoals(userId),
       getUserProfile(userId),

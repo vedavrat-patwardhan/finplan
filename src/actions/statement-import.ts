@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { connectDB } from "@/lib/db/mongoose";
 import { withTransaction, transactionErrorMessage } from "@/lib/db/transaction";
-import { PaymentAccount, LedgerTransaction, SavedPassword } from "@/lib/db/models";
+import {
+  CategoryRule,
+  PaymentAccount,
+  LedgerTransaction,
+  SavedPassword,
+} from "@/lib/db/models";
 import { decryptSensitive } from "@/lib/crypto/sensitive";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
 import {
@@ -23,6 +28,10 @@ import {
   type TransactionType,
 } from "@/lib/finance/constants";
 import type { ActionResult } from "./auth";
+import {
+  applyCategoryRules,
+  transactionCategoryText,
+} from "@/lib/finance/category-rules";
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -97,9 +106,24 @@ export async function extractStatementAction(
           "No transactions found. The statement layout may differ from the supported format.",
       };
     }
+    await connectDB();
+    const categoryRules = await CategoryRule.find({
+      userId: userObjectId(session.userId),
+    }).lean();
+    const transactions = parsed.transactions.map((transaction) => ({
+      ...transaction,
+      category: applyCategoryRules(
+        transactionCategoryText(transaction),
+        transaction.category,
+        categoryRules.map((rule) => ({
+          keyword: rule.normalizedKeyword || rule.keyword,
+          category: rule.category as LedgerCategory,
+        }))
+      ),
+    }));
     return {
       success: true,
-      transactions: parsed.transactions,
+      transactions,
       periodStart: parsed.periodStart,
       periodEnd: parsed.periodEnd,
       accountNumberLast4: parsed.accountNumberLast4,
@@ -219,6 +243,22 @@ export async function importStatementTransactionsAction(
 
   try {
     await withTransaction(async (dbSession) => {
+      const categoryRules = await CategoryRule.find({
+        userId: userObjectId(session.userId),
+      })
+        .session(dbSession)
+        .lean();
+      for (const row of clean) {
+        row.category = applyCategoryRules(
+          transactionCategoryText(row),
+          row.category,
+          categoryRules.map((rule) => ({
+            keyword: rule.normalizedKeyword || rule.keyword,
+            category: rule.category as LedgerCategory,
+          }))
+        );
+      }
+
       const account = await PaymentAccount.findOne({
         _id: new mongoose.Types.ObjectId(accountId),
         userId: userObjectId(session.userId),

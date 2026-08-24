@@ -101,7 +101,12 @@ export const PAYMENT_ACCOUNT_TYPES = [
 
 export const BANK_ACCOUNT_SUBTYPES = ["savings", "current"] as const;
 export const TRANSACTION_TYPES = ["debit", "credit"] as const;
-export const LEDGER_CATEGORIES = [...EXPENSE_CATEGORIES, "Income", "Transfer"] as const;
+export const LEDGER_CATEGORIES = [
+  ...EXPENSE_CATEGORIES,
+  "Investment",
+  "Income",
+  "Transfer",
+] as const;
 export const DOCUMENT_TYPES = [
   "salary_slip",
   "bank_statement",
@@ -130,6 +135,7 @@ export const QUICK_TRANSACTION_CATEGORIES = [
   "Healthcare",
   "Subscriptions",
   "Utilities",
+  "Investment",
   "Miscellaneous",
 ] as const;
 
