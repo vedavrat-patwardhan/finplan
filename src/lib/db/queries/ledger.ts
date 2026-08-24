@@ -11,7 +11,7 @@ import {
   LedgerCategoryModel,
 } from "@/lib/db/models";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
-import { sortPaymentAccounts } from "@/lib/finance/ledger";
+import { isLedgerBudgetCategory, sortPaymentAccounts } from "@/lib/finance/ledger";
 import type { PaymentAccountType, TransactionType } from "@/lib/finance/constants";
 
 function oid(userId: string) {
@@ -85,6 +85,8 @@ export interface LedgerSummary {
   totalDebits: number;
   totalCredits: number;
   transactionCount: number;
+  budgetDebits: number;
+  budgetTransactionCount: number;
   budgetMonthly: number;
   byCategory: Array<{ category: string; amount: number }>;
 }
@@ -300,19 +302,28 @@ export async function getLedgerSummary(
 
   let totalDebits = 0;
   let totalCredits = 0;
+  let budgetDebits = 0;
+  let budgetTransactionCount = 0;
   const categoryMap = new Map<string, number>();
 
   for (const t of transactions) {
     if (t.type === "debit") {
       totalDebits += t.amount;
       categoryMap.set(t.category, (categoryMap.get(t.category) ?? 0) + t.amount);
+      if (isLedgerBudgetCategory(t.category)) {
+        budgetDebits += t.amount;
+        budgetTransactionCount += 1;
+      }
     } else {
       totalCredits += t.amount;
     }
   }
 
   const monthlyBudget = expenses.reduce(
-    (sum, e) => sum + toMonthlyEquivalent(e.amount, e.frequency),
+    (sum, e) =>
+      isLedgerBudgetCategory(e.category)
+        ? sum + toMonthlyEquivalent(e.amount, e.frequency)
+        : sum,
     0
   );
   const rangeDays = options?.dateFrom && options.dateTo
@@ -327,6 +338,8 @@ export async function getLedgerSummary(
     totalDebits,
     totalCredits,
     transactionCount: transactions.length,
+    budgetDebits,
+    budgetTransactionCount,
     budgetMonthly,
     byCategory: [...categoryMap.entries()]
       .map(([category, amount]) => ({ category, amount }))

@@ -88,7 +88,8 @@ export default async function TransactionsPage({
           {summary.budgetMonthly > 0 ? (
             <>
               {" "}
-              · Budget {formatINR(summary.budgetMonthly, { compact: true })}
+              · Flexible budget {formatINR(summary.budgetDebits, { compact: true })} of{" "}
+              {formatINR(summary.budgetMonthly, { compact: true })}
             </>
           ) : null}
         </p>

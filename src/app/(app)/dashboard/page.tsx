@@ -120,10 +120,10 @@ export default async function DashboardPage() {
   const showGetStarted =
     expenses.length === 0 && investments.length === 0 && goals.length === 0;
 
-  const budgetDelta = ledger.budgetMonthly - ledger.totalDebits;
+  const budgetDelta = ledger.budgetMonthly - ledger.budgetDebits;
   const budgetUsedPct =
     ledger.budgetMonthly > 0
-      ? Math.min(100, Math.round((ledger.totalDebits / ledger.budgetMonthly) * 100))
+      ? Math.min(100, Math.round((ledger.budgetDebits / ledger.budgetMonthly) * 100))
       : 0;
 
   const activeGoals = goals.filter((g) => g.status !== "completed");
@@ -249,14 +249,20 @@ export default async function DashboardPage() {
               </>
             ) : null}
           </p>
-          {ledger.budgetMonthly > 0 && ledger.transactionCount > 0 ? (
+          {ledger.budgetMonthly > 0 && ledger.budgetTransactionCount > 0 ? (
             <>
               <p className="mt-2 text-sm text-muted-foreground">
-                Expense budget target{" "}
+                Flexible budget spend{" "}
+                <span className="font-medium tabular-nums text-foreground">
+                  {formatINR(ledger.budgetDebits, { compact: profile?.useCompactNumbers })}
+                </span>{" "}
+                of{" "}
                 <span className="font-medium tabular-nums text-foreground">
                   {formatINR(ledger.budgetMonthly, { compact: profile?.useCompactNumbers })}
                 </span>
-                <span className="text-xs"> (editable plan, not logged spending)</span>
+                <span className="text-xs">
+                  {" "}(Shopping, Entertainment, Food & Subscriptions)
+                </span>
                 {budgetDelta >= 0 ? (
                   <span className="text-success">
                     {" "}
@@ -279,13 +285,13 @@ export default async function DashboardPage() {
                 />
               </div>
             </>
-          ) : ledger.budgetMonthly > 0 && ledger.transactionCount === 0 ? (
+          ) : ledger.budgetMonthly > 0 && ledger.budgetTransactionCount === 0 ? (
             <p className="mt-2 text-sm text-muted-foreground">
-              You have expense budgets totalling{" "}
+              You have flexible-spending budgets totalling{" "}
               <span className="font-medium tabular-nums text-foreground">
                 {formatINR(ledger.budgetMonthly, { compact: true })}
               </span>
-              /mo — log transactions to compare actual spending against them.
+              /mo. Shopping, Entertainment, Food and Subscriptions count toward this budget.
             </p>
           ) : null}
           {ledger.byCategory.length > 0 ? (

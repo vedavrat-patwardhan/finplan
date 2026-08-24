@@ -139,6 +139,16 @@ export const QUICK_TRANSACTION_CATEGORIES = [
   "Miscellaneous",
 ] as const;
 
+/** Categories included when comparing actual ledger spend with expense budgets. */
+export const LEDGER_BUDGET_CATEGORIES = [
+  "Shopping",
+  "Entertainment",
+  "Food",
+  "Subscriptions",
+] as const;
+
+export type LedgerBudgetCategory = (typeof LEDGER_BUDGET_CATEGORIES)[number];
+
 export const DEFAULT_INFLATION_RATE = 6;
 export const DEFAULT_RETIREMENT_MULTIPLIER = 25;
 export const DEFAULT_INSURANCE_INCOME_MULTIPLIER = 12;

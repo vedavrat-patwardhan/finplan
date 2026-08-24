@@ -1,4 +1,15 @@
-import type { PaymentAccountType, TransactionType } from "@/lib/finance/constants";
+import {
+  LEDGER_BUDGET_CATEGORIES,
+  type LedgerBudgetCategory,
+  type PaymentAccountType,
+  type TransactionType,
+} from "@/lib/finance/constants";
+
+const ledgerBudgetCategorySet: ReadonlySet<string> = new Set(LEDGER_BUDGET_CATEGORIES);
+
+export function isLedgerBudgetCategory(category: string): category is LedgerBudgetCategory {
+  return ledgerBudgetCategorySet.has(category);
+}
 
 /** Signed delta applied to PaymentAccount.currentBalance */
 export function transactionBalanceDelta(
