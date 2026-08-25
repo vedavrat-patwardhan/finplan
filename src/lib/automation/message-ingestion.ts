@@ -25,8 +25,18 @@ interface IngestInput {
 
 function senderMatchesInstitution(sender: string, institution: string): boolean {
   const senderKey = sender.toLowerCase().replace(/[^a-z]/g, "");
-  const bankKey = institution.toLowerCase().replace(/[^a-z]/g, "");
-  return bankKey.length >= 3 && senderKey.includes(bankKey.slice(0, Math.min(bankKey.length, 6)));
+  const institutionTokens = institution.toLowerCase().match(/[a-z]+/g) ?? [];
+  const meaningfulTokens = institutionTokens.filter(
+    (token) => token.length >= 3 && token !== "bank"
+  );
+  const initials = institutionTokens.map((token) => token[0]).join("");
+
+  return (
+    meaningfulTokens.some((token) =>
+      senderKey.includes(token.slice(0, Math.min(token.length, 5)))
+    ) ||
+    (initials.length >= 3 && senderKey.includes(initials))
+  );
 }
 
 export async function ingestFinanceMessage(input: IngestInput) {
@@ -65,7 +75,11 @@ export async function ingestFinanceMessage(input: IngestInput) {
       : parsedMessage.category,
   };
   let account = parsed.accountLastFour
-    ? accounts.find((item) => item.lastFour === parsed.accountLastFour)
+    ? accounts.find(
+        (item) =>
+          item.lastFour === parsed.accountLastFour ||
+          item.cardLastFour === parsed.accountLastFour
+      )
     : undefined;
 
   if (!account && sender) {

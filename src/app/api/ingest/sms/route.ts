@@ -10,6 +10,62 @@ const payloadSchema = z.object({
   timestamp: z.union([z.string(), z.number()]).optional(),
 });
 
+function decodeLooseJsonString(value: string): string {
+  return value
+    .replace(/\\u([\da-f]{4})/gi, (_, code: string) =>
+      String.fromCharCode(Number.parseInt(code, 16))
+    )
+    .replace(/\\(?:r\\n|n|r|t)/g, " ")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\")
+    .replace(/[\u0000-\u001f]+/g, " ")
+    .trim();
+}
+
+/**
+ * MacroDroid can insert an SMS directly into a JSON template without escaping
+ * line breaks or quotes. Recover the three known fields when that happens.
+ */
+function parseLooseMacroDroidJson(raw: string): Record<string, string> | undefined {
+  const sender = raw.match(
+    /["']sender["']\s*:\s*["']([\s\S]*?)["']\s*,\s*["']message["']\s*:/i
+  )?.[1];
+  const message = raw.match(
+    /["']message["']\s*:\s*["']([\s\S]*?)["']\s*(?:,\s*["']timestamp["']\s*:|}\s*$)/i
+  )?.[1];
+  const timestampMatch = raw.match(
+    /["']timestamp["']\s*:\s*(?:["']([\s\S]*?)["']|(-?\d+(?:\.\d+)?))\s*}\s*$/i
+  );
+
+  if (!message) return undefined;
+  return {
+    sender: sender ? decodeLooseJsonString(sender) : "",
+    message: decodeLooseJsonString(message),
+    ...(timestampMatch?.[1] || timestampMatch?.[2]
+      ? { timestamp: decodeLooseJsonString(timestampMatch[1] ?? timestampMatch[2]) }
+      : {}),
+  };
+}
+
+async function readPayload(request: Request): Promise<unknown> {
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    return Object.fromEntries(await request.formData());
+  }
+
+  const raw = await request.text();
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    return Object.fromEntries(new URLSearchParams(raw));
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return parseLooseMacroDroidJson(raw);
+  }
+}
+
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -48,13 +104,20 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readPayload(request);
   } catch {
-    return Response.json({ error: "Expected a JSON request body" }, { status: 400 });
+    return Response.json({ error: "Could not read the request body" }, { status: 400 });
   }
   const parsed = payloadSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return Response.json(
+      {
+        error:
+          parsed.error.issues[0]?.message ??
+          "Send a JSON or form request with sender, message, and optional timestamp fields",
+      },
+      { status: 400 }
+    );
   }
 
   const occurredAt = parseTimestamp(parsed.data.timestamp);
