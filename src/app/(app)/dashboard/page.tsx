@@ -144,11 +144,17 @@ export default async function DashboardPage() {
           <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <SummaryBreakdownCard
               label="Available balance"
-              value={formatINR(availableBalance, { compact: profile?.useCompactNumbers })}
+              value={formatINR(availableBalance, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
               tone={availableBalance >= 0 ? "positive" : "default"}
               items={liquidAccounts.map((account) => ({
                 label: `${account.name}${account.lastFour ? ` · •••• ${account.lastFour}` : ""}`,
-                value: formatINR(account.currentBalance),
+                value: formatINR(account.currentBalance, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
                 valueTone: account.currentBalance >= 0 ? "positive" : "negative",
               }))}
               note={
@@ -370,8 +376,8 @@ export default async function DashboardPage() {
       </PageSection>
 
       <PageSection
-        title="Past 30 days obligations"
-        description="Past-due items that have not been marked paid or skipped"
+        title="Past obligations"
+        description="All overdue items remain here until you mark them paid or skipped"
       >
         <ObligationList
           obligations={pastDueObligations.map((item) => ({
@@ -381,7 +387,7 @@ export default async function DashboardPage() {
           transactions={recentTransactions}
           accounts={accounts}
           categories={ledgerCategories}
-          emptyMessage="No unmarked obligations from the past 30 days."
+          emptyMessage="No unmarked past obligations."
         />
       </PageSection>
     </PageShell>

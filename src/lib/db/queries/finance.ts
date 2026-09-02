@@ -414,13 +414,21 @@ export const getPastDueObligationsForUser = cache(
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const cutoff = new Date(today);
-    cutoff.setDate(cutoff.getDate() - 30);
-    const isPastThirtyDays = (date: Date) => date >= cutoff && date < today;
+    const yesterday = new Date(today);
+    yesterday.setMilliseconds(-1);
+    const isPastDue = (date: Date) => date < today;
 
     const investmentItems: UpcomingObligation[] = investments.flatMap((item) => {
-      const dueDate = item.metrics.lastPaidOn
-        ? new Date(item.metrics.lastPaidOn)
+      const scheduledMetrics = calculateInvestmentMetrics({
+        amount: item.amount,
+        frequency: item.frequency,
+        startDate: new Date(item.startDate),
+        investmentType: item.type,
+        deductionDay: item.deductionDay,
+        asOf: yesterday,
+      });
+      const dueDate = scheduledMetrics.lastPaidOn
+        ? new Date(scheduledMetrics.lastPaidOn)
         : undefined;
       const explicitlyPaid =
         item.lastPaidDate &&
@@ -431,7 +439,7 @@ export const getPastDueObligationsForUser = cache(
         !dueDate ||
         explicitlyPaid ||
         item.frequency === "one_time" ||
-        !isPastThirtyDays(dueDate)
+        !isPastDue(dueDate)
       ) {
         return [];
       }
@@ -446,7 +454,7 @@ export const getPastDueObligationsForUser = cache(
 
     const insuranceItems: UpcomingObligation[] = insurance.flatMap((item) => {
       const dueDate = item.renewalDate ? new Date(item.renewalDate) : undefined;
-      if (!dueDate || !isPastThirtyDays(dueDate)) return [];
+      if (!dueDate || !isPastDue(dueDate)) return [];
       return [{
         sourceId: item.id,
         name: item.name,
@@ -458,7 +466,7 @@ export const getPastDueObligationsForUser = cache(
 
     const creditCardItems: UpcomingObligation[] = creditCards.flatMap((item) => {
       const dueDate = item.billDueDate ? new Date(item.billDueDate) : undefined;
-      if (!dueDate || !isPastThirtyDays(dueDate)) return [];
+      if (!dueDate || !isPastDue(dueDate)) return [];
       return [{
         sourceId: item._id.toString(),
         name: `${item.name} bill`,

@@ -27,12 +27,11 @@ const LAST_ACCOUNT_KEY = "finplan-last-account";
 const LAST_CATEGORY_KEY = "finplan-last-category";
 
 function todayInputValue() {
-  const d = new Date();
-  return d.toISOString().slice(0, 16);
+  return toDatetimeLocalValue(new Date());
 }
 
-function toDatetimeLocalValue(iso: string) {
-  const d = new Date(iso);
+function toDatetimeLocalValue(value: string | Date) {
+  const d = new Date(value);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -76,6 +75,9 @@ export function QuickTransactionSheet({
   );
   const [txType, setTxType] = useState<"debit" | "credit">(transaction?.type ?? "debit");
   const [showDate, setShowDate] = useState(Boolean(transaction));
+  const [dateValue, setDateValue] = useState(() =>
+    transaction ? toDatetimeLocalValue(transaction.date) : todayInputValue()
+  );
 
   useEffect(() => {
     if (wasPending.current && !pending) {
@@ -101,14 +103,18 @@ export function QuickTransactionSheet({
       localStorage.setItem(LAST_CATEGORY_KEY, category);
     }
     const fd = new FormData(e.currentTarget);
+    const selectedDate = new Date(dateValue);
+    if (Number.isNaN(selectedDate.getTime())) {
+      toast.error("Choose a valid transaction date");
+      return;
+    }
     fd.set("accountId", accountId);
     fd.set("amount", amount);
     fd.set("type", txType);
     fd.set("category", category);
+    fd.set("date", selectedDate.toISOString());
     startTransition(() => formAction(fd));
   }
-
-  const dateValue = transaction ? toDatetimeLocalValue(transaction.date) : todayInputValue();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -254,12 +260,13 @@ export function QuickTransactionSheet({
                   <DateTimePicker
                     id="quick-date"
                     name="date"
-                    defaultValue={dateValue}
+                    value={dateValue}
+                    onChange={(event) => setDateValue(event.target.value)}
                     required
                   />
                 </div>
               ) : (
-                <input type="hidden" name="date" value={todayInputValue()} />
+                <input type="hidden" name="date" value={dateValue} />
               )}
 
               <input

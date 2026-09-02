@@ -88,17 +88,15 @@ async function resolveObligation(
   if (input.sourceType === "investment") {
     const item = await Investment.findOne({ _id: sourceId, userId }).session(dbSession).lean();
     if (!item) throw new ObligationActionError("Investment not found");
-    const metrics = calculateInvestmentMetrics({
+    const scheduledMetrics = calculateInvestmentMetrics({
       amount: item.amount,
       frequency: item.frequency,
       startDate: new Date(item.startDate ?? item.createdAt),
       investmentType: item.type,
       deductionDay: item.deductionDay ?? undefined,
-      lastPaidDate: item.lastPaidDate ? new Date(item.lastPaidDate) : undefined,
-      absoluteReturnPct: item.absoluteReturnPct ?? undefined,
-      monthlyWithdrawalPct: item.monthlyWithdrawalPct ?? undefined,
+      asOf: new Date(input.dueDate),
     });
-    const matchingDate = [metrics.nextPaymentOn, metrics.lastPaidOn]
+    const matchingDate = [scheduledMetrics.nextPaymentOn, scheduledMetrics.lastPaidOn]
       .filter((date): date is Date => Boolean(date))
       .find((date) => dayKey(date) === dayKey(input.dueDate));
     if (!matchingDate) {

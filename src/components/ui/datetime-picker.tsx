@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
 interface DateTimePickerProps {
   id?: string;
   name?: string;
+  value?: string;
   defaultValue?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
   required?: boolean;
   disabled?: boolean;
   className?: string;
@@ -17,7 +19,9 @@ interface DateTimePickerProps {
 export function DateTimePicker({
   id,
   name,
+  value,
   defaultValue,
+  onChange,
   required,
   disabled,
   className,
@@ -64,7 +68,9 @@ export function DateTimePicker({
         id={id}
         name={name}
         type="datetime-local"
-        defaultValue={defaultValue}
+        value={value}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        onChange={onChange}
         required={required}
         disabled={disabled}
         className={cn("h-8 cursor-pointer pr-9", className)}
