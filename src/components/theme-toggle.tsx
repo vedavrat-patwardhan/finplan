@@ -22,7 +22,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (!mounted) {
     return (
-      <Button variant="outline" size="icon" className={cn("shrink-0", className)} disabled>
+      <Button variant="outline" size="icon-sm" className={cn("shrink-0", className)} disabled>
         <Sun className="size-4 opacity-50" />
       </Button>
     );
@@ -39,7 +39,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <Button
       type="button"
       variant="outline"
-      size="icon"
+      size="icon-sm"
       className={cn("shrink-0", className)}
       onClick={() => setTheme(next)}
       aria-label={`Theme: ${active}. Switch to ${next}`}
@@ -58,7 +58,7 @@ export function ThemeSelector({ className }: { className?: string }) {
   const active = mounted ? (theme ?? "system") : "light";
 
   return (
-    <div className={cn("inline-flex rounded-lg border border-border bg-muted/30 p-1", className)}>
+    <div className={cn("inline-flex border border-border bg-background p-0.5", className)}>
       {options.map(({ value, label, icon: Icon }) => (
         <button
           key={value}
@@ -66,9 +66,9 @@ export function ThemeSelector({ className }: { className?: string }) {
           onClick={() => setTheme(value)}
           disabled={!mounted}
           className={cn(
-            "inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+            "np-caps inline-flex min-h-8 flex-1 items-center justify-center gap-1.5 px-3 text-[10px] transition-colors",
             active === value
-              ? "bg-background font-medium text-foreground shadow-sm"
+              ? "bg-foreground text-background"
               : "text-muted-foreground hover:text-foreground"
           )}
         >

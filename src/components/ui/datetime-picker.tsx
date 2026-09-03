@@ -73,7 +73,7 @@ export function DateTimePicker({
         onChange={onChange}
         required={required}
         disabled={disabled}
-        className={cn("h-8 cursor-pointer pr-9", className)}
+        className={cn("h-10 cursor-pointer pr-9", className)}
         onClick={(event) => {
           event.stopPropagation();
           openPicker();

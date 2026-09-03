@@ -4,10 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+ * FinPlan × NeoPop design tokens
+ * Source: CRED NeoPop (playground.cred.club) — see DESIGN.md
+ * ------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-subtle: var(--subtle);
+  --color-faint: var(--faint);
   --font-sans: var(--font-body);
+  --font-display: var(--font-display);
   --font-heading: var(--font-display);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -30,8 +38,10 @@
   --color-info-foreground: var(--info-foreground);
   --color-ring: var(--ring);
   --color-input: var(--input);
+  --color-input-bg: var(--input-bg);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -44,128 +54,237 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-text: var(--brand-text);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-text: var(--success-text);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-warning-text: var(--warning-text);
+  --color-info-text: var(--info-text);
+
+  /* NeoPop is square. Every rounded-* utility resolves to 0. */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
   --spacing-page: clamp(1rem, 3vw, 2rem);
+
+  --ease-plunk: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ---------- Light theme (NeoPop light components) ------------------------ */
 :root {
-  --background: oklch(0.98 0.008 165);
-  --foreground: oklch(0.25 0.02 165);
-  --card: oklch(0.995 0.005 165);
-  --card-foreground: oklch(0.25 0.02 165);
-  --popover: oklch(0.995 0.005 165);
-  --popover-foreground: oklch(0.25 0.02 165);
-  --primary: oklch(0.45 0.11 165);
-  --primary-foreground: oklch(0.98 0.005 165);
-  --secondary: oklch(0.94 0.015 165);
-  --secondary-foreground: oklch(0.32 0.03 165);
-  --muted: oklch(0.94 0.012 165);
-  --muted-foreground: oklch(0.48 0.025 165);
-  --accent: oklch(0.92 0.02 165);
-  --accent-foreground: oklch(0.32 0.04 165);
-  --destructive: oklch(0.55 0.18 25);
-  --success: oklch(0.55 0.12 155);
-  --success-foreground: oklch(0.98 0.005 155);
-  --warning: oklch(0.72 0.14 75);
-  --warning-foreground: oklch(0.28 0.04 75);
-  --border: oklch(0.88 0.015 165);
-  --input: oklch(0.88 0.015 165);
-  --ring: oklch(0.55 0.1 165);
-  --info: oklch(0.55 0.14 250);
-  --info-foreground: oklch(0.98 0.005 250);
-  --chart-1: oklch(0.58 0.14 165);
-  --chart-2: oklch(0.72 0.14 75);
-  --chart-3: oklch(0.62 0.18 25);
-  --chart-4: oklch(0.52 0.14 265);
-  --chart-5: oklch(0.58 0.16 310);
-  --chart-6: oklch(0.62 0.14 230);
-  --chart-7: oklch(0.6 0.16 145);
-  --chart-8: oklch(0.68 0.16 55);
-  --radius: 0.625rem;
+  --radius: 0px;
+
+  --background: #fbfbfb;
+  --foreground: rgba(13, 13, 13, 0.9);
+  --subtle: rgba(13, 13, 13, 0.7);
+  --muted-foreground: rgba(13, 13, 13, 0.5);
+  --faint: rgba(13, 13, 13, 0.3);
+
+  --card: #ffffff;
+  --card-foreground: rgba(13, 13, 13, 0.9);
+  --popover: #ffffff;
+  --popover-foreground: rgba(13, 13, 13, 0.9);
+
+  --primary: #0d0d0d;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #0d0d0d;
+
+  --muted: rgba(13, 13, 13, 0.05);
+  --accent: rgba(13, 13, 13, 0.06);
+  --accent-foreground: rgba(13, 13, 13, 0.9);
+
+  --brand: #e5fe40;
+  --brand-foreground: #0d0d0d;
+  --brand-text: #727f20;
+
+  --destructive: #ee4d37;
+  --destructive-foreground: #f8f8f8;
+  --success: #06c270;
+  --success-foreground: #f8f8f8;
+  --success-text: #1e8057;
+  --warning: #f08d32;
+  --warning-foreground: #f8f8f8;
+  --warning-text: #b35f30;
+  --info: #144cc7;
+  --info-foreground: #f8f8f8;
+  --info-text: #144cc7;
+
+  --border: rgba(13, 13, 13, 0.1);
+  --input: #e0e0e0;
+  --input-bg: #ffffff;
+  --ring: #0d0d0d;
+
+  --chart-1: #a0b22d;
+  --chart-2: #29b379;
+  --chart-3: #b35f30;
+  --chart-4: #6a35ff;
+  --chart-5: #b32e4e;
+  --chart-6: #b38e30;
+  --chart-7: #1e8057;
+  --chart-8: #772cb3;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: rgba(13, 13, 13, 0.9);
+  --sidebar-primary: #0d0d0d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(13, 13, 13, 0.06);
+  --sidebar-accent-foreground: rgba(13, 13, 13, 0.9);
+  --sidebar-border: rgba(13, 13, 13, 0.1);
+  --sidebar-ring: #0d0d0d;
+
+  /* Plunk edges for a theme-surface (white) face */
+  --plunk-bottom: #8a8a8a;
+  --plunk-right: #e0e0e0;
+  --overlay: rgba(13, 13, 13, 0.6);
+  --scrollbar-thumb: #d2d2d2;
+
+  --card-flip-duration: 0.55s;
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-  --card-flip-duration: 0.55s;
-  --sidebar: oklch(0.965 0.01 165);
-  --sidebar-foreground: oklch(0.28 0.025 165);
-  --sidebar-primary: oklch(0.42 0.08 165);
-  --sidebar-primary-foreground: oklch(0.98 0.005 165);
-  --sidebar-accent: oklch(0.93 0.03 165);
-  --sidebar-accent-foreground: oklch(0.32 0.03 165);
-  --sidebar-border: oklch(0.88 0.015 165);
-  --sidebar-ring: oklch(0.55 0.08 165);
 }
 
+/* ---------- Dark theme (NeoPop dark components — default) --------------- */
 .dark {
   color-scheme: dark;
-  --background: oklch(0.17 0.022 165);
-  --foreground: oklch(0.93 0.012 165);
-  --card: oklch(0.21 0.024 165);
-  --card-foreground: oklch(0.93 0.012 165);
-  --popover: oklch(0.22 0.024 165);
-  --popover-foreground: oklch(0.93 0.012 165);
-  --primary: oklch(0.68 0.11 165);
-  --primary-foreground: oklch(0.16 0.02 165);
-  --secondary: oklch(0.26 0.022 165);
-  --secondary-foreground: oklch(0.9 0.012 165);
-  --muted: oklch(0.26 0.02 165);
-  --muted-foreground: oklch(0.68 0.02 165);
-  --accent: oklch(0.28 0.028 165);
-  --accent-foreground: oklch(0.92 0.012 165);
-  --destructive: oklch(0.62 0.16 25);
-  --success: oklch(0.68 0.11 155);
-  --success-foreground: oklch(0.16 0.02 155);
-  --warning: oklch(0.76 0.12 75);
-  --warning-foreground: oklch(0.2 0.03 75);
-  --border: oklch(0.32 0.022 165);
-  --input: oklch(0.32 0.022 165);
-  --ring: oklch(0.58 0.09 165);
-  --info: oklch(0.68 0.12 250);
-  --info-foreground: oklch(0.16 0.02 250);
-  --chart-1: oklch(0.72 0.12 165);
-  --chart-2: oklch(0.78 0.12 75);
-  --chart-3: oklch(0.7 0.15 25);
-  --chart-4: oklch(0.68 0.12 265);
-  --chart-5: oklch(0.72 0.14 310);
-  --chart-6: oklch(0.7 0.12 230);
-  --chart-7: oklch(0.7 0.13 145);
-  --chart-8: oklch(0.76 0.13 55);
-  --sidebar: oklch(0.15 0.02 165);
-  --sidebar-foreground: oklch(0.9 0.012 165);
-  --sidebar-primary: oklch(0.68 0.1 165);
-  --sidebar-primary-foreground: oklch(0.15 0.02 165);
-  --sidebar-accent: oklch(0.24 0.025 165);
-  --sidebar-accent-foreground: oklch(0.92 0.012 165);
-  --sidebar-border: oklch(0.3 0.022 165);
-  --sidebar-ring: oklch(0.58 0.08 165);
+
+  --background: #0d0d0d;
+  --foreground: rgba(255, 255, 255, 0.9);
+  --subtle: rgba(255, 255, 255, 0.7);
+  --muted-foreground: rgba(255, 255, 255, 0.5);
+  --faint: rgba(255, 255, 255, 0.3);
+
+  --card: #121212;
+  --card-foreground: rgba(255, 255, 255, 0.9);
+  --popover: #121212;
+  --popover-foreground: rgba(255, 255, 255, 0.9);
+
+  --primary: #ffffff;
+  --primary-foreground: #0d0d0d;
+  --secondary: #0d0d0d;
+  --secondary-foreground: #ffffff;
+
+  --muted: rgba(255, 255, 255, 0.06);
+  --accent: rgba(255, 255, 255, 0.08);
+  --accent-foreground: rgba(255, 255, 255, 0.9);
+
+  --brand: #e5fe40;
+  --brand-foreground: #0d0d0d;
+  --brand-text: #e5fe40;
+
+  --destructive: #ee4d37;
+  --destructive-foreground: #f8f8f8;
+  --success: #06c270;
+  --success-foreground: #f8f8f8;
+  --success-text: #3bffad;
+  --warning: #f08d32;
+  --warning-foreground: #f8f8f8;
+  --warning-text: #f5ac6a;
+  --info: #144cc7;
+  --info-foreground: #f8f8f8;
+  --info-text: #89a5e3;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #3d3d3d;
+  --input-bg: #161616;
+  --ring: #e5fe40;
+
+  --chart-1: #e5fe40;
+  --chart-2: #3bffad;
+  --chart-3: #ff8744;
+  --chart-4: #9772ff;
+  --chart-5: #ff426f;
+  --chart-6: #ffcb45;
+  --chart-7: #5cddbe;
+  --chart-8: #aa3fff;
+
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: rgba(255, 255, 255, 0.9);
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0d0d0d;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: rgba(255, 255, 255, 0.9);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #e5fe40;
+
+  /* Plunk edges for a theme-surface (black) face */
+  --plunk-bottom: #3d3d3d;
+  --plunk-right: #8a8a8a;
+  --overlay: rgba(0, 0, 0, 0.7);
+  --scrollbar-thumb: #3d3d3d;
 }
 
+/* ---------- Base --------------------------------------------------------- */
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
-  body {
-    @apply bg-background text-foreground;
-    line-height: 1.55;
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-  .dark body {
-    line-height: 1.6;
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+  }
+
+  ::selection {
+    background: #e5fe40;
+    color: #0d0d0d;
+  }
+
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
   }
-  h1, h2, h3, h4 {
-    font-family: var(--font-display), serif;
-    @apply tracking-tight;
+
+  body {
+    @apply bg-background text-foreground;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    line-height: 1.5;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+
+  h1 {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 400;
+    letter-spacing: 0;
+    line-height: 1.1;
+  }
+
+  h2,
+  h3,
+  h4 {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    line-height: 1.25;
+  }
+
+  strong,
+  b {
+    font-weight: 700;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   a[href],
@@ -175,6 +294,8 @@
   [role="tab"],
   [role="menuitem"],
   [role="combobox"],
+  [role="switch"],
+  [role="checkbox"],
   label[for],
   summary,
   select:not(:disabled),
@@ -204,11 +325,147 @@
     appearance: textfield;
   }
 
+  input,
+  textarea,
+  select {
+    caret-color: var(--brand);
+  }
+
   button:disabled,
   [aria-disabled="true"],
   select:disabled,
   input:disabled {
     cursor: not-allowed;
+  }
+}
+
+/* ---------- NeoPop utilities -------------------------------------------- */
+
+/* Uppercase tracked label — NeoPop "caps" type (tc10b). Combine with text-* to resize. */
+@utility np-caps {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/*
+ * Plunk: the NeoPop 3D extrusion. The element is the FACE; ::before is the
+ * right edge and ::after the bottom edge, both skewed 45°. The face reserves
+ * margin for the edges so pressing never shifts layout.
+ * Faces must not be overflow-hidden (the edges live outside the box).
+ */
+@utility np-plunk {
+  --plunk: 3px;
+  position: relative;
+  margin-right: var(--plunk);
+  margin-bottom: var(--plunk);
+  transition: transform 120ms var(--ease-plunk);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    transform-origin: 0 0;
+    transition: opacity 120ms var(--ease-plunk);
+  }
+
+  &::before {
+    top: 0;
+    right: calc(-1 * var(--plunk));
+    width: var(--plunk);
+    height: 100%;
+    background: var(--plunk-right);
+    transform: skewY(45deg);
+  }
+
+  &::after {
+    left: 0;
+    bottom: calc(-1 * var(--plunk));
+    width: 100%;
+    height: var(--plunk);
+    background: var(--plunk-bottom);
+    transform: skewX(45deg);
+  }
+
+  &:disabled,
+  &[aria-disabled="true"],
+  &[data-disabled] {
+    &::before,
+    &::after {
+      opacity: 0;
+    }
+  }
+
+  /* Full-width faces must leave room for the right edge. */
+  &.w-full {
+    width: calc(100% - var(--plunk));
+  }
+}
+
+/* Press behaviour: face slides into the extrusion. */
+@utility np-plunk-press {
+  &:active:not(:disabled):not([aria-disabled="true"]):not([data-disabled]) {
+    transform: translate(var(--plunk), var(--plunk));
+
+    &::before,
+    &::after {
+      opacity: 0;
+    }
+  }
+}
+
+@utility np-plunk-lg {
+  --plunk: 6px;
+}
+
+/* Edge colour sets (NeoPop button/card edge configs) */
+@utility np-edge-light {
+  --plunk-bottom: #8a8a8a;
+  --plunk-right: #e0e0e0;
+}
+@utility np-edge-dark {
+  --plunk-bottom: #3d3d3d;
+  --plunk-right: #8a8a8a;
+}
+@utility np-edge-brand {
+  --plunk-bottom: #a0b22d;
+  --plunk-right: #727f20;
+}
+@utility np-edge-danger {
+  --plunk-bottom: #b53a29;
+  --plunk-right: #802a1d;
+}
+@utility np-edge-success {
+  --plunk-bottom: #059a59;
+  --plunk-right: #047043;
+}
+@utility np-edge-muted {
+  --plunk-bottom: var(--input);
+  --plunk-right: var(--border);
+}
+
+/* Flat press for non-plunk interactive elements */
+@utility np-press {
+  transition: transform 120ms var(--ease-plunk);
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translate(1px, 1px);
+  }
+}
+
+/* Section kicker rule: 12×2px brand bar before a caps label */
+@utility np-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 2px;
+    background: var(--brand);
   }
 }
 
@@ -235,7 +492,6 @@
   .payment-card-scene {
     perspective: 1000px;
     overflow: hidden;
-    border-radius: 1rem 1rem 0 0;
     isolation: isolate;
   }
 
@@ -267,7 +523,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .payment-card-inner {
+  .payment-card-inner,
+  .np-plunk,
+  .np-plunk-press,
+  .np-press {
     transition-duration: 0.01ms;
   }
 }

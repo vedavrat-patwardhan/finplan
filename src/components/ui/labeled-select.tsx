@@ -48,7 +48,7 @@ export function LabeledSelect({
         <span
           className={cn(
             "flex-1 truncate text-left",
-            !value && "text-muted-foreground"
+            !value && "text-faint font-medium"
           )}
         >
           {selectedLabel}

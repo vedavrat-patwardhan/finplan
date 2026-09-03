@@ -115,8 +115,8 @@ export function DatePicker({
               aria-expanded={open}
               onClick={openCalendar}
               className={cn(
-                "flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-left text-base shadow-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30",
-                !dateValue && "text-muted-foreground",
+                "flex h-10 w-full cursor-pointer items-center gap-2 border border-input bg-input-bg px-3 text-left text-base font-semibold transition-colors outline-none focus-visible:border-foreground focus-visible:outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-[15px]",
+                !dateValue && "text-faint font-medium",
                 className
               )}
             />
@@ -129,7 +129,7 @@ export function DatePicker({
             <span
               role="button"
               tabIndex={0}
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex size-6 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={handleClear}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -162,7 +162,6 @@ export function DatePicker({
             startMonth={rangeStart}
             endMonth={rangeEnd}
             disabled={disabled}
-            className="rounded-t-lg"
           />
           <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2.5">
             <Button
