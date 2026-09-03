@@ -17,7 +17,6 @@ import {
   MetaStat,
   PageSection,
 } from "@/components/layout/page-chrome";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default async function IncomePage() {
   const session = await getSession();
@@ -80,64 +79,60 @@ export default async function IncomePage() {
 
       {householdEnabled ? (
         <PageSection title="Household breakdown">
-          <Card>
-            <CardContent className="grid gap-4 pt-6 text-sm sm:grid-cols-3">
-              <div>
-                <p className="text-muted-foreground">Your income</p>
-                <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(monthlyByOwner.self ?? 0, { compact: true })}/mo
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">
-                  {spouseName || "Partner"}&apos;s income
-                </p>
-                <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(monthlyByOwner.spouse ?? 0, { compact: true })}/mo
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Shared / household</p>
-                <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(monthlyByOwner.joint ?? 0, { compact: true })}/mo
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="border border-border bg-card px-5 py-4">
+              <p className="np-caps text-muted-foreground">Your income</p>
+              <p className="mt-1 font-extrabold tabular-nums">
+                {formatINR(monthlyByOwner.self ?? 0, { compact: true })}/mo
+              </p>
+            </div>
+            <div className="border border-border bg-card px-5 py-4">
+              <p className="np-caps text-muted-foreground">
+                {spouseName || "Partner"}&apos;s income
+              </p>
+              <p className="mt-1 font-extrabold tabular-nums">
+                {formatINR(monthlyByOwner.spouse ?? 0, { compact: true })}/mo
+              </p>
+            </div>
+            <div className="border border-border bg-card px-5 py-4">
+              <p className="np-caps text-muted-foreground">Shared / household</p>
+              <p className="mt-1 font-extrabold tabular-nums">
+                {formatINR(monthlyByOwner.joint ?? 0, { compact: true })}/mo
+              </p>
+            </div>
+          </div>
         </PageSection>
       ) : null}
 
       {profile && profile.monthlyTakeHome > 0 ? (
         <PageSection title="Profile summary">
-          <Card>
-            <CardContent className="grid gap-4 pt-6 text-sm sm:grid-cols-3">
-              <div>
-                <p className="text-muted-foreground">Monthly in-hand salary</p>
-                <p className="mt-0.5 font-medium tabular-nums">
-                  {formatINR(profile.monthlyTakeHome, { compact: true })}/mo
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="border border-border bg-card px-5 py-4">
+              <p className="np-caps text-muted-foreground">Monthly in-hand salary</p>
+              <p className="mt-1 font-extrabold tabular-nums">
+                {formatINR(profile.monthlyTakeHome, { compact: true })}/mo
+              </p>
+              {profile.annualInHandSalary > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ≈ {formatINR(profile.annualInHandSalary, { compact: true })}/yr
                 </p>
-                {profile.annualInHandSalary > 0 ? (
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    ≈ {formatINR(profile.annualInHandSalary, { compact: true })}/yr
-                  </p>
-                ) : null}
-              </div>
-              {profile.annualInHandBonus > 0 ? (
-                <div>
-                  <p className="text-muted-foreground">Annual bonus in-hand</p>
-                  <p className="mt-0.5 font-medium tabular-nums">
-                    {formatINR(profile.annualInHandBonus, { compact: true })}/yr
-                  </p>
-                </div>
               ) : null}
-              <div>
-                <p className="text-muted-foreground">Tax regime</p>
-                <p className="mt-0.5 font-medium capitalize">
-                  {profile.taxRegime} (FY 2025-26)
+            </div>
+            {profile.annualInHandBonus > 0 ? (
+              <div className="border border-border bg-card px-5 py-4">
+                <p className="np-caps text-muted-foreground">Annual bonus in-hand</p>
+                <p className="mt-1 font-extrabold tabular-nums">
+                  {formatINR(profile.annualInHandBonus, { compact: true })}/yr
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            ) : null}
+            <div className="border border-border bg-card px-5 py-4">
+              <p className="np-caps text-muted-foreground">Tax regime</p>
+              <p className="mt-1 font-bold capitalize">
+                {profile.taxRegime} (FY 2025-26)
+              </p>
+            </div>
+          </div>
         </PageSection>
       ) : null}
 

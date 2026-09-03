@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { InvestmentListItem } from "@/components/finance/investment-card";
 
-const FIELD_CLASS = "h-8 w-full";
+const FIELD_CLASS = "w-full";
 
 type FormValues = {
   name: string;
@@ -367,30 +367,25 @@ export function InvestmentFormSheet({
       <SheetTrigger
         render={
           <Button
-            variant={isEdit ? "ghost" : "default"}
-            size={isEdit ? "sm" : "default"}
-            className={isEdit ? "min-h-11 px-2.5 text-muted-foreground md:px-3" : undefined}
+            variant={isEdit ? "ghost" : "brand"}
+            size={isEdit ? "icon-sm" : "default"}
             aria-label={isEdit ? resolvedTriggerLabel : undefined}
           />
         }
       >
         {isEdit ? <Pencil className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
-        {isEdit ? (
-          <span className="hidden md:inline">{resolvedTriggerLabel}</span>
-        ) : (
-          resolvedTriggerLabel
-        )}
+        {isEdit ? null : resolvedTriggerLabel}
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[88dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[88dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
-          <SheetTitle className="font-heading text-xl">
+          <SheetTitle>
             {isEdit ? "Edit investment" : "Add investment"}
           </SheetTitle>
-          <SheetDescription className="text-sm leading-relaxed">
+          <SheetDescription className="leading-relaxed">
             {isLumpSum
               ? "One-time principal — track growing value or monthly withdrawals to your bank."
               : "Track start date, payment schedule, and performance using return % or current value."}
@@ -491,23 +486,26 @@ export function InvestmentFormSheet({
               {isLumpSum ? (
                 <div className="space-y-3">
                   <Label>How does this lump sum work?</Label>
-                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-muted/20 p-1">
-                    <Button
-                      type="button"
-                      variant={lumpSumMode === "growth" ? "default" : "ghost"}
-                      className="h-8"
-                      onClick={() => handleLumpSumModeChange("growth")}
-                    >
-                      Growing value
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={lumpSumMode === "withdrawal" ? "default" : "ghost"}
-                      className="h-8"
-                      onClick={() => handleLumpSumModeChange("withdrawal")}
-                    >
-                      Monthly withdrawal
-                    </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        ["growth", "Growing value"],
+                        ["withdrawal", "Monthly withdrawal"],
+                      ] as const
+                    ).map(([mode, tileLabel]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => handleLumpSumModeChange(mode)}
+                        className={cn(
+                          "cursor-pointer border border-input bg-card px-4 py-3 text-left text-sm font-semibold transition-colors",
+                          lumpSumMode === mode &&
+                            "border-foreground border-l-[3px] border-l-brand bg-accent"
+                        )}
+                      >
+                        {tileLabel}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ) : null}
@@ -553,22 +551,25 @@ export function InvestmentFormSheet({
 
               {showPerformanceFields ? (
                 <>
-                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="space-y-4 border border-border bg-card p-4">
                     <div className="space-y-1">
-                      <p className="text-sm font-medium">Performance</p>
+                      <p className="text-sm font-bold">Performance</p>
                       <p className="text-xs leading-relaxed text-muted-foreground">
                         Enter absolute return or current fund value — the other field
                         updates automatically.
                       </p>
-                      <p className="text-xs font-medium text-foreground">
-                        {isLumpSum ? "Principal" : "Total invested so far"}:{" "}
-                        <span className="tabular-nums">
-                          {formatINR(totalInvested)}
-                        </span>
+                    </div>
+
+                    <div className="bg-muted px-4 py-3">
+                      <p className="np-caps text-muted-foreground">
+                        {isLumpSum ? "Principal" : "Total invested so far"}
+                      </p>
+                      <p className="mt-1 font-extrabold tabular-nums">
+                        {formatINR(totalInvested)}
                       </p>
                     </div>
 
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="investment-return">
                           Absolute return (%)
@@ -626,22 +627,23 @@ export function InvestmentFormSheet({
                   </div>
                 </>
               ) : (
-                <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <div className="space-y-4 border border-border bg-card p-4">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Return withdrawal</p>
+                    <p className="text-sm font-bold">Return withdrawal</p>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Principal stays invested. Enter the monthly % you withdraw to
                       your bank account.
                     </p>
-                    <p className="text-xs font-medium text-foreground">
-                      Principal:{" "}
-                      <span className="tabular-nums">
-                        {formatINR(principal)}
-                      </span>
+                  </div>
+
+                  <div className="bg-muted px-4 py-3">
+                    <p className="np-caps text-muted-foreground">Principal</p>
+                    <p className="mt-1 font-extrabold tabular-nums">
+                      {formatINR(principal)}
                     </p>
                   </div>
 
-                  <div className="mt-4 space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="investment-withdrawal-pct">
                       Monthly return withdrawal (%)
                       <span className="ml-1.5 font-normal text-muted-foreground">
@@ -690,8 +692,8 @@ export function InvestmentFormSheet({
               </div>
             </div>
 
-            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
-              <Button type="submit" className="h-11 w-full" disabled={pending}>
+            <SheetFooter className="shrink-0 border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+              <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : "Save changes"}
               </Button>
             </SheetFooter>

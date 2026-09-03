@@ -67,7 +67,7 @@ export function MoneyInput({
           {label}
         </label>
       ) : null}
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
         ₹
       </span>
       <Input
@@ -77,7 +77,7 @@ export function MoneyInput({
         autoComplete="off"
         value={displayValue}
         onChange={handleChange}
-        className={cn("pl-7 tabular-nums", className)}
+        className={cn("pl-8 tabular-nums", className)}
         {...props}
       />
     </div>

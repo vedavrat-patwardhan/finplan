@@ -15,6 +15,7 @@ import {
 import { ResourceList, ResourceRow } from "@/components/finance/resource-row";
 import { Input } from "@/components/ui/input";
 import { LabeledSelect } from "@/components/ui/labeled-select";
+import { Badge } from "@/components/ui/badge";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { formatINR, formatEnumLabel, formatFrequency } from "@/lib/format";
 import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
@@ -118,7 +119,7 @@ export function ExpensesList({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             value={search}
@@ -139,8 +140,8 @@ export function ExpensesList({
       </div>
 
       {visibleItems.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/15 px-6 py-10 text-center">
-          <p className="font-heading text-base font-semibold">No matching budgets</p>
+        <div className="border border-dashed border-border bg-muted px-6 py-10 text-center">
+          <p className="text-base font-bold">No matching budgets</p>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Try a different search term or clear the filter to see all items.
           </p>
@@ -152,14 +153,18 @@ export function ExpensesList({
               key={item.id}
               title={item.name}
               badges={
-                householdEnabled && item.owner ? (
-                  <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
-                ) : undefined
+                <>
+                  <Badge variant="outline">
+                    {item.isEssential ? "Essential" : "Optional"}
+                  </Badge>
+                  {householdEnabled && item.owner ? (
+                    <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
+                  ) : null}
+                </>
               }
               subtitle={
                 <span>
-                  {item.category} · {formatExpenseClassLabel(item.expenseClass)} ·{" "}
-                  {item.isEssential ? "Essential" : "Optional"}
+                  {item.category} · {formatExpenseClassLabel(item.expenseClass)}
                 </span>
               }
               amount={formatINR(item.amount)}

@@ -25,17 +25,17 @@ export function ExpenseClassTabs({ activeClass }: { activeClass: string }) {
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
+      <div className="inline-flex flex-wrap border border-border bg-background p-0.5">
         {tabs.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === "all" ? "/expenses" : `/expenses?class=${tab.value}`}
             title={tab.description}
             className={cn(
-              "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-colors",
+              "np-caps inline-flex h-8 cursor-pointer items-center gap-1.5 px-3 text-[11px] text-muted-foreground transition-colors hover:text-foreground",
               (tab.value === "all" ? activeClass === "all" : resolvedClass === tab.value)
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                ? "bg-foreground text-background hover:text-background"
+                : undefined
             )}
           >
             {tab.label}

@@ -8,8 +8,8 @@ import {
 } from "@/lib/format";
 import { isLumpSumInvestment } from "@/lib/finance/investment-metrics";
 import type { InvestmentMetrics } from "@/lib/finance/investment-metrics";
-import { chartColorAt } from "@/lib/finance/chart-colors";
 import type { Frequency } from "@/lib/finance/constants";
+import { cn } from "@/lib/utils";
 
 const investmentTypeColorIndex: Record<string, number> = {
   mutual_fund: 0,
@@ -97,11 +97,11 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
   const isWithdrawalLumpSum = isLumpSum && metrics.isLumpSumWithdrawal;
   const isGrowthLumpSum = isLumpSum && !metrics.isLumpSumWithdrawal;
 
-  const accent = chartColorAt(investmentTypeColorIndex[item.type] ?? 0);
+  const accent = `var(--chart-${((investmentTypeColorIndex[item.type] ?? 0) % 8) + 1})`;
 
   return (
     <article
-      className="rounded-xl border border-border bg-card px-4 py-4 sm:px-5"
+      className="border border-border bg-card px-4 py-4 sm:px-5"
       style={{ borderLeftWidth: 3, borderLeftColor: accent }}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -109,12 +109,12 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
           <div className="flex items-start justify-between gap-3 sm:block">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium leading-snug">{item.name}</p>
+                <p className="font-bold leading-snug">{item.name}</p>
                 <ResourceBadge>{formatInvestmentType(item.type)}</ResourceBadge>
               </div>
             </div>
             <div className="shrink-0 text-right sm:hidden">
-              <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
+              <p className="font-extrabold tabular-nums">{formatINR(item.amount)}</p>
               <p className="text-xs text-muted-foreground">
                 {formatInvestmentAmountSub(item)}
               </p>
@@ -127,7 +127,7 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
 
         <div className="flex items-center justify-end gap-2 sm:gap-4">
           <div className="hidden text-right sm:block">
-            <p className="font-medium tabular-nums">{formatINR(item.amount)}</p>
+            <p className="font-extrabold tabular-nums">{formatINR(item.amount)}</p>
             <p className="text-xs text-muted-foreground">
               {formatInvestmentAmountSub(item)}
             </p>
@@ -143,7 +143,7 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
           label={isLumpSum ? "Principal" : "Total invested"}
           value={formatINR(metrics.totalInvested || item.amount)}
@@ -185,6 +185,15 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
                 : "—"
             }
             muted={metrics.absoluteReturnPct == null}
+            tone={
+              metrics.absoluteReturnPct == null
+                ? undefined
+                : metrics.absoluteReturnPct > 0
+                  ? "positive"
+                  : metrics.absoluteReturnPct < 0
+                    ? "negative"
+                    : undefined
+            }
           />
         )}
         {isWithdrawalLumpSum ? (
@@ -199,6 +208,15 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
               metrics.gainAmount != null ? formatINR(metrics.gainAmount) : "—"
             }
             muted={metrics.gainAmount == null}
+            tone={
+              metrics.gainAmount == null
+                ? undefined
+                : metrics.gainAmount > 0
+                  ? "positive"
+                  : metrics.gainAmount < 0
+                    ? "negative"
+                    : undefined
+            }
           />
         ) : (
           <Metric
@@ -211,7 +229,7 @@ export function InvestmentCard({ item }: { item: InvestmentListItem }) {
             }
           />
         )}
-      </div>
+      </dl>
     </article>
   );
 }
@@ -221,22 +239,27 @@ function Metric({
   value,
   sub,
   muted = false,
+  tone,
 }: {
   label: string;
   value: string;
   sub?: string;
   muted?: boolean;
+  tone?: "positive" | "negative";
 }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={`mt-1 text-sm font-medium tabular-nums ${muted ? "text-muted-foreground" : ""}`}
+      <dt className="np-caps text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          "mt-1 font-bold tabular-nums",
+          muted && "text-muted-foreground",
+          tone === "positive" && "text-success-text",
+          tone === "negative" && "text-destructive"
+        )}
       >
         {value}
-      </p>
+      </dd>
       {sub ? <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p> : null}
     </div>
   );

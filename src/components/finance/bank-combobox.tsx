@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { filterIndianBanks } from "@/lib/finance/indian-banks";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -56,22 +55,21 @@ export function BankCombobox({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
-            <Button
+            <button
               type="button"
-              variant="outline"
               id={id}
               className={cn(
-                "h-9 w-full justify-between font-normal",
-                !value && "text-muted-foreground"
+                "flex h-10 w-full cursor-pointer items-center justify-between gap-2 border border-input bg-input-bg px-3 text-[15px] font-semibold outline-none transition-colors focus-visible:border-foreground",
+                !value && "text-faint font-medium"
               )}
             />
           }
         >
           <span className="truncate">{value || placeholder}</span>
-          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
-        <PopoverContent className="w-[min(100vw-2rem,320px)] p-0" align="start">
-          <div className="border-b border-border p-2">
+        <PopoverContent className="w-[min(100vw-2rem,320px)] max-h-64 overflow-auto border border-border bg-popover p-1" align="start">
+          <div className="-m-1 mb-1 border-b border-border p-2">
             <Input
               ref={inputRef}
               value={query}
@@ -81,14 +79,14 @@ export function BankCombobox({
               }}
               placeholder="Type to search banks..."
               autoComplete="off"
-              className="h-9"
+              className="h-8 text-sm"
               aria-controls={listId}
             />
           </div>
           <ul
             id={listId}
             role="listbox"
-            className="max-h-56 overflow-y-auto p-1"
+            className="overflow-y-auto"
             aria-label={label}
           >
             {showCustom ? (
@@ -96,7 +94,7 @@ export function BankCombobox({
                 <button
                   type="button"
                   role="option"
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm hover:bg-muted"
+                  className="flex w-full cursor-pointer items-center gap-2 border-l-2 border-l-transparent px-3 py-2 text-left text-sm font-medium hover:bg-accent"
                   onClick={() => selectBank(query.trim())}
                 >
                   Use &ldquo;{query.trim()}&rdquo;
@@ -104,7 +102,7 @@ export function BankCombobox({
               </li>
             ) : null}
             {filtered.length === 0 ? (
-              <li className="px-2 py-6 text-center text-sm text-muted-foreground">
+              <li className="px-3 py-6 text-center text-sm text-muted-foreground">
                 No banks match. Keep typing to use a custom name.
               </li>
             ) : (
@@ -115,8 +113,8 @@ export function BankCombobox({
                     role="option"
                     aria-selected={value === bank}
                     className={cn(
-                      "flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-left text-sm hover:bg-muted",
-                      value === bank && "bg-muted/60"
+                      "flex w-full cursor-pointer items-center gap-2 border-l-2 border-l-transparent px-3 py-2 text-left text-sm font-medium hover:bg-accent",
+                      value === bank && "border-l-brand bg-accent"
                     )}
                     onClick={() => selectBank(bank)}
                   >

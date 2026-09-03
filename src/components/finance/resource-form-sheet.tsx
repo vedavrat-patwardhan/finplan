@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { LabeledSelect } from "@/components/ui/labeled-select";
+import { Switch } from "@/components/ui/switch";
 import { ExpenseCategoryField } from "@/components/finance/expense-category-field";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
@@ -93,29 +94,24 @@ export function ResourceFormSheet({
       <SheetTrigger
         render={
           <Button
-            variant={isEdit ? "ghost" : "default"}
-            size={isEdit ? "sm" : "default"}
-            className={isEdit ? "min-h-11 px-2.5 text-muted-foreground md:px-3" : undefined}
+            variant={isEdit ? "ghost" : "brand"}
+            size={isEdit ? "icon-sm" : "default"}
             aria-label={isEdit ? triggerLabel : undefined}
           />
         }
       >
         {isEdit ? <Pencil className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
-        {isEdit ? (
-          <span className="hidden md:inline">{triggerLabel}</span>
-        ) : (
-          triggerLabel
-        )}
+        {isEdit ? null : triggerLabel}
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[88dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[88dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
-          <SheetTitle className="font-heading text-xl">{title}</SheetTitle>
+          <SheetTitle>{title}</SheetTitle>
           {description ? (
-            <SheetDescription className="text-sm leading-relaxed">
+            <SheetDescription className="leading-relaxed">
               {description}
             </SheetDescription>
           ) : null}
@@ -141,8 +137,8 @@ export function ResourceFormSheet({
               ))}
             </div>
 
-            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
-              <Button type="submit" className="h-11 w-full" disabled={pending}>
+            <SheetFooter className="shrink-0 border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+              <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : "Save changes"}
               </Button>
             </SheetFooter>
@@ -210,16 +206,14 @@ function Field({ field }: { field: FieldOption }) {
     return (
       <label
         htmlFor={field.name}
-        className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40"
+        className="flex cursor-pointer items-center justify-between gap-3 border border-border bg-card px-4 py-3 transition-colors hover:bg-accent"
       >
-        <input
-          type="checkbox"
+        <span className="text-sm font-medium leading-snug">{field.label}</span>
+        <Switch
           id={field.name}
           name={field.name}
           defaultChecked={field.defaultValue === "true"}
-          className="size-4 rounded border-border accent-primary"
         />
-        <span className="text-sm leading-snug">{field.label}</span>
       </label>
     );
   }
@@ -330,13 +324,12 @@ export function DeleteButton({
       <Button
         type="button"
         variant="ghost"
-        size="sm"
-        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        size="icon-sm"
+        className="text-muted-foreground hover:text-destructive"
         aria-label={label}
         onClick={() => setOpen(true)}
       >
         <Trash2 className="size-4 shrink-0" />
-        <span className="hidden md:inline">{label}</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
@@ -350,7 +343,7 @@ export function DeleteButton({
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={() => setOpen(false)}
               disabled={pending}
             >

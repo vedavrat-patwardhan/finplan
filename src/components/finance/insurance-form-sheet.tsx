@@ -37,8 +37,9 @@ import {
   formatInsuranceType,
   parseDateInputValue,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
-const FIELD_CLASS = "h-8 w-full";
+const FIELD_CLASS = "w-full";
 
 export type InsuranceListItem = {
   id: string;
@@ -184,30 +185,25 @@ export function InsuranceFormSheet({
       <SheetTrigger
         render={
           <Button
-            variant={isEdit ? "ghost" : "default"}
-            size={isEdit ? "sm" : "default"}
-            className={isEdit ? "min-h-11 px-2.5 text-muted-foreground md:px-3" : undefined}
+            variant={isEdit ? "ghost" : "brand"}
+            size={isEdit ? "icon-sm" : "default"}
             aria-label={isEdit ? resolvedTriggerLabel : undefined}
           />
         }
       >
         {isEdit ? <Pencil className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
-        {isEdit ? (
-          <span className="hidden md:inline">{resolvedTriggerLabel}</span>
-        ) : (
-          resolvedTriggerLabel
-        )}
+        {isEdit ? null : resolvedTriggerLabel}
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[88dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[88dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
-          <SheetTitle className="font-heading text-xl">
+          <SheetTitle>
             {isEdit ? "Edit policy" : "Add policy"}
           </SheetTitle>
-          <SheetDescription className="text-sm leading-relaxed">
+          <SheetDescription className="leading-relaxed">
             {isLifePolicy
               ? "Track when premiums started, when they end, and how long coverage stays valid."
               : "Track premium, coverage amount, and renewal date so nothing slips through."}
@@ -306,9 +302,9 @@ export function InsuranceFormSheet({
               </div>
 
               {isLifePolicy ? (
-                <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="space-y-4 border border-border bg-card p-4">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Payment & validity</p>
+                    <p className="text-sm font-bold">Payment & validity</p>
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       When you started paying, till when premiums are due, and
                       till when the policy stays valid.
@@ -334,7 +330,7 @@ export function InsuranceFormSheet({
                       <Label htmlFor="insurance-premium-end">
                         Paying premiums until
                       </Label>
-                      <div className="inline-flex rounded-lg bg-muted p-0.5 text-xs">
+                      <div className="inline-flex border border-border bg-background p-0.5">
                         {(
                           [
                             ["date", "End date"],
@@ -345,11 +341,12 @@ export function InsuranceFormSheet({
                             key={mode}
                             type="button"
                             onClick={() => patchForm({ premiumEndMode: mode })}
-                            className={`rounded-md px-2.5 py-1 transition-colors ${
+                            className={cn(
+                              "np-caps h-7 cursor-pointer px-2.5 text-[10px] transition-colors",
                               formValues.premiumEndMode === mode
-                                ? "bg-background text-foreground shadow-sm"
+                                ? "bg-foreground text-background"
                                 : "text-muted-foreground hover:text-foreground"
-                            }`}
+                            )}
                           >
                             {label}
                           </button>
@@ -417,8 +414,8 @@ export function InsuranceFormSheet({
               )}
             </div>
 
-            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
-              <Button type="submit" className="h-11 w-full" disabled={pending}>
+            <SheetFooter className="shrink-0 border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+              <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : "Save changes"}
               </Button>
             </SheetFooter>

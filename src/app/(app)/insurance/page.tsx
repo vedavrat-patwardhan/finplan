@@ -59,11 +59,11 @@ export default async function InsurancePage() {
               return (
                 <article
                   key={item.id}
-                  className="flex flex-col rounded-xl border border-border bg-card p-5"
+                  className="flex flex-col border border-border bg-card p-5"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium">{item.name}</p>
+                      <p className="font-bold leading-snug">{item.name}</p>
                       {item.provider ? (
                         <p className="text-sm text-muted-foreground">{item.provider}</p>
                       ) : null}
@@ -71,28 +71,28 @@ export default async function InsurancePage() {
                     <ResourceBadge>{formatInsuranceType(item.type)}</ResourceBadge>
                   </div>
 
-                  <div className="mt-4 grid flex-1 grid-cols-2 gap-3 text-sm">
+                  <dl className="mt-4 grid flex-1 grid-cols-2 gap-3">
                     <div>
-                      <p className="text-muted-foreground">Premium</p>
-                      <p className="font-medium tabular-nums">{formatINR(item.premium)}</p>
+                      <dt className="np-caps text-muted-foreground">Premium</dt>
+                      <dd className="font-bold tabular-nums">{formatINR(item.premium)}</dd>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Coverage</p>
-                      <p className="font-medium tabular-nums">
+                      <dt className="np-caps text-muted-foreground">Coverage</dt>
+                      <dd className="font-bold tabular-nums">
                         {formatINR(item.coverage, { compact: true })}
-                      </p>
+                      </dd>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Frequency</p>
-                      <p>{formatFrequency(item.frequency)}</p>
+                      <dt className="np-caps text-muted-foreground">Frequency</dt>
+                      <dd className="text-sm font-medium">{formatFrequency(item.frequency)}</dd>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Premiums paid</p>
-                      <p className="font-medium tabular-nums">
+                      <dt className="np-caps text-muted-foreground">Premiums paid</dt>
+                      <dd className="font-bold tabular-nums">
                         {formatINR(item.totalPremiumPaid)}
-                      </p>
+                      </dd>
                       {item.lastPremiumPaidDate ? (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           Last {formatDate(item.lastPremiumPaidDate)}
                         </p>
                       ) : null}
@@ -101,37 +101,37 @@ export default async function InsurancePage() {
                     {isLife ? (
                       <>
                         <div>
-                          <p className="text-muted-foreground">Started paying</p>
-                          <p>
+                          <dt className="np-caps text-muted-foreground">Started paying</dt>
+                          <dd className="text-sm font-medium">
                             {item.premiumStartDate
                               ? formatDate(item.premiumStartDate)
                               : "—"}
-                          </p>
+                          </dd>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Paying until</p>
-                          <p>
+                          <dt className="np-caps text-muted-foreground">Paying until</dt>
+                          <dd className="text-sm font-medium">
                             {item.premiumEndDate
                               ? formatDate(item.premiumEndDate)
                               : "—"}
-                          </p>
+                          </dd>
                         </div>
                         <div>
-                          <p className="text-muted-foreground">Valid until</p>
-                          <p>
+                          <dt className="np-caps text-muted-foreground">Valid until</dt>
+                          <dd className="text-sm font-medium">
                             {item.validTill ? formatDate(item.validTill) : "—"}
-                          </p>
+                          </dd>
                         </div>
                       </>
                     ) : (
                       <div>
-                        <p className="text-muted-foreground">Renewal</p>
-                        <p>
+                        <dt className="np-caps text-muted-foreground">Renewal</dt>
+                        <dd className="text-sm font-medium">
                           {item.renewalDate ? formatDate(item.renewalDate) : "—"}
-                        </p>
+                        </dd>
                       </div>
                     )}
-                  </div>
+                  </dl>
 
                   <div className="mt-4 flex items-center justify-end gap-1 border-t border-border pt-3">
                     <InsuranceFormSheet policy={item as InsuranceListItem} />
