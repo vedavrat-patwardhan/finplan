@@ -85,3 +85,5 @@ npm run brand:assets # Regenerate logo/icon/OG PNGs and brand SVGs
 FinPlan's visual identity (logo, colour, type, voice, OG/app-icon specs) is
 documented in [`BRAND.md`](./BRAND.md); the NeoPop UI design system built on
 top of it — tokens, primitives, layout chrome — is in [`DESIGN.md`](./DESIGN.md).
+A live catalogue of every primitive, colour token and type style is served at
+[`/playground`](http://localhost:3000/playground) (public, no sign-in needed).
