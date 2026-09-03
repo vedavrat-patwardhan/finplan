@@ -69,21 +69,20 @@ export function MonthNav({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
+    <div className="border border-border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-2">
         {rangeActive ? (
           <>
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Custom range
-              </p>
-              <p className="truncate font-heading text-sm font-medium sm:text-base">
+              <p className="np-caps text-muted-foreground">Custom range</p>
+              <p className="truncate text-sm font-bold sm:text-base">
                 {displayRange(dateFrom!, dateTo!)}
               </p>
             </div>
             <Button
               variant="outline"
-              className="min-h-11 shrink-0 gap-2"
+              size="sm"
+              className="ml-auto gap-2"
               render={<Link href={`/transactions?${base}month=${currentMonth}`} />}
             >
               <RotateCcw className="size-4" />
@@ -94,24 +93,22 @@ export function MonthNav({
           <>
             <Button
               variant="outline"
-              size="icon"
-              className="size-11"
+              size="icon-sm"
               render={<Link href={`/transactions?${base}month=${prev}`} aria-label="Previous month" />}
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <p className="font-heading text-base font-medium">{label}</p>
+            <p className="flex h-10 items-center border border-border px-4 font-bold">{label}</p>
             {canGoForward ? (
               <Button
                 variant="outline"
-                size="icon"
-                className="size-11"
+                size="icon-sm"
                 render={<Link href={`/transactions?${base}month=${next}`} aria-label="Next month" />}
               >
                 <ChevronRight className="size-4" />
               </Button>
             ) : (
-              <Button variant="outline" size="icon" className="size-11" disabled>
+              <Button variant="outline" size="icon-sm" disabled>
                 <ChevronRight className="size-4" />
               </Button>
             )}
@@ -123,7 +120,8 @@ export function MonthNav({
         <Button
           type="button"
           variant="ghost"
-          className="mt-2 min-h-11 w-full gap-2 text-muted-foreground"
+          size="sm"
+          className="mt-2 w-full gap-2 text-muted-foreground"
           onClick={() => setShowRange((value) => !value)}
         >
           <CalendarRange className="size-4" />
@@ -153,7 +151,7 @@ export function MonthNav({
               toYear={new Date().getFullYear()}
             />
           </div>
-          <Button type="button" className="h-11 px-5" onClick={applyRange}>
+          <Button type="button" size="sm" onClick={applyRange}>
             Apply range
           </Button>
         </div>

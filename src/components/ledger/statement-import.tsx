@@ -13,9 +13,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Plunk } from "@/components/ui/plunk";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -69,17 +72,48 @@ function Stat({
 }) {
   return (
     <div className="space-y-0.5">
-      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <p className="np-caps text-muted-foreground">{label}</p>
       <p
         className={cn(
-          "text-sm font-semibold tabular-nums",
-          tone === "success" ? "text-success" : "text-foreground"
+          "font-extrabold tabular-nums",
+          tone === "success" ? "text-success-text" : "text-foreground"
         )}
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+function StepMarker({
+  index,
+  label,
+  status,
+}: {
+  index: number;
+  label: string;
+  status: "done" | "active" | "upcoming";
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className={cn(
+          "flex size-6 shrink-0 items-center justify-center border border-foreground text-[10px] font-bold",
+          status === "done" && "bg-foreground text-background",
+          status === "active" && "border-brand bg-brand text-brand-foreground",
+          status === "upcoming" && "border-border text-muted-foreground"
+        )}
+      >
+        {status === "done" ? <Check className="size-3.5" /> : index}
+      </span>
+      <span
+        className={cn(
+          "np-caps",
+          status === "upcoming" ? "text-muted-foreground" : "text-foreground"
+        )}
+      >
+        {label}
+      </span>
     </div>
   );
 }
@@ -264,19 +298,23 @@ export function StatementImport({
   }
 
   return (
-    <section className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-6 section-break">
+    <section className="space-y-6 border border-border bg-card p-5 sm:p-6 section-break">
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <span className="grid size-9 shrink-0 place-items-center bg-accent text-foreground">
           <FileText className="size-5" />
         </span>
         <div className="space-y-0.5">
-          <h2 className="font-heading text-lg font-semibold leading-tight">
-            Import statement
-          </h2>
+          <h2 className="text-lg font-bold leading-tight">Import statement</h2>
           <p className="text-sm text-muted-foreground">
             Bank or credit-card PDF — read on your server, never uploaded anywhere.
           </p>
         </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <StepMarker index={1} label="Upload" status={rows ? "done" : "active"} />
+        <span aria-hidden className="h-px w-8 bg-border" />
+        <StepMarker index={2} label="Review & import" status={rows ? "active" : "upcoming"} />
       </div>
 
       {!rows ? (
@@ -293,22 +331,22 @@ export function StatementImport({
             type="button"
             onClick={() => fileRef.current?.click()}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl border border-dashed px-4 py-4 text-left transition-colors",
+              "flex w-full items-center gap-3 border border-dashed px-4 py-4 text-left transition-colors",
               fileName
-                ? "border-primary/40 bg-primary/5"
-                : "border-border hover:border-primary/40 hover:bg-muted/40"
+                ? "border-foreground/40 bg-accent"
+                : "border-border hover:border-foreground/40 hover:bg-accent"
             )}
           >
             <span
               className={cn(
-                "grid size-10 shrink-0 place-items-center rounded-lg",
-                fileName ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                "grid size-10 shrink-0 place-items-center",
+                fileName ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
               )}
             >
               {fileName ? <Check className="size-5" /> : <FileText className="size-5" />}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">
+              <span className="block truncate text-sm font-bold">
                 {fileName || "Choose a PDF statement"}
               </span>
               <span className="block text-xs text-muted-foreground">
@@ -397,7 +435,7 @@ export function StatementImport({
       ) : (
         <div className="space-y-5">
           {/* Summary strip */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-xl border border-border bg-muted/30 px-4 py-3.5">
+          <Plunk className="flex flex-wrap items-center gap-x-8 gap-y-3 px-4 py-3.5">
             <Stat label="Selected" value={`${included.length} of ${rows.length}`} />
             <Divider />
             <Stat label="Money in" value={`+${formatINR(totals.credit)}`} tone="success" />
@@ -417,7 +455,7 @@ export function StatementImport({
                 />
               </>
             )}
-          </div>
+          </Plunk>
 
           {/* Destination account + bulk selection */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -438,12 +476,12 @@ export function StatementImport({
                 }
               />
               {autoMatched && stmtLast4 ? (
-                <p className="flex items-center gap-1.5 text-xs text-success">
+                <p className="flex items-center gap-1.5 text-xs text-success-text">
                   <Check className="size-3.5 shrink-0" />
                   Matched to your account ending {stmtLast4} — change above if that&apos;s wrong.
                 </p>
               ) : stmtLast4 ? (
-                <p className="text-xs text-warning">
+                <p className="text-xs text-warning-text">
                   Statement is for an account ending {stmtLast4} — pick the matching account.
                 </p>
               ) : (
@@ -470,19 +508,19 @@ export function StatementImport({
           </div>
 
           {closingBalance !== undefined ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.035] p-4">
-              <input
-                type="checkbox"
+            <div className="flex items-start gap-3 border border-border bg-muted p-4">
+              <Switch
                 checked={syncClosingBalance}
                 disabled={selectedAccount?.type !== "bank"}
-                onChange={(event) => setSyncClosingBalance(event.target.checked)}
-                className="mt-0.5 size-4 accent-primary"
+                onCheckedChange={(checked) => setSyncClosingBalance(checked)}
+                aria-label="Set account to statement closing balance"
+                className="mt-0.5 shrink-0"
               />
-              <Landmark className="mt-0.5 size-4 shrink-0 text-primary" />
+              <Landmark className="mt-0.5 size-4 shrink-0 text-brand-text" />
               <span className="min-w-0">
                 <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="text-sm font-medium">Set account to statement closing balance</span>
-                  <span className="font-heading text-base font-semibold tabular-nums text-primary">
+                  <span className="text-base font-extrabold tabular-nums text-brand-text">
                     {formatINR(closingBalance)}
                   </span>
                 </span>
@@ -490,16 +528,16 @@ export function StatementImport({
                   Recommended for a complete bank statement. This sets the balance once instead of replaying every transaction against the balance already in FinPlan.
                 </span>
                 {selectedAccount && selectedAccount.type !== "bank" ? (
-                  <span className="mt-1 block text-xs text-warning">Choose a bank account to enable balance reconciliation.</span>
+                  <span className="mt-1 block text-xs text-warning-text">Choose a bank account to enable balance reconciliation.</span>
                 ) : null}
               </span>
-            </label>
+            </div>
           ) : null}
 
           {/* Transactions table */}
-          <div className="max-h-[26rem] overflow-auto rounded-xl border border-border">
+          <div className="max-h-[26rem] overflow-auto border border-border">
             <Table className="min-w-[640px]">
-              <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+              <TableHeader className="sticky top-0 z-10 bg-muted">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-10" />
                   <TableHead className="w-24">Date</TableHead>
@@ -521,11 +559,9 @@ export function StatementImport({
                   >
                     <TableCell className="py-2">
                       <label className="flex size-9 cursor-pointer items-center justify-center">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={r.include}
-                          onChange={(e) => updateRow(i, { include: e.target.checked })}
-                          className="size-4 accent-primary"
+                          onCheckedChange={(checked) => updateRow(i, { include: checked === true })}
                         />
                       </label>
                     </TableCell>
@@ -558,10 +594,10 @@ export function StatementImport({
                         }
                         title="Click to flip direction"
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
+                          "inline-flex items-center gap-1 border px-2 py-1 text-xs font-medium transition-colors",
                           r.type === "credit"
-                            ? "bg-success/10 text-success hover:bg-success/15"
-                            : "bg-secondary text-secondary-foreground hover:bg-accent"
+                            ? "border-transparent bg-success/10 text-success-text hover:bg-success/15"
+                            : "border-transparent bg-secondary text-secondary-foreground hover:bg-accent"
                         )}
                       >
                         {r.type === "credit" ? (
@@ -575,7 +611,7 @@ export function StatementImport({
                     <TableCell
                       className={cn(
                         "text-right text-sm font-medium tabular-nums",
-                        r.type === "credit" ? "text-success" : "text-foreground"
+                        r.type === "credit" ? "text-success-text" : "text-foreground"
                       )}
                     >
                       {r.type === "credit" ? "+" : "−"}
@@ -591,6 +627,8 @@ export function StatementImport({
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
+              variant="brand"
+              size="lg"
               className="gap-2"
               disabled={importing || included.length === 0}
               onClick={handleImport}
@@ -608,7 +646,7 @@ export function StatementImport({
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               disabled={importing}
               onClick={resetAll}
             >

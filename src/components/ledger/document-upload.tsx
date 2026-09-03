@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/ui/labeled-select";
+import { PasswordInput } from "@/components/ui/password-input";
 import { DOCUMENT_TYPES } from "@/lib/finance/constants";
 import {
   createDocumentAction,
@@ -72,11 +73,8 @@ function SavePasswordInline({
   }
 
   return (
-    <form
-      onSubmit={handleSave}
-      className="space-y-2 rounded-lg border border-border bg-muted/20 p-3"
-    >
-      <p className="text-xs font-medium text-muted-foreground">Save password as</p>
+    <form onSubmit={handleSave} className="space-y-2 border border-border bg-muted p-3">
+      <p className="np-caps text-muted-foreground">Save password as</p>
       <div className="flex gap-2">
         <Input
           name="title"
@@ -86,14 +84,14 @@ function SavePasswordInline({
           className="h-8 text-sm"
           required
         />
-        <Button type="submit" size="sm" className="h-8 shrink-0" disabled={pending}>
+        <Button type="submit" size="sm" className="shrink-0" disabled={pending}>
           {pending ? "Saving..." : "Save"}
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-8 shrink-0"
+          className="shrink-0"
           onClick={() => setOpen(false)}
         >
           Cancel
@@ -168,7 +166,7 @@ export function DocumentUpload({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+    <div className="border border-border bg-card p-5 space-y-4">
       <div className="space-y-2">
         <Label>Document type</Label>
         <LabeledSelect
@@ -206,7 +204,7 @@ export function DocumentUpload({
           </button>
 
           {showPasswordSection && (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <div className="space-y-3 border border-border bg-muted p-3">
               {savedPasswords.length > 0 && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Use saved password</Label>
@@ -230,7 +228,7 @@ export function DocumentUpload({
                   <Label htmlFor="doc-password" className="text-xs">
                     {savedPasswords.length > 0 ? "Or type manually" : "Password / PIN"}
                   </Label>
-                  <Input
+                  <PasswordInput
                     id="doc-password"
                     value={password}
                     onChange={(e) => {
@@ -270,18 +268,43 @@ export function DocumentUpload({
         }}
       />
 
-      <Button
-        type="button"
-        className="h-11 w-full gap-2"
-        disabled={uploading}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        className="cursor-pointer border border-dashed border-input bg-card px-6 py-10 text-center transition-colors hover:border-foreground/40"
       >
-        <Upload className="size-4" />
-        {uploading ? "Uploading..." : "Upload PDF or photo"}
-      </Button>
-      <p className="text-xs text-center text-muted-foreground">
-        Max 10 MB · PDF, JPEG, PNG, WebP
-      </p>
+        <div className="mx-auto flex size-12 items-center justify-center bg-muted text-muted-foreground">
+          <Upload className="size-5" />
+        </div>
+        <p className="mt-3 font-bold">
+          {uploading ? "Uploading..." : "Upload PDF or photo"}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">Max 10 MB · PDF, JPEG, PNG, WebP</p>
+        {uploading ? (
+          <div className="mx-auto mt-4 h-2 w-full max-w-xs bg-muted">
+            <div className="h-full w-2/3 animate-pulse bg-brand" />
+          </div>
+        ) : (
+          <Button
+            type="button"
+            className="mt-4"
+            disabled={uploading}
+            onClick={(e) => {
+              e.stopPropagation();
+              inputRef.current?.click();
+            }}
+          >
+            Browse files
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   deleteCustomLedgerCategoryAction,
   saveCategoryRuleAction,
 } from "@/actions/category-rules";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,26 +123,25 @@ export function CategoryRulesSheet({
       <Button
         type="button"
         variant="outline"
-        className="min-h-11 gap-2"
+        size="sm"
+        className="gap-2"
         onClick={() => setOpen(true)}
       >
         <Tags className="size-4" />
         Categories & rules
         {rules.length + customCategories.length > 0 ? (
-          <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
-            {rules.length + customCategories.length}
-          </span>
+          <Badge variant="brand">{rules.length + customCategories.length}</Badge>
         ) : null}
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:max-h-none sm:w-[28rem] sm:rounded-none sm:border-t-0 sm:border-l"
+          className="flex max-h-[92dvh] flex-col gap-0 p-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:max-h-none sm:w-[28rem] sm:border-t-0 sm:border-l"
         >
-          <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
+          <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border sm:hidden" />
           <SheetHeader className="border-b border-border px-5 py-4">
-            <SheetTitle className="font-heading text-xl">Categories & rules</SheetTitle>
+            <SheetTitle className="text-xl">Categories & rules</SheetTitle>
             <SheetDescription>
               Add your own ledger categories, then automate them with merchant keywords.
             </SheetDescription>
@@ -150,7 +150,7 @@ export function CategoryRulesSheet({
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-5">
             <section className="space-y-3">
               <div>
-                <h3 className="text-sm font-medium">Your categories</h3>
+                <h3 className="text-sm font-bold">Your categories</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Custom categories appear anywhere you choose a ledger category.
                 </p>
@@ -162,11 +162,12 @@ export function CategoryRulesSheet({
                   minLength={2}
                   maxLength={40}
                   required
-                  className="h-11"
                 />
                 <Button
                   type="submit"
-                  className="size-11 shrink-0"
+                  variant="default"
+                  size="icon"
+                  className="shrink-0"
                   aria-label="Add ledger category"
                   disabled={addingCategory}
                 >
@@ -176,25 +177,22 @@ export function CategoryRulesSheet({
               {customCategories.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {customCategories.map((item) => (
-                    <span
-                      key={item.id}
-                      className="inline-flex min-h-10 items-center gap-1 rounded-full border border-primary/25 bg-primary/[0.06] py-1 pr-1 pl-3 text-sm text-primary"
-                    >
+                    <Badge key={item.id} variant="secondary" className="h-auto gap-1.5 py-1 pr-1">
                       {item.name}
                       <button
                         type="button"
-                        className="grid size-8 place-items-center rounded-full text-primary/70 hover:bg-primary/10 hover:text-destructive"
+                        className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50"
                         aria-label={`Remove ${item.name} category`}
                         disabled={deletingId === item.id}
                         onClick={() => handleDeleteCategory(item.id)}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-3" />
                       </button>
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               ) : (
-                <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                <p className="border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
                   No custom categories yet.
                 </p>
               )}
@@ -202,7 +200,7 @@ export function CategoryRulesSheet({
 
             <div className="h-px bg-border" />
 
-            <form onSubmit={handleSave} className="rounded-xl border border-border bg-muted/20 p-4">
+            <form onSubmit={handleSave} className="border border-border bg-muted p-4">
               <div className="space-y-2">
                 <Label htmlFor="category-keyword">Keyword</Label>
                 <Input
@@ -212,7 +210,7 @@ export function CategoryRulesSheet({
                   minLength={2}
                   maxLength={80}
                   required
-                  className="h-11 uppercase"
+                  className="uppercase"
                 />
                 <p className="text-xs text-muted-foreground">
                   Matching ignores upper/lower case and checks both merchant and description.
@@ -227,18 +225,24 @@ export function CategoryRulesSheet({
                   options={categoryOptions}
                 />
               </div>
-              <Button type="submit" className="mt-4 h-11 w-full" disabled={pending}>
+              <Button
+                type="submit"
+                variant="default"
+                size="sm"
+                className="mt-4 w-full"
+                disabled={pending}
+              >
                 {pending ? "Applying to ledger…" : "Save and update ledger"}
               </Button>
             </form>
 
             <section>
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-medium">Active rules</h3>
+                <h3 className="text-sm font-bold">Active rules</h3>
                 <span className="text-xs text-muted-foreground">{rules.length} total</span>
               </div>
               {rules.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+                <div className="border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                   Add your first rule. It will update matching existing entries and all future SMS or statement imports.
                 </div>
               ) : (
@@ -246,7 +250,7 @@ export function CategoryRulesSheet({
                   {rules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
+                      className="flex items-center justify-between gap-3 border border-border bg-card px-4 py-3"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-mono text-sm font-semibold uppercase">
@@ -257,8 +261,8 @@ export function CategoryRulesSheet({
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon"
-                        className="size-11 shrink-0 text-muted-foreground hover:text-destructive"
+                        size="icon-sm"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
                         aria-label={`Remove ${rule.keyword} rule`}
                         disabled={deletingId === rule.id}
                         onClick={() => handleDelete(rule.id)}
@@ -272,7 +276,7 @@ export function CategoryRulesSheet({
             </section>
           </div>
 
-          <SheetFooter className="border-t border-border bg-muted/20 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <SheetFooter className="border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <p className="text-xs leading-relaxed text-muted-foreground">
               Removing a rule stops future matching. Categories already applied to ledger entries remain unchanged.
             </p>

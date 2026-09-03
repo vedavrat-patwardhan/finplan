@@ -63,19 +63,17 @@ export function DocumentRow({
   }
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-card px-4 py-4">
+    <div className="flex items-start justify-between gap-3 border border-border bg-card px-5 py-4">
       <div className="flex gap-3 min-w-0">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <div className="flex size-10 shrink-0 items-center justify-center bg-muted text-muted-foreground">
           <FileText className="size-5" />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate font-medium">{document.fileName}</p>
-            <Badge variant="secondary" className="text-xs">
-              {typeLabels[document.type] ?? document.type}
-            </Badge>
+            <p className="truncate font-bold">{document.fileName}</p>
+            <Badge variant="outline">{typeLabels[document.type] ?? document.type}</Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="np-caps text-muted-foreground">
             {new Date(document.createdAt).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",

@@ -77,7 +77,7 @@ export default async function TransactionsPage({
             <>
               {" "}
               ·{" "}
-              <span className="tabular-nums text-success">
+              <span className="tabular-nums text-success-text">
                 {formatINR(summary.totalCredits, { compact: true })}
               </span>{" "}
               received

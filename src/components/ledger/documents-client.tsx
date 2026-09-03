@@ -60,12 +60,12 @@ export function DocumentsClient({
       ) : null}
 
       <section className="space-y-3 section-break">
-        <h2 className="font-heading text-lg font-semibold">Your uploads</h2>
+        <h2 className="text-lg font-bold">Your uploads</h2>
         <p className="text-sm text-muted-foreground">
           Salary slips, bills, and receipts you&apos;ve added
         </p>
         {documents.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border bg-muted/15 px-5 py-8 text-center text-sm text-muted-foreground">
+          <p className="border border-dashed border-border bg-muted px-5 py-8 text-center text-sm text-muted-foreground">
             No documents yet — upload a salary slip or bill above to get started.
           </p>
         ) : (

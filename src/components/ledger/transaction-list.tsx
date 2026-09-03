@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useLedger } from "@/components/ledger/ledger-provider";
 import { formatINR } from "@/lib/format";
 import { formatAccountLabel } from "@/lib/finance/ledger";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,10 @@ function groupByDay(transactions: LedgerTransactionDTO[]) {
   }));
 }
 
+function dayTotal(items: LedgerTransactionDTO[]) {
+  return items.reduce((sum, t) => sum + (t.type === "credit" ? t.amount : -t.amount), 0);
+}
+
 function EditTxButton({ transaction }: { transaction: LedgerTransactionDTO }) {
   const { openEditTransaction } = useLedger();
 
@@ -63,7 +68,7 @@ function EditTxButton({ transaction }: { transaction: LedgerTransactionDTO }) {
       type="button"
       variant="ghost"
       size="sm"
-      className="min-h-11 px-2.5 text-muted-foreground md:px-3"
+      className="text-muted-foreground"
       aria-label="Edit transaction"
       onClick={() => openEditTransaction(transaction)}
     >
@@ -95,7 +100,7 @@ function DeleteTxButton({ id, label }: { id: string; label: string }) {
         type="button"
         variant="ghost"
         size="sm"
-        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        className="text-muted-foreground hover:text-destructive"
         aria-label="Delete transaction"
         onClick={() => setOpen(true)}
       >
@@ -111,7 +116,7 @@ function DeleteTxButton({ id, label }: { id: string; label: string }) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={pending}>
@@ -129,11 +134,11 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
 
   if (transactions.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-        <p className="font-heading text-lg">No transactions yet</p>
+      <div className="border border-dashed border-border bg-card px-6 py-12 text-center">
+        <p className="text-lg font-bold">No transactions yet</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tap <span className="font-medium text-foreground">Add</span> in the bottom bar, or{" "}
-          <Link href="/accounts" className="text-primary underline-offset-4 hover:underline">
+          Tap <span className="font-bold text-foreground">Add</span> in the bottom bar, or{" "}
+          <Link href="/accounts" className="font-semibold text-brand-text underline-offset-4 hover:underline">
             set up an account
           </Link>{" "}
           first.
@@ -143,13 +148,23 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
   }
 
   return (
-    <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.key}>
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {group.label}
-          </h2>
-          <div className="space-y-2">
+    <div className="border border-border bg-card">
+      {groups.map((group, groupIndex) => {
+        const total = dayTotal(group.items);
+        return (
+          <div key={group.key}>
+            <div
+              className={cn(
+                "flex justify-between px-5 py-2 np-caps bg-muted text-muted-foreground",
+                groupIndex > 0 && "border-t border-border"
+              )}
+            >
+              <span>{group.label}</span>
+              <span className="font-bold tabular-nums text-foreground">
+                {total >= 0 ? "+" : "−"}
+                {formatINR(Math.abs(total))}
+              </span>
+            </div>
             {group.items.map((t) => {
               const title = t.merchant || t.description || t.category;
               const accountLabel = formatAccountLabel(
@@ -160,14 +175,12 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
               return (
                 <div
                   key={t.id}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3.5"
+                  className="flex items-center gap-4 border-t border-border px-5 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium">{title}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        {t.category}
-                      </Badge>
+                      <p className="truncate font-bold">{title}</p>
+                      <Badge variant="secondary">{t.category}</Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{accountLabel}</p>
                     <p className="text-xs text-muted-foreground">
@@ -177,26 +190,25 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
                       })}
                     </p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <p
-                      className={`font-medium tabular-nums ${
-                        t.type === "credit" ? "text-success" : "text-foreground"
-                      }`}
-                    >
-                      {t.type === "credit" ? "+" : "−"}
-                      {formatINR(t.amount)}
-                    </p>
-                    <div className="flex items-center gap-0.5">
-                      <EditTxButton transaction={t} />
-                      <DeleteTxButton id={t.id} label={title} />
-                    </div>
+                  <p
+                    className={cn(
+                      "shrink-0 font-extrabold tabular-nums",
+                      t.type === "credit" ? "text-success-text" : "text-foreground"
+                    )}
+                  >
+                    {t.type === "credit" ? "+" : "−"}
+                    {formatINR(t.amount)}
+                  </p>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <EditTxButton transaction={t} />
+                    <DeleteTxButton id={t.id} label={title} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </section>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -211,7 +223,7 @@ export function AccountFilterLink({
   return (
     <Link
       href={`/transactions?account=${accountId}`}
-      className="text-xs text-primary underline-offset-4 hover:underline"
+      className="text-xs font-semibold text-brand-text underline-offset-4 hover:underline"
     >
       View transactions for {accountName}
     </Link>

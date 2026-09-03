@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Label } from "@/components/ui/label";
+import { LabeledSelect } from "@/components/ui/labeled-select";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
   Sheet,
@@ -21,7 +22,7 @@ import { createTransactionAction, updateTransactionAction } from "@/actions/ledg
 import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
 import { cn } from "@/lib/utils";
 import { pickPreferredAccountId, sortPaymentAccounts } from "@/lib/finance/ledger";
-import { ChevronDown, Star } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 const LAST_ACCOUNT_KEY = "finplan-last-account";
 const LAST_CATEGORY_KEY = "finplan-last-category";
@@ -34,6 +35,14 @@ function toDatetimeLocalValue(value: string | Date) {
   const d = new Date(value);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function accountLabel(acc: PaymentAccountDTO) {
+  const meta = [acc.institution, acc.lastFour ? `•••• ${acc.lastFour}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  const name = acc.isFavorite ? `★ ${acc.name}` : acc.name;
+  return meta ? `${name} · ${meta}` : name;
 }
 
 export function QuickTransactionSheet({
@@ -120,11 +129,11 @@ export function QuickTransactionSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[92dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[92dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4">
-          <SheetTitle className="font-heading text-xl">
+          <SheetTitle className="text-xl">
             {isEdit ? "Edit transaction" : "Add transaction"}
           </SheetTitle>
           <SheetDescription>
@@ -150,19 +159,15 @@ export function QuickTransactionSheet({
             <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
               <div className="flex gap-2">
                 {(["debit", "credit"] as const).map((t) => (
-                  <button
+                  <Button
                     key={t}
                     type="button"
+                    variant={txType === t ? "default" : "outline"}
+                    className="flex-1"
                     onClick={() => setTxType(t)}
-                    className={cn(
-                      "min-h-11 flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition-colors",
-                      txType === t
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:bg-muted/40"
-                    )}
                   >
                     {t === "debit" ? "Expense" : "Income"}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -176,7 +181,7 @@ export function QuickTransactionSheet({
                   onChange={(e) => setAmount(e.target.value)}
                   required
                   autoFocus={!isEdit}
-                  className="h-12 text-lg"
+                  className="h-14 text-3xl font-extrabold"
                 />
               </div>
 
@@ -189,10 +194,10 @@ export function QuickTransactionSheet({
                       type="button"
                       onClick={() => setCategory(cat)}
                       className={cn(
-                        "min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm transition-colors",
+                        "np-caps h-8 shrink-0 border px-3 text-[10px] transition-colors",
                         category === cat
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-muted/30 text-foreground hover:bg-muted/60"
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-input text-foreground hover:bg-accent"
                       )}
                     >
                       {cat}
@@ -202,36 +207,17 @@ export function QuickTransactionSheet({
               </div>
 
               <div className="space-y-2">
-                <Label>Payment account</Label>
-                <div className="flex flex-wrap gap-2">
-                  {sortedAccounts.map((acc) => (
-                    <button
-                      key={acc.id}
-                      type="button"
-                      onClick={() => setAccountId(acc.id)}
-                      className={cn(
-                        "min-h-11 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                        accountId === acc.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted/40"
-                      )}
-                    >
-                      <span className="flex items-center gap-1.5 font-medium">
-                        {acc.isFavorite ? (
-                          <Star className="size-3.5 shrink-0 fill-chart-3 text-chart-3" />
-                        ) : null}
-                        {acc.name}
-                      </span>
-                      {(acc.institution || acc.lastFour) && (
-                        <span className="block text-xs text-muted-foreground">
-                          {[acc.institution, acc.lastFour ? `•••• ${acc.lastFour}` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <Label htmlFor="quick-account">Payment account</Label>
+                <LabeledSelect
+                  id="quick-account"
+                  value={accountId}
+                  onValueChange={(value) => setAccountId(value)}
+                  options={sortedAccounts.map((acc) => ({
+                    value: acc.id,
+                    label: accountLabel(acc),
+                  }))}
+                  placeholder="Choose account"
+                />
               </div>
 
               <div className="space-y-2">
@@ -247,7 +233,7 @@ export function QuickTransactionSheet({
               <button
                 type="button"
                 onClick={() => setShowDate((v) => !v)}
-                className="flex min-h-11 w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground"
+                className="flex h-10 w-full items-center justify-between border border-border px-3 text-sm text-muted-foreground"
               >
                 <span>{showDate ? "Hide date" : "Change date (defaults to now)"}</span>
                 <ChevronDown
@@ -276,8 +262,8 @@ export function QuickTransactionSheet({
               />
             </div>
 
-            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              <Button type="submit" className="h-11 w-full text-base" disabled={pending}>
+            <SheetFooter className="shrink-0 border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <Button type="submit" variant="brand" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : isEdit ? "Save changes" : "Save transaction"}
               </Button>
             </SheetFooter>
