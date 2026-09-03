@@ -1,0 +1,9 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="finplan-mark-title">
+  <title id="finplan-mark-title">FinPlan mark</title>
+  <polygon points="432,0 512,80 512,512 432,432" fill="#A0B22D" />
+  <polygon points="0,432 432,432 512,512 80,512" fill="#E5FE40" />
+  <rect x="0" y="0" width="432" height="432" fill="#0d0d0d" />
+  <rect x="72" y="256" width="80" height="96" fill="#ffffff" />
+  <rect x="176" y="176" width="80" height="176" fill="#ffffff" />
+  <rect x="280" y="96" width="80" height="256" fill="#ffffff" />
+</svg>

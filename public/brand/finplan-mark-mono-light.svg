@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" >
+    <mask id="finplan-steps-cutout">
+      <rect x="0" y="0" width="512" height="512" fill="#ffffff" />
+      <rect x="72" y="256" width="80" height="96" fill="#000000" />
+      <rect x="176" y="176" width="80" height="176" fill="#000000" />
+      <rect x="280" y="96" width="80" height="256" fill="#000000" />
+    </mask>
+    <polygon points="0,0 432,0 512,80 512,512 80,512 0,432" fill="#ffffff" mask="url(#finplan-steps-cutout)" />
+  </svg>

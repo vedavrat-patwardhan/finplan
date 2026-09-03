@@ -73,8 +73,15 @@ For older messages, export an unencrypted SMS-only XML file with **SMS Backup & 
 ## Scripts
 
 ```bash
-npm run dev      # Development server
-npm run build    # Production build
-npm run start    # Production server
-npm run lint     # ESLint
+npm run dev          # Development server
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # ESLint
+npm run brand:assets # Regenerate logo/icon/OG PNGs and brand SVGs
 ```
+
+## Brand
+
+FinPlan's visual identity (logo, colour, type, voice, OG/app-icon specs) is
+documented in [`BRAND.md`](./BRAND.md); the NeoPop UI design system built on
+top of it — tokens, primitives, layout chrome — is in [`DESIGN.md`](./DESIGN.md).
