@@ -225,7 +225,6 @@ export function AppShell({
   children: React.ReactNode;
   userName?: string;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const navItems: NavItem[] = userName?.trim().toLowerCase() === "vedavrat"
     ? [
@@ -242,17 +241,8 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
-        <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background px-3 py-3 md:hidden">
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger render={<Button variant="outline" size="icon-sm" className="shrink-0" />}>
-              <Menu className="size-4" />
-              <span className="sr-only">Open navigation</span>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex h-full w-72 flex-col p-0">
-              <SidebarContent navItems={navItems} onNavigate={() => setSidebarOpen(false)} />
-            </SheetContent>
-          </Sheet>
-
+        {/* Mobile navigation lives in the bottom bar; the header only carries brand and theme. */}
+        <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background px-4 py-3 md:hidden">
           <div className="min-w-0 flex-1">
             <AppLogo variant="header" showTagline={false} />
             {userName ? (
