@@ -31,12 +31,18 @@ import {
 } from "@/lib/finance/account-details";
 import { cn } from "@/lib/utils";
 
+function progressTone(pct: number, over = false) {
+  if (over || pct >= 90) return "bg-destructive";
+  if (pct >= 70) return "bg-warning";
+  return "bg-success";
+}
+
 function AccountNotesDisplay({ notes }: { notes: string }) {
   if (!notes.trim()) return null;
 
   return (
-    <div className="rounded-lg bg-muted/40 px-3 py-2.5">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Notes</p>
+    <div className="bg-muted px-3 py-2.5">
+      <p className="np-caps text-muted-foreground">Notes</p>
       <p className="mt-0.5 whitespace-pre-wrap text-sm">{notes}</p>
     </div>
   );
@@ -49,6 +55,37 @@ const typeIcons: Record<PaymentAccountType, ComponentType<{ className?: string }
   cash: Banknote,
   wallet: Smartphone,
 };
+
+function ExpandToggle({
+  expanded,
+  onToggle,
+  label,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="np-caps flex-1 text-left text-muted-foreground transition-colors hover:text-foreground"
+      >
+        {expanded ? "Hide" : "View"} {label}
+      </button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onToggle}
+        aria-label={expanded ? `Hide ${label}` : `View ${label}`}
+      >
+        <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
+      </Button>
+    </div>
+  );
+}
 
 function CardWalletItem({
   account,
@@ -71,16 +108,16 @@ function CardWalletItem({
   const overSpendTarget = spendTarget != null && spendTarget > 0 && monthlySpend > spendTarget;
 
   return (
-    <article className="isolate overflow-hidden rounded-2xl border border-border bg-card">
+    <article className="border border-border bg-card">
       <PaymentCardFlip account={account} isCredit={isCredit} />
 
       <div className="space-y-3 px-5 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">
+            <p className="np-caps text-muted-foreground">
               {isCredit ? "Outstanding" : "Balance tracked"}
             </p>
-            <p className="font-heading text-xl font-semibold tabular-nums">
+            <p className="text-xl font-extrabold tabular-nums">
               {formatINR(Math.abs(account.currentBalance), { compact: true })}
             </p>
             {isCredit && account.creditLimit ? (
@@ -98,9 +135,9 @@ function CardWalletItem({
 
         {isCredit && account.creditLimit ? (
           <div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-2 bg-muted">
               <div
-                className="h-full rounded-full bg-primary"
+                className={cn("h-full", progressTone(limitUsedPct))}
                 style={{ width: `${limitUsedPct}%` }}
               />
             </div>
@@ -125,28 +162,20 @@ function CardWalletItem({
                 </span>
               </span>
             </div>
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="mt-1.5 h-2 bg-muted">
               <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  overSpendTarget ? "bg-destructive" : spendUsedPct > 85 ? "bg-chart-3" : "bg-chart-1"
-                )}
+                className={cn("h-full transition-all", progressTone(spendUsedPct, overSpendTarget))}
                 style={{ width: `${spendUsedPct}%` }}
               />
             </div>
           </div>
         ) : null}
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9 w-full gap-1 text-muted-foreground"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "Hide" : "View"} card details
-          <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
-        </Button>
+        <ExpandToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+          label="card details"
+        />
 
         {expanded ? (
           <div className="border-t border-border pt-3">
@@ -160,7 +189,7 @@ function CardWalletItem({
 
         <Link
           href={`/transactions?account=${account.id}`}
-          className="inline-block text-sm text-primary underline-offset-4 hover:underline"
+          className="inline-block text-sm text-brand-text underline-offset-4 hover:underline"
         >
           View transactions
         </Link>
@@ -173,25 +202,17 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <article className="rounded-xl border border-border bg-card px-5 py-4">
+    <article className="border border-border bg-card px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
             <Landmark className="size-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{account.name}</p>
-              {account.isFavorite ? (
-                <Badge variant="secondary" className="text-xs">
-                  Favourite
-                </Badge>
-              ) : null}
-              {account.isDefault ? (
-                <Badge variant="secondary" className="text-xs">
-                  Default
-                </Badge>
-              ) : null}
+              <p className="font-bold">{account.name}</p>
+              {account.isFavorite ? <Badge variant="brand">Favourite</Badge> : null}
+              {account.isDefault ? <Badge variant="outline">Default</Badge> : null}
             </div>
             <p className="text-sm text-muted-foreground">
               {account.institution}
@@ -199,7 +220,12 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
                 ? ` · ${account.accountSubtype === "savings" ? "Savings" : "Current"}`
                 : ""}
             </p>
-            <p className="mt-2 font-heading text-xl font-semibold tabular-nums">
+            <p
+              className={cn(
+                "mt-2 text-xl font-extrabold tabular-nums",
+                account.currentBalance < 0 && "text-destructive"
+              )}
+            >
               {formatINR(account.currentBalance, { compact: true })}
             </p>
             <p className="font-mono text-xs text-muted-foreground">
@@ -220,16 +246,13 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="mt-3 h-9 gap-1 text-muted-foreground"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        {expanded ? "Hide" : "View"} account details
-        <ChevronDown className={cn("size-4 transition-transform", expanded && "rotate-180")} />
-      </Button>
+      <div className="mt-3">
+        <ExpandToggle
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+          label="account details"
+        />
+      </div>
 
       {expanded ? (
         <div className="mt-3 space-y-2 border-t border-border pt-3">
@@ -241,8 +264,8 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
               maskedDisplay={formatMaskedAccountFromLastFour(account.lastFour)}
             />
           ) : account.lastFour ? (
-            <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-              <p className="text-[11px] uppercase tracking-wider">Account number</p>
+            <div className="bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+              <p className="np-caps">Account number</p>
               <p className="mt-0.5 font-mono">•••• {account.lastFour}</p>
               <p className="mt-1 text-xs">
                 Full number not on file. Edit this account and enter the complete number to save and
@@ -276,8 +299,8 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
               maskedDisplay={formatMaskedCardFromLastFour(account.cardLastFour)}
             />
           ) : account.cardLastFour ? (
-            <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-              <p className="text-[11px] uppercase tracking-wider">Linked debit card</p>
+            <div className="bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+              <p className="np-caps">Linked debit card</p>
               <p className="mt-0.5 font-mono">
                 {formatMaskedCardFromLastFour(account.cardLastFour)}
               </p>
@@ -295,7 +318,7 @@ function BankAccountItem({ account }: { account: PaymentAccountDTO }) {
 
       <Link
         href={`/transactions?account=${account.id}`}
-        className="mt-3 inline-block text-sm text-primary underline-offset-4 hover:underline"
+        className="mt-3 inline-block text-sm text-brand-text underline-offset-4 hover:underline"
       >
         View transactions
       </Link>
@@ -307,25 +330,17 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
   const Icon = typeIcons[account.type];
 
   return (
-    <article className="rounded-xl border border-border bg-card px-5 py-4">
+    <article className="border border-border bg-card px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex size-10 shrink-0 items-center justify-center bg-muted">
             <Icon className="size-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{account.name}</p>
-              {account.isFavorite ? (
-                <Badge variant="secondary" className="text-xs">
-                  Favourite
-                </Badge>
-              ) : null}
-              {account.isDefault ? (
-                <Badge variant="secondary" className="text-xs">
-                  Default
-                </Badge>
-              ) : null}
+              <p className="font-bold">{account.name}</p>
+              {account.isFavorite ? <Badge variant="brand">Favourite</Badge> : null}
+              {account.isDefault ? <Badge variant="outline">Default</Badge> : null}
             </div>
             {account.upiId ? (
               <SensitiveField
@@ -337,7 +352,12 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
                 className="mt-2"
               />
             ) : null}
-            <p className="mt-2 font-heading text-xl font-semibold tabular-nums">
+            <p
+              className={cn(
+                "mt-2 text-xl font-extrabold tabular-nums",
+                account.currentBalance < 0 && "text-destructive"
+              )}
+            >
               {formatINR(account.currentBalance, { compact: true })}
             </p>
             {account.notes.trim() ? (
@@ -353,7 +373,7 @@ function SimpleAccountItem({ account }: { account: PaymentAccountDTO }) {
       </div>
       <Link
         href={`/transactions?account=${account.id}`}
-        className="mt-3 inline-block text-sm text-primary underline-offset-4 hover:underline"
+        className="mt-3 inline-block text-sm text-brand-text underline-offset-4 hover:underline"
       >
         View transactions
       </Link>
@@ -380,8 +400,8 @@ function AccountSection({
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-heading text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <h2 className="np-kicker np-caps text-xs text-subtle">{title}</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {addActions?.map((action) => (
@@ -394,7 +414,7 @@ function AccountSection({
         </div>
       </div>
       {accounts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-muted/15 px-5 py-8 text-center">
+        <div className="border border-dashed border-border bg-muted/15 px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
@@ -420,8 +440,8 @@ export function AccountsClient({
   if (accounts.length === 0) {
     return (
       <div className="space-y-8">
-        <div className="rounded-2xl border border-dashed border-border bg-muted/15 px-6 py-14 text-center">
-          <p className="font-heading text-xl">Set up how you pay</p>
+        <div className="border border-dashed border-border bg-muted/15 px-6 py-14 text-center">
+          <p className="text-lg font-bold">Set up how you pay</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
             Add your cards and bank accounts once. Reveal details only when you need to copy them.
           </p>

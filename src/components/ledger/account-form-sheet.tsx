@@ -3,9 +3,12 @@
 import { useActionState, useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
@@ -112,17 +115,10 @@ function StoredNumberBanner({
   hint: string;
 }) {
   return (
-    <div
-      className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5"
-      aria-label={`${label} saved on file`}
-    >
+    <div className="border border-border bg-accent px-3 py-2.5" aria-label={`${label} saved on file`}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-          On file
-        </span>
+        <p className="np-caps text-muted-foreground">{label}</p>
+        <Badge variant="secondary">On file</Badge>
       </div>
       <p className="mt-1.5 font-mono text-base tracking-wide">{masked}</p>
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
@@ -265,7 +261,7 @@ export function AccountFormSheet({
       <SheetTrigger
         render={
           <Button
-            variant={isEdit ? "outline" : "default"}
+            variant={isEdit ? "outline" : "brand"}
             size="sm"
             className={isEdit ? "min-h-11 px-2.5 md:px-3" : undefined}
             aria-label={isEdit ? triggerLabel : undefined}
@@ -281,13 +277,11 @@ export function AccountFormSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[92dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[92dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4">
-          <SheetTitle className="font-heading text-xl">
-            {isEdit ? "Edit account" : "Add account"}
-          </SheetTitle>
+          <SheetTitle>{isEdit ? "Edit account" : "Add account"}</SheetTitle>
           <SheetDescription className="min-h-11 text-sm leading-snug">
             {typeHints[type]}
           </SheetDescription>
@@ -297,19 +291,24 @@ export function AccountFormSheet({
             <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5">
               <div className="space-y-2">
                 <Label>What are you adding?</Label>
-                <Select value={type} onValueChange={(v) => v && setType(v)}>
-                  <SelectTrigger className="w-full" aria-label="Account type">
-                    <span className="flex-1 text-left">{typeLabels[type]}</span>
-                    <SelectValue className="sr-only">{typeLabels[type]}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    {PAYMENT_ACCOUNT_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {typeLabels[t]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {PAYMENT_ACCOUNT_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setType(t)}
+                      aria-pressed={type === t}
+                      className={cn(
+                        "border border-input bg-card px-4 py-3 text-left text-sm font-semibold transition-colors",
+                        type === t
+                          ? "border-foreground border-l-[3px] border-l-brand bg-accent"
+                          : "hover:bg-accent"
+                      )}
+                    >
+                      {typeLabels[t]}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -470,14 +469,13 @@ export function AccountFormSheet({
                 <div
                   className={cn(
                     "space-y-4",
-                    showLinkedDebitCardFields &&
-                      "rounded-xl border border-border bg-muted/20 p-4"
+                    showLinkedDebitCardFields && "border border-border bg-muted/20 p-4"
                   )}
                 >
                   {showLinkedDebitCardFields ? (
                     <div>
-                      <p className="font-heading text-base font-semibold">Linked debit card</p>
-                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      <p className="np-kicker np-caps text-xs text-subtle">Linked debit card</p>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                         Optional. Store the card with this bank account without counting its balance twice.
                       </p>
                     </div>
@@ -593,10 +591,9 @@ export function AccountFormSheet({
                       {isEdit && hasStoredCardCvv ? (
                         <p className="text-xs text-muted-foreground">Replace CVV (optional)</p>
                       ) : null}
-                      <Input
+                      <PasswordInput
                         id={`card-cvv-${account?.id ?? "new"}`}
                         name="cardCvv"
-                        type="password"
                         value={formValues.cardCvv}
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, "");
@@ -711,7 +708,7 @@ export function AccountFormSheet({
               ) : null}
 
               {(showBankFields || showCardFields) && (
-                <p className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+                <p className="bg-muted px-3 py-2.5 text-xs text-muted-foreground">
                   Card and account numbers are encrypted in the database. Tap the eye icon on the
                   Cards or Bank sections to reveal and copy when needed.
                 </p>
@@ -736,29 +733,31 @@ export function AccountFormSheet({
                 </p>
               </div>
 
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
-                <input
-                  type="checkbox"
+              <div className="flex items-center justify-between gap-3 border border-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Favourite</p>
+                  <p className="text-xs text-muted-foreground">Show at top of lists</p>
+                </div>
+                <Switch
                   checked={formValues.isFavorite}
-                  onChange={(e) => patchForm({ isFavorite: e.target.checked })}
-                  className="size-4 accent-primary"
+                  onCheckedChange={(checked) => patchForm({ isFavorite: checked })}
                 />
-                <span className="text-sm">Favourite — show at top of lists</span>
-              </label>
+              </div>
 
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
-                <input
-                  type="checkbox"
+              <div className="flex items-center justify-between gap-3 border border-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Default</p>
+                  <p className="text-xs text-muted-foreground">Use for new transactions</p>
+                </div>
+                <Switch
                   checked={formValues.isDefault}
-                  onChange={(e) => patchForm({ isDefault: e.target.checked })}
-                  className="size-4 accent-primary"
+                  onCheckedChange={(checked) => patchForm({ isDefault: checked })}
                 />
-                <span className="text-sm">Default for new transactions</span>
-              </label>
+              </div>
             </div>
 
             <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              <Button type="submit" className="h-11 w-full" disabled={pending}>
+              <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : isEdit ? "Update account" : "Save account"}
               </Button>
             </SheetFooter>

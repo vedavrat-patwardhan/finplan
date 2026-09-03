@@ -74,12 +74,12 @@ export function SensitiveField({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-3 py-2.5",
+        "flex items-center justify-between gap-3 border border-input bg-input-bg px-3 py-2",
         className
       )}
     >
       <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="np-caps text-muted-foreground">{label}</p>
         <p className={cn("truncate text-sm font-medium", mono && "font-mono tracking-wide")}>
           {display}
         </p>
@@ -88,8 +88,7 @@ export function SensitiveField({
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="size-9"
+          size="icon-sm"
           onClick={toggleReveal}
           disabled={loading}
           aria-label={revealed ? `Hide ${label}` : `Reveal ${label}`}
@@ -106,12 +105,11 @@ export function SensitiveField({
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-9"
+            size="icon-sm"
             onClick={handleCopy}
             aria-label={`Copy ${label}`}
           >
-            {copied ? <Check className="size-4 text-success" /> : <Copy className="size-4" />}
+            {copied ? <Check className="size-4 text-success-text" /> : <Copy className="size-4" />}
           </Button>
         ) : null}
       </div>

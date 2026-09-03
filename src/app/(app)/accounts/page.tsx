@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth/session";
 import { getPaymentAccounts, getCardMonthlySpend } from "@/lib/db/queries/ledger";
 import { AccountsClient } from "@/components/ledger/accounts-client";
 import { AccountFormSheet } from "@/components/ledger/account-form-sheet";
-import { PageShell, PageHeader } from "@/components/layout/page-chrome";
+import { PageShell, PageHeader, MetaStat } from "@/components/layout/page-chrome";
 
 export default async function AccountsPage() {
   const session = await getSession();
@@ -18,6 +18,11 @@ export default async function AccountsPage() {
       <PageHeader
         title="Accounts"
         description="Cards, bank accounts, and UPI wallets — reveal and copy details only when you need them."
+        meta={
+          accounts.length > 0 ? (
+            <MetaStat label="Accounts" value={String(accounts.length)} />
+          ) : undefined
+        }
       >
         {accounts.length > 0 ? <AccountFormSheet /> : null}
       </PageHeader>

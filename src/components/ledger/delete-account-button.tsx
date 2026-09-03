@@ -35,13 +35,12 @@ export function DeleteAccountButton({ id, name }: { id: string; name: string }) 
       <Button
         type="button"
         variant="ghost"
-        size="sm"
-        className="min-h-11 px-2.5 text-muted-foreground hover:text-destructive md:px-3"
+        size="icon-sm"
+        className="text-muted-foreground hover:text-destructive"
         aria-label={`Delete ${name}`}
         onClick={() => setOpen(true)}
       >
-        <Trash2 className="size-4 shrink-0" />
-        <span className="hidden md:inline">Delete</span>
+        <Trash2 className="size-4" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
@@ -52,7 +51,7 @@ export function DeleteAccountButton({ id, name }: { id: string; name: string }) 
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={pending}>

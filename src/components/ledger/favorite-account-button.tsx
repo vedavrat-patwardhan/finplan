@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 import { toggleAccountFavoriteAction } from "@/actions/ledger";
 import type { ActionResult } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const initialState: ActionResult = { success: false };
@@ -30,8 +31,10 @@ export function FavoriteAccountButton({
   }, [pending, router, state.success]);
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-sm"
       aria-label={isFavorite ? "Remove from favourites" : "Add to favourites"}
       aria-pressed={isFavorite}
       disabled={pending}
@@ -40,13 +43,9 @@ export function FavoriteAccountButton({
         fd.set("id", accountId);
         startTransition(() => formAction(fd));
       }}
-      className={cn(
-        "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:opacity-50",
-        isFavorite && "border-chart-3/30 bg-chart-3/10 text-chart-3 hover:text-chart-3",
-        className
-      )}
+      className={cn(isFavorite && "text-brand-text", className)}
     >
       <Star className={cn("size-4", isFavorite && "fill-current")} />
-    </button>
+    </Button>
   );
 }

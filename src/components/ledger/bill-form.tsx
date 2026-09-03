@@ -44,9 +44,9 @@ export function BillForm({
         const fd = new FormData(e.currentTarget);
         startTransition(() => formAction(fd));
       }}
-      className="space-y-4 rounded-xl border border-border bg-muted/20 p-5"
+      className="space-y-4 border border-border bg-muted/20 p-5"
     >
-      <p className="font-heading text-base font-semibold">Bill details</p>
+      <p className="text-base font-bold">Bill details</p>
       <input type="hidden" name="documentId" value={documentId} />
 
       {cardAccounts.length > 0 ? (

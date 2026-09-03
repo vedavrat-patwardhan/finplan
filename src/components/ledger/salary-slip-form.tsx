@@ -35,9 +35,9 @@ export function SalarySlipForm({
         const fd = new FormData(e.currentTarget);
         startTransition(() => formAction(fd));
       }}
-      className="space-y-4 rounded-xl border border-border bg-muted/20 p-5"
+      className="space-y-4 border border-border bg-muted/20 p-5"
     >
-      <p className="font-heading text-base font-semibold">Salary slip details</p>
+      <p className="text-base font-bold">Salary slip details</p>
       <input type="hidden" name="documentId" value={documentId} />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -100,9 +100,15 @@ export function SalarySlipForm({
           {(["new", "old"] as const).map((regime) => (
             <label
               key={regime}
-              className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm capitalize"
+              className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 border border-border px-3 text-sm capitalize"
             >
-              <input type="radio" name="taxRegime" value={regime} defaultChecked={regime === "new"} />
+              <input
+                type="radio"
+                name="taxRegime"
+                value={regime}
+                defaultChecked={regime === "new"}
+                className="accent-brand"
+              />
               {regime} regime
             </label>
           ))}

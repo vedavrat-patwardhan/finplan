@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   createSavedPasswordAction,
   deleteSavedPasswordAction,
   revealSavedPasswordAction,
@@ -23,6 +31,7 @@ function SavedPasswordRow({
   const [revealed, setRevealed] = useState<string | null>(null);
   const [revealing, setRevealing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleReveal() {
     if (revealed !== null) {
@@ -45,6 +54,7 @@ function SavedPasswordRow({
     setDeleting(false);
     if (result.success) {
       toast.success("Password deleted");
+      setConfirmOpen(false);
       onDeleted();
     } else {
       toast.error(result.error ?? "Delete failed");
@@ -52,12 +62,12 @@ function SavedPasswordRow({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+    <div className="flex items-center gap-3 border border-border bg-card px-4 py-3">
       <KeyRound className="size-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{item.title}</p>
+        <p className="truncate text-sm font-bold">{item.title}</p>
         {revealed !== null ? (
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground break-all">{revealed}</p>
+          <p className="mt-0.5 break-all font-mono text-xs text-muted-foreground">{revealed}</p>
         ) : (
           <p className="mt-0.5 text-xs text-muted-foreground">••••••••</p>
         )}
@@ -65,25 +75,42 @@ function SavedPasswordRow({
       <Button
         type="button"
         variant="ghost"
-        size="icon"
-        className="size-8 shrink-0"
+        size="icon-sm"
         disabled={revealing}
         onClick={handleReveal}
-        title={revealed !== null ? "Hide" : "Reveal"}
+        aria-label={revealed !== null ? "Hide password" : "Reveal password"}
       >
         {revealed !== null ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </Button>
       <Button
         type="button"
         variant="ghost"
-        size="icon"
-        className="size-8 shrink-0 text-destructive hover:text-destructive"
-        disabled={deleting}
-        onClick={handleDelete}
-        title="Delete"
+        size="icon-sm"
+        className="text-muted-foreground hover:text-destructive"
+        onClick={() => setConfirmOpen(true)}
+        aria-label={`Delete ${item.title}`}
       >
         <Trash2 className="size-4" />
       </Button>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete &quot;{item.title}&quot;?</DialogTitle>
+            <DialogDescription>
+              This saved password will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -123,11 +150,8 @@ function AddPasswordForm({ onAdded }: { onAdded: () => void }) {
   }
 
   return (
-    <form
-      onSubmit={handleSave}
-      className="space-y-3 rounded-lg border border-border bg-muted/20 p-4"
-    >
-      <p className="text-sm font-medium">Save new password</p>
+    <form onSubmit={handleSave} className="space-y-3 border border-border bg-muted/20 p-4">
+      <p className="text-sm font-bold">Save new password</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="pwd-title">Label</Label>
@@ -175,13 +199,11 @@ export function SavedPasswordManager({
   return (
     <section className="space-y-4 section-break">
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+        <span className="flex size-10 shrink-0 items-center justify-center bg-muted">
           <KeyRound className="size-5" />
         </span>
         <div className="space-y-0.5">
-          <h2 className="font-heading text-lg font-semibold leading-tight">
-            Saved passwords
-          </h2>
+          <h2 className="text-lg font-bold leading-tight">Saved passwords</h2>
           <p className="text-sm text-muted-foreground">
             Encrypted PDF passwords for statements and bills
           </p>
@@ -191,7 +213,7 @@ export function SavedPasswordManager({
       <AddPasswordForm onAdded={onChanged} />
 
       {savedPasswords.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border bg-muted/15 px-5 py-8 text-center text-sm text-muted-foreground">
+        <p className="border border-dashed border-border bg-muted/15 px-5 py-8 text-center text-sm text-muted-foreground">
           No saved passwords yet — save one while importing a statement, or add it here.
         </p>
       ) : (

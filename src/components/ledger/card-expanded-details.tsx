@@ -75,13 +75,13 @@ export function CardExpandedDetails({
               details.cardCvv ? (
                 <CopyField label="CVV" value={details.cardCvv} />
               ) : account.hasCardCvv ? (
-                <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-                  <p className="text-[11px] uppercase tracking-wider">CVV</p>
+                <div className="border border-input bg-input-bg px-3 py-2 text-sm text-muted-foreground">
+                  <p className="np-caps">CVV</p>
                   <p className="mt-0.5 text-xs">Could not decrypt CVV. Edit this card to re-save it.</p>
                 </div>
               ) : (
-                <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-                  <p className="text-[11px] uppercase tracking-wider">CVV</p>
+                <div className="border border-input bg-input-bg px-3 py-2 text-sm text-muted-foreground">
+                  <p className="np-caps">CVV</p>
                   <p className="mt-0.5 text-xs">Not saved. Edit this card to add your CVV.</p>
                 </div>
               )
@@ -91,7 +91,7 @@ export function CardExpandedDetails({
           <Button
             type="button"
             variant="outline"
-            className="h-10 w-full"
+            className="w-full"
             onClick={handleReveal}
             disabled={loading}
           >
@@ -106,8 +106,8 @@ export function CardExpandedDetails({
           </Button>
         )
       ) : (
-        <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-          <p className="text-[11px] uppercase tracking-wider">Card number</p>
+        <div className="border border-input bg-input-bg px-3 py-2 text-sm text-muted-foreground">
+          <p className="np-caps">Card number</p>
           <p className="mt-0.5 text-xs">
             Full number not on file. Edit this card and enter the complete number to save and
             reveal it later.
