@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/finance/money-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { completeOnboardingAction } from "@/actions/finance";
 import {
   DEFAULT_EXPENSE_TEMPLATES,
@@ -17,6 +20,7 @@ import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
 import { formatExpenseClassLabel } from "@/lib/finance/expense-classes";
+import { cn } from "@/lib/utils";
 import { Target, Users } from "lucide-react";
 
 const STEPS = ["Welcome", "Income", "Expenses", "Investments", "Goals"] as const;
@@ -119,9 +123,9 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
 
   return (
     <div className="page-container max-w-2xl py-10">
-      <div className="mb-2 flex justify-between text-xs text-muted-foreground">
+      <div className="mb-2 flex justify-between np-caps text-muted-foreground">
         {STEPS.map((label, i) => (
-          <span key={label} className={i === step ? "font-medium text-primary" : ""}>
+          <span key={label} className={i === step ? "text-foreground" : undefined}>
             {label}
           </span>
         ))}
@@ -130,32 +134,30 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
         {STEPS.map((_, i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
+            className={cn("h-1 flex-1", i < step ? "bg-foreground" : i === step ? "bg-brand" : "bg-muted")}
           />
         ))}
       </div>
 
       <div onKeyDown={handleFormKeyDown}>
         {step === 0 && (
-          <Card>
+          <Card elevated>
             <CardHeader>
-              <CardTitle className="font-heading">
-                {revisit
-                  ? "Welcome back"
-                  : initialName
-                    ? `Welcome, ${initialName.split(" ")[0]}`
-                    : "Welcome"}
+              <CardTitle className="font-display text-4xl font-normal leading-tight">
+                let&apos;s plan with clarity.
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="mt-2 text-subtle">
                 {revisit
-                  ? "Pick expense budgets, investments, and goals to add to your plan."
-                  : "Your name from account creation is already saved. You can change it anytime in Settings."}
+                  ? "Welcome back. Pick expense budgets, investments, and goals to add to your plan."
+                  : initialName
+                    ? `Welcome, ${initialName.split(" ")[0]}. Your name from account creation is already saved. You can change it anytime in Settings.`
+                    : "Your name from account creation is already saved. You can change it anytime in Settings."}
               </CardDescription>
             </CardHeader>
             {initialName ? (
               <CardContent>
-                <p className="rounded-lg bg-muted/40 px-4 py-3 text-sm">
-                  Signed in as <span className="font-medium text-foreground">{initialName}</span>
+                <p className="bg-muted px-4 py-3 text-sm">
+                  Signed in as <span className="font-bold text-foreground">{initialName}</span>
                 </p>
               </CardContent>
             ) : null}
@@ -163,9 +165,9 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
         )}
 
         {step === 1 && (
-          <Card>
+          <Card elevated>
             <CardHeader>
-              <CardTitle className="font-heading">Monthly income</CardTitle>
+              <CardTitle>Monthly income</CardTitle>
               <CardDescription>
                 {revisit
                   ? "Your income is already set up. Skip this step or update it anytime from the Income page."
@@ -173,14 +175,12 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border px-4 py-3">
-                <input
-                  type="checkbox"
+              <label className="flex cursor-pointer items-center justify-between gap-3 border border-border px-4 py-3">
+                <span className="text-sm font-medium">Skip for now — I&apos;ll add income later</span>
+                <Switch
                   checked={income.skipIncome}
-                  onChange={(e) => setIncome((p) => ({ ...p, skipIncome: e.target.checked }))}
-                  className="size-4"
+                  onCheckedChange={(checked) => setIncome((p) => ({ ...p, skipIncome: checked }))}
                 />
-                <span className="text-sm">Skip for now — I&apos;ll add income later</span>
               </label>
 
               {!income.skipIncome && (
@@ -220,49 +220,42 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
 
                   <div className="space-y-2">
                     <Label>Tax regime (FY 2025-26)</Label>
-                    <div className="flex gap-2">
-                      {(["new", "old"] as const).map((regime) => (
-                        <button
-                          key={regime}
-                          type="button"
-                          onClick={() => setIncome((p) => ({ ...p, taxRegime: regime }))}
-                          className={`rounded-full px-4 py-1.5 text-sm capitalize transition-colors ${
-                            income.taxRegime === regime
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {regime} regime
-                        </button>
-                      ))}
-                    </div>
+                    <Tabs
+                      value={income.taxRegime}
+                      onValueChange={(value) => setIncome((p) => ({ ...p, taxRegime: value as "new" | "old" }))}
+                    >
+                      <TabsList className="w-full">
+                        <TabsTrigger value="new" className="flex-1">New regime</TabsTrigger>
+                        <TabsTrigger value="old" className="flex-1">Old regime</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
                   </div>
 
                   {taxPreview && (
-                    <div className="rounded-xl bg-muted/40 p-4 space-y-3">
-                      <p className="text-sm font-medium">Estimated tax breakdown</p>
+                    <div className="space-y-3 bg-muted p-4">
+                      <p className="np-caps text-muted-foreground">Estimated tax breakdown</p>
                       <div className="grid gap-2 text-sm sm:grid-cols-2">
                         <div>
                           <p className="text-muted-foreground">Total in-hand</p>
-                          <p className="font-medium tabular-nums">
+                          <p className="font-extrabold tabular-nums">
                             {formatINR(taxPreview.totalInHandAnnual, { compact: true })}/yr
                           </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Est. gross package</p>
-                          <p className="font-medium tabular-nums">
+                          <p className="font-extrabold tabular-nums">
                             {formatINR(taxPreview.estimatedTotalGross, { compact: true })}/yr
                           </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Est. total tax + cess</p>
-                          <p className="font-medium tabular-nums text-destructive">
+                          <p className="font-extrabold tabular-nums text-destructive">
                             {formatINR(taxPreview.estimatedTotalTax, { compact: true })}
                           </p>
                         </div>
                         <div>
                           <p className="text-muted-foreground">Effective tax rate</p>
-                          <p className="font-medium">
+                          <p className="font-extrabold">
                             {formatPercent(taxPreview.combinedTaxDetail.effectiveRate)}
                           </p>
                         </div>
@@ -278,18 +271,10 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
 
               {!revisit ? (
                 <div className="space-y-4 border-t border-border pt-5">
-                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={income.householdEnabled}
-                      onChange={(e) =>
-                        setIncome((p) => ({ ...p, householdEnabled: e.target.checked }))
-                      }
-                      className="mt-0.5 size-4"
-                    />
+                  <label className="flex cursor-pointer items-start justify-between gap-3 border border-border px-4 py-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-sm font-medium">
-                        <Users className="size-4 text-primary" />
+                        <Users className="size-4 text-brand-text" />
                         My partner also earns
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -297,10 +282,15 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                         shared.
                       </p>
                     </div>
+                    <Switch
+                      checked={income.householdEnabled}
+                      onCheckedChange={(checked) => setIncome((p) => ({ ...p, householdEnabled: checked }))}
+                      className="mt-0.5 shrink-0"
+                    />
                   </label>
 
                   {income.householdEnabled ? (
-                    <div className="space-y-4 rounded-xl bg-muted/30 p-4">
+                    <div className="space-y-4 bg-muted p-4">
                       <div className="space-y-2">
                         <Label htmlFor="spouseName">Partner&apos;s name</Label>
                         <Input
@@ -348,24 +338,17 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                       </div>
                       <div className="space-y-2">
                         <Label>Partner tax regime</Label>
-                        <div className="flex gap-2">
-                          {(["new", "old"] as const).map((regime) => (
-                            <button
-                              key={regime}
-                              type="button"
-                              onClick={() =>
-                                setIncome((p) => ({ ...p, spouseTaxRegime: regime }))
-                              }
-                              className={`rounded-full px-4 py-1.5 text-sm capitalize transition-colors ${
-                                income.spouseTaxRegime === regime
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              }`}
-                            >
-                              {regime} regime
-                            </button>
-                          ))}
-                        </div>
+                        <Tabs
+                          value={income.spouseTaxRegime}
+                          onValueChange={(value) =>
+                            setIncome((p) => ({ ...p, spouseTaxRegime: value as "new" | "old" }))
+                          }
+                        >
+                          <TabsList className="w-full">
+                            <TabsTrigger value="new" className="flex-1">New regime</TabsTrigger>
+                            <TabsTrigger value="old" className="flex-1">Old regime</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
                       </div>
                     </div>
                   ) : null}
@@ -376,88 +359,96 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
         )}
 
         {step === 2 && (
-          <Card>
+          <Card elevated>
             <CardHeader>
-              <CardTitle className="font-heading">Common expenses</CardTitle>
+              <CardTitle>Common expenses</CardTitle>
               <CardDescription>Optional — select any that apply, edit amounts later</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {DEFAULT_EXPENSE_TEMPLATES.map((template, i) => (
-                <label
-                  key={template.name}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-muted/40"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedExpenses.has(i)}
-                      onChange={() =>
-                        setSelectedExpenses((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(i)) next.delete(i);
-                          else next.add(i);
-                          return next;
-                        })
-                      }
-                      className="size-4"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{template.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {template.category} · {formatExpenseClassLabel(template.expenseClass)}
-                      </p>
+              {DEFAULT_EXPENSE_TEMPLATES.map((template, i) => {
+                const selected = selectedExpenses.has(i);
+                return (
+                  <label
+                    key={template.name}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between border border-input bg-card px-4 py-3",
+                      selected && "border-foreground border-l-[3px] border-l-brand bg-accent"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selected}
+                        onCheckedChange={() =>
+                          setSelectedExpenses((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(i)) next.delete(i);
+                            else next.add(i);
+                            return next;
+                          })
+                        }
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{template.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {template.category} · {formatExpenseClassLabel(template.expenseClass)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </label>
-              ))}
+                  </label>
+                );
+              })}
             </CardContent>
           </Card>
         )}
 
         {step === 3 && (
-          <Card>
+          <Card elevated>
             <CardHeader>
-              <CardTitle className="font-heading">Investments</CardTitle>
+              <CardTitle>Investments</CardTitle>
               <CardDescription>Optional — SIPs and recurring plans</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              {DEFAULT_INVESTMENT_TEMPLATES.map((template, i) => (
-                <label
-                  key={template.name}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-muted/40"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedInvestments.has(i)}
-                      onChange={() =>
-                        setSelectedInvestments((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(i)) next.delete(i);
-                          else next.add(i);
-                          return next;
-                        })
-                      }
-                      className="size-4"
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{template.name}</p>
-                      <p className="text-xs text-muted-foreground">{template.type}</p>
+              {DEFAULT_INVESTMENT_TEMPLATES.map((template, i) => {
+                const selected = selectedInvestments.has(i);
+                return (
+                  <label
+                    key={template.name}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between border border-input bg-card px-4 py-3",
+                      selected && "border-foreground border-l-[3px] border-l-brand bg-accent"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selected}
+                        onCheckedChange={() =>
+                          setSelectedInvestments((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(i)) next.delete(i);
+                            else next.add(i);
+                            return next;
+                          })
+                        }
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{template.name}</p>
+                        <p className="text-xs text-muted-foreground">{template.type}</p>
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-sm tabular-nums">
-                    {formatINR(template.amount, { compact: true })}/mo
-                  </span>
-                </label>
-              ))}
+                    <span className="text-sm font-extrabold tabular-nums">
+                      {formatINR(template.amount, { compact: true })}/mo
+                    </span>
+                  </label>
+                );
+              })}
             </CardContent>
           </Card>
         )}
 
         {step === 4 && (
-          <Card className="mb-24">
+          <Card elevated className="mb-24">
             <CardHeader>
-              <CardTitle className="font-heading">Your goals</CardTitle>
+              <CardTitle>Your goals</CardTitle>
               <CardDescription>
                 Choose milestones you&apos;re working toward. Nothing is selected by default.
               </CardDescription>
@@ -468,17 +459,15 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                 return (
                   <label
                     key={option.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 transition-colors ${
-                      selected
-                        ? "border-primary/40 bg-primary/5"
-                        : "border-border hover:bg-muted/40"
-                    }`}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-between border border-input bg-card px-4 py-3",
+                      selected && "border-foreground border-l-[3px] border-l-brand bg-accent"
+                    )}
                   >
                     <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selected}
-                        onChange={() =>
+                        onCheckedChange={() =>
                           setSelectedGoals((prev) => {
                             const next = new Set(prev);
                             if (next.has(option.id)) next.delete(option.id);
@@ -486,11 +475,10 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                             return next;
                           })
                         }
-                        className="size-4"
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          <Target className="size-4 text-primary" />
+                          <Target className="size-4 text-brand-text" />
                           <p className="text-sm font-medium">{option.title}</p>
                         </div>
                         <p className="text-xs text-muted-foreground">{option.description}</p>
@@ -500,7 +488,7 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
                 );
               })}
               {selectedGoals.size === 0 && (
-                <p className="rounded-lg bg-muted/30 px-4 py-3 text-center text-sm text-muted-foreground">
+                <p className="bg-muted px-4 py-3 text-center text-sm text-muted-foreground">
                   No goals selected — you can add them anytime from the Goals page.
                 </p>
               )}
@@ -508,7 +496,7 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
           </Card>
         )}
 
-        <div className="sticky bottom-0 mt-6 flex justify-between border-t border-border bg-background/95 px-1 py-4 backdrop-blur">
+        <div className="sticky bottom-0 mt-6 flex justify-between border-t border-border bg-background px-1 py-4">
           <Button
             type="button"
             variant="outline"
@@ -526,7 +514,7 @@ export function OnboardingWizard({ initialName, revisit = false }: OnboardingWiz
               Continue
             </Button>
           ) : (
-            <Button type="button" disabled={submitting} onClick={handleFinish}>
+            <Button type="button" variant="brand" disabled={submitting} onClick={handleFinish}>
               {submitting
                 ? revisit
                   ? "Saving..."
