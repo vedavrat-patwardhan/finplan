@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthCard, LoginForm } from "@/components/auth/auth-forms";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/brand/app-logo";
 
 export default function LoginPage() {
   return (
@@ -8,24 +9,19 @@ export default function LoginPage() {
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
-      <div className="mb-8 text-center">
-        <Link href="/" className="font-heading text-3xl font-semibold tracking-tight">
-          FinPlan
-        </Link>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Your personal finance planning companion
-        </p>
-      </div>
+      <Link href="/" className="mb-8">
+        <AppLogo variant="hero" />
+      </Link>
       <AuthCard
-        title="Welcome back"
-        description="Sign in to continue planning your goals"
+        title="welcome back."
+        description="sign in to continue planning your goals."
         alternateHref="/register"
-        alternateLabel="Create an account"
+        alternateLabel="create an account"
       >
         <LoginForm />
       </AuthCard>
-      <Link href="/" className="mt-4 text-sm text-primary underline-offset-4 hover:underline">
-        Back to home
+      <Link href="/" className="np-caps mt-6 text-muted-foreground hover:text-foreground">
+        back to home
       </Link>
     </div>
   );

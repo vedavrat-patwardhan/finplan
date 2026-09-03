@@ -86,14 +86,14 @@ function AuthForm({
             ) : (
               <Input type={field.type} {...inputProps} />
             )}
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="mt-1 text-xs font-semibold text-destructive">{error}</p> : null}
           </div>
         );
       })}
       {showGeneralError ? (
-        <p className="text-sm text-destructive">{state.error}</p>
+        <p className="text-xs font-semibold text-destructive">{state.error}</p>
       ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
         {pending ? "Please wait..." : submitLabel}
       </Button>
     </form>
@@ -142,17 +142,17 @@ export function AuthCard({
   alternateLabel: string;
 }) {
   return (
-    <Card className="w-full max-w-md border-border/80 shadow-sm">
-      <CardHeader className="text-center">
-        <CardTitle className="font-heading text-2xl">{title}</CardTitle>
+    <Card elevated className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-[22px] font-extrabold tracking-tight">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {children}
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href={alternateHref} className="text-primary underline-offset-4 hover:underline">
+        <p className="mt-6 text-sm text-muted-foreground">
+          <Button variant="link" render={<Link href={alternateHref} />}>
             {alternateLabel}
-          </Link>
+          </Button>
         </p>
       </CardContent>
     </Card>

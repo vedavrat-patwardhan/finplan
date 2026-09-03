@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthCard, RegisterForm } from "@/components/auth/auth-forms";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AppLogo } from "@/components/brand/app-logo";
 
 export default function RegisterPage() {
   return (
@@ -8,19 +9,14 @@ export default function RegisterPage() {
       <div className="absolute right-4 top-4">
         <ThemeToggle />
       </div>
-      <div className="mb-8 text-center">
-        <Link href="/" className="font-heading text-3xl font-semibold tracking-tight">
-          FinPlan
-        </Link>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Start planning marriage, home, and more
-        </p>
-      </div>
+      <Link href="/" className="mb-8">
+        <AppLogo variant="hero" />
+      </Link>
       <AuthCard
-        title="Create your account"
-        description="Open to everyone — simple email and password"
+        title="create your plan."
+        description="open to everyone — simple email and password."
         alternateHref="/login"
-        alternateLabel="Already have an account? Sign in"
+        alternateLabel="already have an account? sign in"
       >
         <RegisterForm />
       </AuthCard>

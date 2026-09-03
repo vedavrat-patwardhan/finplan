@@ -35,19 +35,15 @@ export function PageHeader({
         {backHref ? (
           <Link
             href={backHref}
-            className="mb-3 inline-flex min-h-11 cursor-pointer items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="np-caps mb-4 inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-3.5" />
             {backLabel}
           </Link>
         ) : null}
-        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-          {title}
-        </h1>
+        <h1 className="font-display text-3xl leading-tight md:text-4xl">{title}</h1>
         {description ? (
-          <p className="prose-width mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+          <p className="prose-width mt-2 text-muted-foreground">{description}</p>
         ) : null}
         {meta ? <div className="mt-3 flex w-full flex-wrap gap-2">{meta}</div> : null}
       </div>
@@ -59,10 +55,10 @@ export function PageHeader({
 }
 
 const metaStatTones = {
-  default: "border-border/60 bg-muted/40",
-  positive: "border-success/25 bg-success/10",
-  accent: "border-chart-1/30 bg-chart-1/10",
-  info: "border-chart-4/30 bg-chart-4/10",
+  default: { border: "", value: "text-foreground" },
+  positive: { border: "border-l-[3px] border-l-success", value: "text-success-text" },
+  accent: { border: "border-l-[3px] border-l-brand", value: "text-brand-text" },
+  info: { border: "border-l-[3px] border-l-info", value: "text-info-text" },
 } as const;
 
 export function MetaStat({
@@ -77,20 +73,12 @@ export function MetaStat({
   return (
     <span
       className={cn(
-        "inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm",
-        metaStatTones[tone]
+        "inline-flex min-w-32 flex-col gap-1 border border-border bg-card px-3 py-2",
+        metaStatTones[tone].border
       )}
     >
-      <span className="text-muted-foreground">{label}</span>
-      <span
-        className={cn(
-          "font-medium tabular-nums",
-          tone === "positive" && "text-success",
-          tone === "accent" && "text-chart-1",
-          tone === "info" && "text-chart-4",
-          tone === "default" && "text-foreground"
-        )}
-      >
+      <span className="np-caps text-muted-foreground">{label}</span>
+      <span className={cn("text-base font-extrabold tabular-nums", metaStatTones[tone].value)}>
         {value}
       </span>
     </span>
@@ -112,11 +100,9 @@ export function PageSection({
     <section className={cn("space-y-4", className)}>
       {title ? (
         <div>
-          <h2 className="font-heading text-lg font-semibold">
-            <span className="border-l-[3px] border-chart-1 pl-3">{title}</span>
-          </h2>
+          <h2 className="np-kicker np-caps text-xs text-subtle">{title}</h2>
           {description ? (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
           ) : null}
         </div>
       ) : null}
@@ -135,7 +121,7 @@ export function InsightPanel({
   return (
     <div
       className={cn(
-        "rounded-xl border border-chart-1/20 border-l-[3px] border-l-chart-1 bg-chart-1/5 px-5 py-4 text-sm leading-relaxed",
+        "border border-border border-l-[3px] border-l-brand bg-brand/5 px-5 py-4 text-sm leading-relaxed",
         className
       )}
     >

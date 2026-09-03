@@ -15,7 +15,7 @@ async function OnboardingLayoutContent({ children }: { children: React.ReactNode
       <header className="border-b border-border px-4 py-4">
         <div className="mx-auto flex max-w-2xl flex-col items-center gap-0.5">
           <AppLogo variant="header" showTagline={false} />
-          <p className="text-xs text-muted-foreground">Setup your financial plan</p>
+          <p className="np-caps text-muted-foreground">set up your plan</p>
         </div>
       </header>
       {children}

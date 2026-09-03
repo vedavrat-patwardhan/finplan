@@ -6,7 +6,6 @@ import { AppShell } from "@/components/layout/app-shell";
 import { LedgerProvider } from "@/components/ledger/ledger-provider";
 import { getCustomLedgerCategories, getPaymentAccounts } from "@/lib/db/queries/ledger";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageLoadingSkeleton } from "@/components/layout/page-loading-skeleton";
 
 async function LedgerShell({
@@ -45,7 +44,7 @@ async function AppLayoutContent({ children }: { children: React.ReactNode }) {
 function AppLayoutFallback() {
   return (
     <div className="flex min-h-screen">
-      <Skeleton className="hidden w-60 md:block" />
+      <div className="hidden w-60 border-r border-border bg-sidebar md:block" />
       <div className="flex-1">
         <PageLoadingSkeleton />
       </div>

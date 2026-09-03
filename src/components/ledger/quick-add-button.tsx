@@ -9,7 +9,7 @@ export function QuickAddButton({ className }: { className?: string }) {
   const { openQuickAdd } = useLedger();
 
   return (
-    <Button type="button" onClick={openQuickAdd} className={cn("gap-2", className)}>
+    <Button type="button" variant="brand" onClick={openQuickAdd} className={cn("gap-2", className)}>
       <Plus className="size-4" />
       Add transaction
     </Button>
@@ -23,13 +23,12 @@ export function QuickAddNavButton() {
     <button
       type="button"
       onClick={openQuickAdd}
-      className="relative -mt-5 flex flex-1 cursor-pointer flex-col items-center gap-0.5 outline-none"
+      className="flex flex-1 flex-col items-center justify-end gap-0.5 outline-none"
       aria-label="Add transaction"
     >
-      <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-        <Plus className="size-5" />
+      <span className="np-plunk np-plunk-press np-edge-brand -mt-6 inline-flex size-12 items-center justify-center bg-brand text-brand-foreground">
+        <Plus className="size-5 stroke-[2.5]" />
       </span>
-      <span className="text-[10px] font-medium text-primary">Add</span>
     </button>
   );
 }

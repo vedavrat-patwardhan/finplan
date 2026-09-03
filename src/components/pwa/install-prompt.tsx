@@ -90,13 +90,13 @@ export function InstallPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-20 z-50 rounded-xl border border-border bg-card p-4 shadow-lg md:hidden">
+    <div className="np-plunk fixed inset-x-4 bottom-20 z-50 border border-border bg-card p-4 md:hidden">
       <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex size-10 shrink-0 items-center justify-center bg-brand text-brand-foreground">
           {iosHint ? <Share className="size-5" /> : <Download className="size-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-heading text-sm font-semibold">Add FinPlan to home screen</p>
+          <p className="text-sm font-bold">Add FinPlan to home screen</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {iosHint
               ? "Tap Share, then “Add to Home Screen” for quick access like a native app."
@@ -104,7 +104,7 @@ export function InstallPrompt() {
           </p>
           <div className="mt-3 flex gap-2">
             {!iosHint ? (
-              <Button size="sm" onClick={install}>
+              <Button size="sm" variant="brand" onClick={install}>
                 Install
               </Button>
             ) : null}
@@ -113,14 +113,16 @@ export function InstallPrompt() {
             </Button>
           </div>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           onClick={dismiss}
-          className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground"
+          className="shrink-0"
           aria-label="Dismiss install prompt"
         >
           <X className="size-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

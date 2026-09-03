@@ -68,13 +68,11 @@ function NavLink({
       prefetch={true}
       onClick={onClick}
       className={cn(
-        "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-        active
-          ? "bg-chart-1/10 font-medium text-chart-1"
-          : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        "flex items-center gap-3 border-l-[3px] border-transparent px-4 py-2.5 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+        active && "border-brand bg-accent text-foreground"
       )}
     >
-      <Icon className={cn("size-4 shrink-0", active && "text-chart-1")} />
+      <Icon className="size-4 shrink-0" />
       {label}
     </Link>
   );
@@ -98,14 +96,14 @@ function MobileBottomNav({
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-end border-t border-border bg-background/95 pb-safe backdrop-blur md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-end border-t border-border bg-background pb-safe md:hidden">
       <Link
         href="/dashboard"
         prefetch={true}
         className={cn(
-          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          "np-caps flex flex-1 flex-col items-center gap-0.5 border-t-2 border-transparent py-2.5 text-[9px] tracking-[1px]",
           pathname === "/dashboard" || pathname.startsWith("/dashboard/")
-            ? "text-primary"
+            ? "border-brand text-foreground"
             : "text-muted-foreground"
         )}
       >
@@ -117,9 +115,9 @@ function MobileBottomNav({
         href="/transactions"
         prefetch={true}
         className={cn(
-          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
+          "np-caps flex flex-1 flex-col items-center gap-0.5 border-t-2 border-transparent py-2.5 text-[9px] tracking-[1px]",
           pathname === "/transactions" || pathname.startsWith("/transactions/")
-            ? "text-primary"
+            ? "border-brand text-foreground"
             : "text-muted-foreground"
         )}
       >
@@ -133,8 +131,8 @@ function MobileBottomNav({
         href="/accounts"
         prefetch={true}
         className={cn(
-          "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px]",
-          accountsActive ? "text-primary" : "text-muted-foreground"
+          "np-caps flex flex-1 flex-col items-center gap-0.5 border-t-2 border-transparent py-2.5 text-[9px] tracking-[1px]",
+          accountsActive ? "border-brand text-foreground" : "text-muted-foreground"
         )}
       >
         <Landmark className="size-4" />
@@ -147,8 +145,8 @@ function MobileBottomNav({
             <button
               type="button"
               className={cn(
-                "flex flex-1 cursor-pointer flex-col items-center gap-0.5 py-2.5 text-[10px] outline-none",
-                moreActive ? "text-primary" : "text-muted-foreground"
+                "np-caps flex flex-1 flex-col items-center gap-0.5 border-t-2 border-transparent py-2.5 text-[9px] tracking-[1px] outline-none",
+                moreActive ? "border-brand text-foreground" : "text-muted-foreground"
               )}
             />
           }
@@ -156,9 +154,9 @@ function MobileBottomNav({
           <Menu className="size-4" />
           More
         </SheetTrigger>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-safe pt-3">
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-          <p className="mb-3 px-1 font-heading text-base font-semibold">More</p>
+        <SheetContent side="bottom" className="px-4 pb-safe pt-3">
+          <div className="mx-auto mb-4 h-[3px] w-10 bg-input" />
+          <p className="np-caps mb-3 px-1 text-subtle">More</p>
           <nav className="grid grid-cols-2 gap-2 pb-2">
             {moreNavItems.map((item) => {
               const Icon = item.icon;
@@ -171,10 +169,10 @@ function MobileBottomNav({
                   prefetch={true}
                   onClick={() => onMoreOpenChange(false)}
                   className={cn(
-                    "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm",
+                    "flex items-center gap-3 border border-border px-3 py-3 text-sm font-semibold",
                     active
-                      ? "bg-primary/10 font-medium text-primary"
-                      : "text-muted-foreground hover:bg-muted"
+                      ? "border-l-[3px] border-l-brand bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
@@ -192,29 +190,25 @@ function MobileBottomNav({
 function SidebarContent({ onNavigate, navItems }: { onNavigate?: () => void; navItems: NavItem[] }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-5 py-6">
+      <div className="border-b border-border px-5 py-5">
         <Link href="/dashboard" prefetch={true} className="block" onClick={onNavigate}>
           <AppLogo variant="sidebar" />
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav className="flex-1 overflow-y-auto py-2">
         {navItems.map((item) => (
           <NavLink key={item.href} {...item} onClick={onNavigate} />
         ))}
       </nav>
 
-      <div className="sticky bottom-0 z-10 shrink-0 space-y-2 border-t border-sidebar-border bg-sidebar p-3">
+      <div className="sticky bottom-0 z-10 shrink-0 space-y-2 border-t border-border bg-sidebar p-3">
         <div className="flex items-center justify-between gap-2 px-1">
-          <span className="text-xs text-muted-foreground">Appearance</span>
+          <span className="np-caps text-muted-foreground">Appearance</span>
           <ThemeToggle />
         </div>
         <form action={logoutAction}>
-          <Button
-            type="submit"
-            variant="ghost"
-            className="w-full justify-start gap-3 text-muted-foreground"
-          >
+          <Button type="submit" variant="ghost" className="w-full justify-start">
             <LogOut className="size-4" />
             Sign out
           </Button>
@@ -248,9 +242,9 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-col md:ml-60">
-        <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background/90 px-3 py-3 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-40 flex items-center gap-2 border-b border-border bg-background px-3 py-3 md:hidden">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger render={<Button variant="outline" size="icon" className="shrink-0" />}>
+            <SheetTrigger render={<Button variant="outline" size="icon-sm" className="shrink-0" />}>
               <Menu className="size-4" />
               <span className="sr-only">Open navigation</span>
             </SheetTrigger>
@@ -262,7 +256,7 @@ export function AppShell({
           <div className="min-w-0 flex-1">
             <AppLogo variant="header" showTagline={false} />
             {userName ? (
-              <p className="truncate text-xs text-muted-foreground">Hello, {userName}</p>
+              <p className="np-caps truncate text-muted-foreground">Hello, {userName}</p>
             ) : null}
           </div>
 
