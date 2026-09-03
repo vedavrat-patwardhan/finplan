@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LabeledSelect } from "@/components/ui/labeled-select";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -182,6 +182,43 @@ function formValuesToDetails(values: FormValues): GoalDetails {
   };
 }
 
+/** Square NeoPop option tile grid — replaces native radios/selects for small closed choice sets. */
+function OptionTiles({
+  options,
+  value,
+  onChange,
+  className,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid gap-2", className)}>
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "border border-input bg-card px-4 py-3 text-left text-sm font-semibold transition-colors",
+              selected
+                ? "border-foreground border-l-[3px] border-l-brand bg-accent"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function GoalFormSheet({
   goal,
   defaultMonthlyExpenses,
@@ -329,9 +366,8 @@ export function GoalFormSheet({
       <SheetTrigger
         render={
           <Button
-            variant={isEdit ? "ghost" : "default"}
+            variant={isEdit ? "outline" : "brand"}
             size={isEdit ? "sm" : "default"}
-            className={isEdit ? "min-h-11 px-2.5 text-muted-foreground md:px-3" : undefined}
             aria-label={isEdit ? resolvedTriggerLabel : undefined}
           />
         }
@@ -345,14 +381,12 @@ export function GoalFormSheet({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 md:h-auto md:max-h-[88dvh]"
+        className="flex h-[92dvh] max-h-[92dvh] flex-col gap-0 p-0 md:h-auto md:max-h-[88dvh]"
       >
-        <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" />
+        <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border md:hidden" />
         <SheetHeader className="shrink-0 border-b border-border px-5 py-4 md:px-6 md:py-5">
-          <SheetTitle className="font-heading text-xl">
-            {isEdit ? "Edit goal" : "Add life goal"}
-          </SheetTitle>
-          <SheetDescription className="text-sm leading-relaxed">
+          <SheetTitle>{isEdit ? "Edit goal" : "Add life goal"}</SheetTitle>
+          <SheetDescription className="leading-relaxed">
             Choose a goal type — each has its own inputs so FinPlan can calculate
             the right target and monthly saving needed.
           </SheetDescription>
@@ -366,66 +400,65 @@ export function GoalFormSheet({
             }}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
-              <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+              <div className="space-y-4">
+                <p className="np-kicker np-caps text-xs text-subtle">Goal details</p>
+
                 <div className="space-y-2">
-                  <Label htmlFor="goal-type">Goal type</Label>
-                  <LabeledSelect
-                    id="goal-type"
-                    value={formValues.goalType}
-                    onValueChange={(value) => applyTypeDefaults(value as GoalType)}
+                  <Label>Goal type</Label>
+                  <OptionTiles
                     options={SELECTABLE_GOAL_TYPES.map((value) => ({
                       value,
                       label: formatEnumLabel(value),
                     }))}
+                    value={formValues.goalType}
+                    onChange={(value) => applyTypeDefaults(value as GoalType)}
+                    className="grid-cols-2 sm:grid-cols-3"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="goal-priority">Priority</Label>
-                  <LabeledSelect
-                    id="goal-priority"
-                    value={formValues.priorityTier}
-                    onValueChange={(value) => patchForm({ priorityTier: value })}
+                  <Label>Priority</Label>
+                  <OptionTiles
                     options={([1, 2, 3] as const).map((tier) => ({
                       value: String(tier),
                       label: PRIORITY_TIER_LABELS[tier],
                     }))}
+                    value={formValues.priorityTier}
+                    onChange={(value) => patchForm({ priorityTier: value })}
+                    className="grid-cols-3"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="goal-title">Goal title</Label>
+                  <Input
+                    id="goal-title"
+                    className={FIELD_CLASS}
+                    value={formValues.title}
+                    onChange={(e) => patchForm({ title: e.target.value })}
+                    placeholder="e.g. Mumbai flat down payment"
+                    required
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="goal-title">Goal title</Label>
-                <Input
-                  id="goal-title"
-                  className={FIELD_CLASS}
-                  value={formValues.title}
-                  onChange={(e) => patchForm({ title: e.target.value })}
-                  placeholder="e.g. Mumbai flat down payment"
-                  required
-                />
-              </div>
+              <div className="space-y-4 border-t border-border pt-5">
+                <p className="np-kicker np-caps text-xs text-subtle">Target</p>
 
-              <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-                <p className="text-sm font-medium">How to set the target</p>
-                <div className="flex flex-wrap gap-2">
-                  {(["calculated", "manual"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => patchForm({ targetMode: mode })}
-                      className={cn(
-                        "rounded-lg border px-3 py-2 text-sm transition-colors",
-                        formValues.targetMode === mode
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border text-muted-foreground hover:bg-muted/40"
-                      )}
-                    >
-                      {mode === "calculated"
-                        ? "Calculate from inputs"
-                        : "Enter amount manually"}
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <Label>How to set the target</Label>
+                  <OptionTiles
+                    options={[
+                      { value: "calculated", label: "Calculate from inputs" },
+                      { value: "manual", label: "Enter amount manually" },
+                    ]}
+                    value={formValues.targetMode}
+                    onChange={(value) =>
+                      patchForm({ targetMode: value as GoalTargetMode })
+                    }
+                    className="grid-cols-1 sm:grid-cols-2"
+                  />
                 </div>
 
                 {showCalculatedFields ? (
@@ -449,16 +482,16 @@ export function GoalFormSheet({
                 )}
 
                 {calculatedTarget != null && showCalculatedFields ? (
-                  <p className="text-sm text-muted-foreground">
-                    Calculated target:{" "}
-                    <span className="font-medium tabular-nums text-foreground">
+                  <div className="bg-muted px-4 py-3">
+                    <p className="np-caps text-muted-foreground">Calculated target</p>
+                    <p className="mt-1 font-extrabold tabular-nums">
                       {formatINR(calculatedTarget, { compact: true })}
-                    </span>
-                  </p>
+                    </p>
+                  </div>
                 ) : null}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="goal-target-date">Target date</Label>
                   <DatePicker
@@ -495,8 +528,10 @@ export function GoalFormSheet({
                 />
               </div>
 
-              <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
-                <p className="text-sm font-medium">Planning assumptions</p>
+              <div className="space-y-4 border-t border-border pt-5">
+                <p className="np-kicker np-caps text-xs text-subtle">
+                  Planning assumptions
+                </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Inflation, expected investment return, and annual SIP step-up
                   vary by goal type — defaults are pre-filled from Indian planning
@@ -543,35 +578,41 @@ export function GoalFormSheet({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="goal-notes">
-                  Notes
-                  <span className="ml-1.5 font-normal text-muted-foreground">
-                    (optional)
-                  </span>
-                </Label>
-                <Input
-                  id="goal-notes"
-                  className={FIELD_CLASS}
-                  value={formValues.notes}
-                  onChange={(e) => patchForm({ notes: e.target.value })}
-                  placeholder="e.g. 2BHK in Pune, Tier-2 city"
-                />
-              </div>
+              <div className="space-y-4 border-t border-border pt-5">
+                <p className="np-kicker np-caps text-xs text-subtle">Notes</p>
 
-              {effectiveTarget > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Feasibility will be checked against{" "}
-                  <span className="font-medium text-foreground">
-                    {formatINR(effectiveTarget, { compact: true })}
-                  </span>{" "}
-                  target on save.
-                </p>
-              ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="goal-notes">
+                    Notes
+                    <span className="ml-1.5 font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="goal-notes"
+                    className={FIELD_CLASS}
+                    value={formValues.notes}
+                    onChange={(e) => patchForm({ notes: e.target.value })}
+                    placeholder="e.g. 2BHK in Pune, Tier-2 city"
+                  />
+                </div>
+
+                {effectiveTarget > 0 ? (
+                  <div className="bg-muted px-4 py-3">
+                    <p className="np-caps text-muted-foreground">Feasibility target</p>
+                    <p className="mt-1 font-extrabold tabular-nums">
+                      {formatINR(effectiveTarget, { compact: true })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Checked against this amount on save.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
-            <SheetFooter className="shrink-0 border-t border-border bg-muted/25 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
-              <Button type="submit" className="h-11 w-full" disabled={pending}>
+            <SheetFooter className="shrink-0 border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-6">
+              <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                 {pending ? "Saving..." : "Save goal"}
               </Button>
             </SheetFooter>
@@ -613,14 +654,12 @@ function TypeSpecificFields({
               onChange={(e) => patchForm({ downPaymentPct: e.target.value })}
             />
           </Field>
-          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-            <input
-              type="checkbox"
+          <label className="flex items-center gap-3 text-sm font-semibold sm:col-span-2">
+            <Switch
               checked={formValues.includeClosingCosts}
-              onChange={(e) =>
-                patchForm({ includeClosingCosts: e.target.checked })
+              onCheckedChange={(checked) =>
+                patchForm({ includeClosingCosts: checked })
               }
-              className="size-4 rounded accent-primary"
             />
             Include stamp duty & registration
           </label>

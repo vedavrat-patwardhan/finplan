@@ -116,12 +116,10 @@ export default async function GoalsPage() {
                 {completedGoals.map((g) => (
                   <div
                     key={g.id}
-                    className="flex min-h-11 items-center gap-2 rounded-full border border-success/30 bg-success/10 px-4 py-2"
+                    className="flex items-center gap-2 border border-border bg-card px-4 py-2"
                   >
-                    <Badge variant="secondary" className="bg-success/20 text-success">
-                      Done
-                    </Badge>
-                    <span className="text-sm font-medium">{g.title}</span>
+                    <Badge variant="success">Done</Badge>
+                    <span className="text-sm font-semibold">{g.title}</span>
                     <DeleteButton
                       id={g.id}
                       action={deleteGoalAction}

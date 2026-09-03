@@ -6,6 +6,7 @@ import {
   type GoalListItem,
 } from "@/components/finance/goal-form-sheet";
 import { DeleteButton } from "@/components/finance/resource-form-sheet";
+import { Button } from "@/components/ui/button";
 import {
   describeGoalTarget,
   PRIORITY_TIER_LABELS,
@@ -14,7 +15,6 @@ import {
 import { formatDate, formatEnumLabel, formatINR } from "@/lib/format";
 import type { GoalFeasibility } from "@/lib/finance/engine";
 import type { ActionResult } from "@/actions/auth";
-import { chartColorAt } from "@/lib/finance/chart-colors";
 import type { GoalType } from "@/lib/finance/constants";
 
 export interface GoalTimelineItem extends GoalListItem {
@@ -64,9 +64,9 @@ export function GoalTimeline({
   }
 
   return (
-    <ol className="relative space-y-6 border-l-2 border-chart-1/25 pl-6">
+    <ol className="relative space-y-6 border-l-2 border-border pl-6">
       {goals.map((goal, goalIndex) => {
-        const accent = chartColorAt(goalIndex);
+        const accent = `var(--chart-${(goalIndex % 8) + 1})`;
         const progress =
           goal.targetAmount > 0
             ? Math.min(100, (goal.currentSaved / goal.targetAmount) * 100)
@@ -83,21 +83,21 @@ export function GoalTimeline({
         return (
           <li key={goal.id} className="relative">
             <span
-              className="absolute -left-[calc(1.5rem+6px)] top-5 size-3 rounded-full border-2 border-background"
+              className="absolute -left-[calc(1.5rem+6px)] top-5 size-3 border-2 border-background"
               style={{ backgroundColor: accent }}
               aria-hidden
             />
 
             <article
-              className="rounded-xl border border-border bg-card p-5"
+              className="border border-border bg-card p-5"
               style={{ borderLeftWidth: 3, borderLeftColor: accent }}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <p className="np-caps text-muted-foreground">
                     {formatEnumLabel(goal.goalType)}
                   </p>
-                  <h3 className="font-heading mt-1 text-xl font-semibold tracking-tight">
+                  <h3 className="mt-1 text-[22px] font-extrabold tracking-tight">
                     {goal.title}
                   </h3>
                   {tierLabel ? (
@@ -117,14 +117,14 @@ export function GoalTimeline({
               ) : (
                 <>
                   <div className="mt-5">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="np-caps text-muted-foreground">
                       Monthly saving needed
                     </p>
-                    <p className="font-heading mt-0.5 text-2xl font-semibold tabular-nums tracking-tight">
+                    <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight">
                       {formatINR(goal.feasibility.requiredMonthlySave, {
                         compact: true,
                       })}
-                      <span className="text-base font-normal text-muted-foreground">
+                      <span className="text-base font-semibold text-muted-foreground">
                         /mo
                       </span>
                     </p>
@@ -135,20 +135,20 @@ export function GoalTimeline({
 
                   <dl className="mt-5 grid gap-4 border-t border-border pt-5 sm:grid-cols-3">
                     <div>
-                      <dt className="text-xs text-muted-foreground">Target</dt>
-                      <dd className="mt-0.5 text-sm font-medium tabular-nums">
+                      <dt className="np-caps text-muted-foreground">Target</dt>
+                      <dd className="mt-0.5 font-bold tabular-nums">
                         {formatINR(goal.targetAmount, { compact: true })}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-muted-foreground">Target date</dt>
-                      <dd className="mt-0.5 text-sm font-medium">
+                      <dt className="np-caps text-muted-foreground">Target date</dt>
+                      <dd className="mt-0.5 font-bold">
                         {goal.targetDate ? formatDate(goal.targetDate) : "—"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-muted-foreground">Already saved</dt>
-                      <dd className="mt-0.5 text-sm font-medium tabular-nums">
+                      <dt className="np-caps text-muted-foreground">Already saved</dt>
+                      <dd className="mt-0.5 font-bold tabular-nums">
                         {formatINR(goal.currentSaved, { compact: true })}
                       </dd>
                     </div>
@@ -156,7 +156,7 @@ export function GoalTimeline({
 
                   <div className="mt-5">
                     <div
-                      className="h-2 w-full overflow-hidden rounded-full bg-muted"
+                      className="h-2 w-full overflow-hidden bg-muted"
                       role="progressbar"
                       aria-valuenow={progress}
                       aria-valuemin={0}
@@ -164,7 +164,7 @@ export function GoalTimeline({
                       aria-valuetext={`${progress.toFixed(0)}% funded`}
                     >
                       <div
-                        className="h-full rounded-full transition-[width] duration-300 ease-out"
+                        className="h-full transition-[width] duration-300 ease-out"
                         style={{ width: `${progress}%`, backgroundColor: accent }}
                       />
                     </div>
@@ -178,12 +178,12 @@ export function GoalTimeline({
 
               {compact ? null : (
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
-                  <Link
-                    href="/calculators/goal-planner"
-                    className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                  <Button
+                    variant="link"
+                    render={<Link href="/calculators/goal-planner" />}
                   >
                     Stress-test in Goal planner
-                  </Link>
+                  </Button>
                   <div className="flex items-center gap-1">
                     <GoalFormSheet
                       goal={goal}

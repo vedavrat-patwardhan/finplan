@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import {
@@ -25,8 +26,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatDate, formatINR } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { LedgerTransactionDTO, PaymentAccountDTO } from "@/lib/db/queries/ledger";
 
 export interface UpcomingObligationItem {
@@ -36,14 +37,6 @@ export interface UpcomingObligationItem {
   dueDate: string;
   type: "insurance" | "expense" | "investment" | "income" | "credit_card_bill";
 }
-
-const obligationTypeStyles: Record<UpcomingObligationItem["type"], string> = {
-  investment: "border-l-chart-1 bg-chart-1/5",
-  insurance: "border-l-chart-2 bg-chart-2/5",
-  expense: "border-l-chart-3 bg-chart-3/5",
-  income: "border-l-chart-6 bg-chart-6/5",
-  credit_card_bill: "border-l-chart-4 bg-chart-4/5",
-};
 
 function defaultCategory(type: UpcomingObligationItem["type"]): string {
   if (type === "investment") return "Investment";
@@ -61,6 +54,15 @@ function nowInputValue() {
 
 function typeLabel(type: UpcomingObligationItem["type"]) {
   return type === "credit_card_bill" ? "Credit card bill" : type;
+}
+
+/** Days from today to the due date — negative when overdue. */
+function daysUntilDue(dueDate: string): number {
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
 }
 
 export function ObligationList({
@@ -193,56 +195,58 @@ export function ObligationList({
 
   if (obligations.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <div className="border border-dashed border-input px-5 py-8 text-center text-sm text-muted-foreground">
         {emptyMessage}
-      </p>
+      </div>
     );
   }
 
   return (
     <>
-      <div className="list-stack">
-        {obligations.map((item) => (
-          <article
-            key={`${item.type}-${item.sourceId}-${item.dueDate}`}
-            className={cn(
-              "rounded-xl border border-border border-l-[3px] px-4 py-3",
-              obligationTypeStyles[item.type]
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{item.name}</p>
-                <p className="text-xs capitalize text-muted-foreground">
-                  {typeLabel(item.type)} · {formatDate(item.dueDate)}
-                </p>
+      <div className="border border-border bg-card divide-y divide-border">
+        {obligations.map((item) => {
+          const days = daysUntilDue(item.dueDate);
+          const overdue = days < 0;
+          const dueSoon = !overdue && days <= 7;
+
+          return (
+            <div
+              key={`${item.type}-${item.sourceId}-${item.dueDate}`}
+              className="flex flex-wrap items-center gap-4 px-5 py-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="np-caps text-muted-foreground">{typeLabel(item.type)}</p>
+                <p className="mt-1 truncate font-bold">{item.name}</p>
               </div>
-              <p className="shrink-0 text-sm font-medium tabular-nums">
+              <Badge variant={overdue ? "destructive" : dueSoon ? "warning" : "outline"}>
+                {formatDate(item.dueDate)}
+              </Badge>
+              <p className="shrink-0 font-extrabold tabular-nums">
                 {formatINR(item.amount, { compact: true })}
               </p>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSkipping(item)}
+                >
+                  <SkipForward className="size-4" />
+                  Skip
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openPay(item)}
+                >
+                  <CircleCheck className="size-4" />
+                  Paid
+                </Button>
+              </div>
             </div>
-            <div className="mt-3 flex justify-end gap-2 border-t border-border/70 pt-3">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-11 gap-2 text-muted-foreground"
-                onClick={() => setSkipping(item)}
-              >
-                <SkipForward className="size-4" />
-                Skip
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 gap-2 border-success/40 text-success hover:bg-success/10 hover:text-success"
-                onClick={() => openPay(item)}
-              >
-                <CircleCheck className="size-4" />
-                Paid
-              </Button>
-            </div>
-          </article>
-        ))}
+          );
+        })}
       </div>
 
       <Dialog open={Boolean(skipping)} onOpenChange={(open) => !open && setSkipping(null)}>
@@ -256,10 +260,10 @@ export function ObligationList({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setSkipping(null)} disabled={pending}>
+            <Button variant="ghost" onClick={() => setSkipping(null)} disabled={pending}>
               Keep pending
             </Button>
-            <Button onClick={handleSkip} disabled={pending}>
+            <Button variant="default" onClick={handleSkip} disabled={pending}>
               {pending ? "Skipping…" : "Skip this payment"}
             </Button>
           </DialogFooter>
@@ -269,11 +273,11 @@ export function ObligationList({
       <Sheet open={Boolean(paying)} onOpenChange={(open) => !open && setPaying(null)}>
         <SheetContent
           side="bottom"
-          className="flex max-h-[92dvh] flex-col gap-0 rounded-t-2xl p-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:max-h-none sm:w-[30rem] sm:rounded-none sm:border-t-0 sm:border-l"
+          className="flex max-h-[92dvh] flex-col gap-0 p-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:max-h-none sm:w-[30rem] sm:border-t-0 sm:border-l"
         >
-          <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
+          <div className="mx-auto mt-3 h-1 w-10 shrink-0 bg-border sm:hidden" />
           <SheetHeader className="border-b border-border px-5 py-4">
-            <SheetTitle className="font-heading text-xl">Mark as paid</SheetTitle>
+            <SheetTitle>Mark as paid</SheetTitle>
             <SheetDescription>
               {paying
                 ? `${paying.name} · ${formatINR(paying.amount)} due ${formatDate(paying.dueDate)}`
@@ -284,31 +288,17 @@ export function ObligationList({
           {paying ? (
             <form onSubmit={handlePay} className="flex min-h-0 flex-1 flex-col">
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
-                <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
-                      mode === "link" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    )}
-                    onClick={() => setMode("link")}
-                  >
-                    <Link2 className="size-4" /> Link ledger
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
-                      mode === "create" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                    )}
-                    onClick={() => setMode("create")}
-                  >
-                    <Plus className="size-4" /> Create entry
-                  </button>
-                </div>
+                <Tabs value={mode} onValueChange={(value) => setMode(value as "link" | "create")}>
+                  <TabsList className="w-full">
+                    <TabsTrigger value="link">
+                      <Link2 className="size-4" /> Link ledger
+                    </TabsTrigger>
+                    <TabsTrigger value="create">
+                      <Plus className="size-4" /> Create entry
+                    </TabsTrigger>
+                  </TabsList>
 
-                {mode === "link" ? (
-                  <div className="space-y-2">
+                  <TabsContent value="link" className="space-y-2 pt-1">
                     <Label htmlFor="obligation-transaction">Ledger transaction</Label>
                     <LabeledSelect
                       id="obligation-transaction"
@@ -324,9 +314,9 @@ export function ObligationList({
                     <p className="text-xs text-muted-foreground">
                       Closest amount matches appear first. Linking does not change the account balance again.
                     </p>
-                  </div>
-                ) : (
-                  <>
+                  </TabsContent>
+
+                  <TabsContent value="create" className="space-y-5 pt-1">
                     <div className="space-y-2">
                       <Label htmlFor="obligation-account">Payment account</Label>
                       <LabeledSelect
@@ -346,8 +336,8 @@ export function ObligationList({
                         required
                       />
                     </div>
-                  </>
-                )}
+                  </TabsContent>
+                </Tabs>
 
                 <div className="space-y-2">
                   <Label htmlFor="obligation-category">Ledger category</Label>
@@ -359,13 +349,13 @@ export function ObligationList({
                   />
                 </div>
 
-                <div className="rounded-xl border border-success/25 bg-success/[0.06] px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                <div className="border border-success/25 bg-success/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
                   Marking paid removes this obligation from the dashboard. Investment totals or insurance premium history update automatically.
                 </div>
               </div>
 
-              <SheetFooter className="border-t border-border bg-muted/20 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <Button type="submit" className="h-11 w-full" disabled={pending}>
+              <SheetFooter className="border-t border-border bg-muted px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <Button type="submit" variant="default" size="lg" className="w-full" disabled={pending}>
                   {pending ? "Saving payment…" : mode === "link" ? "Link and mark paid" : "Create and mark paid"}
                 </Button>
               </SheetFooter>
