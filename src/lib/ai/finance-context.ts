@@ -14,13 +14,33 @@ import {
 import { getPaymentAccounts } from "@/lib/db/queries/ledger";
 import { sumAvailableBalance } from "@/lib/finance/ledger";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
+import { LEDGER_CATEGORIES, LEDGER_BUDGET_CATEGORIES } from "@/lib/finance/constants";
+import {
+  ASSISTANT_TIMEZONE,
+  currentMonthIST,
+  formatDateIST,
+  lastNCalendarMonthsIST,
+  todayIST,
+} from "@/lib/ai/dates";
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+interface MonthBucket {
+  spent: number;
+  received: number;
+  transfers: number;
+  byCategory: Map<string, number>;
+}
 
 export async function buildFinanceAssistantContext(userId: string) {
   await connectDB();
   const objectId = new mongoose.Types.ObjectId(userId);
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6, 1);
-  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const recentMonthKeys = lastNCalendarMonthsIST(6);
+  const [earliestMonthStart] = recentMonthKeys;
+  const rangeStart = new Date(`${earliestMonthStart}-01T00:00:00+05:30`);
 
   const [
     profile,
@@ -34,7 +54,8 @@ export async function buildFinanceAssistantContext(userId: string) {
     accounts,
     assets,
     liabilities,
-    recentTransactions,
+    monthlyRows,
+    coverageRows,
   ] = await Promise.all([
     getUserProfile(userId),
     getMonthlySnapshot(userId),
@@ -47,27 +68,66 @@ export async function buildFinanceAssistantContext(userId: string) {
     getPaymentAccounts(userId),
     Asset.find({ userId: objectId }).lean(),
     Liability.find({ userId: objectId }).lean(),
-    LedgerTransaction.find({ userId: objectId, date: { $gte: sixMonthsAgo } })
-      .sort({ date: -1 })
-      .limit(1000)
-      .lean(),
+    // One aggregation for the last 6 calendar months, grouped by month/category/type.
+    LedgerTransaction.aggregate<{
+      _id: { month: string; category: string; type: "debit" | "credit" };
+      amount: number;
+    }>([
+      { $match: { userId: objectId, date: { $gte: rangeStart } } },
+      {
+        $group: {
+          _id: {
+            month: { $dateToString: { format: "%Y-%m", date: "$date", timezone: "+05:30" } },
+            category: "$category",
+            type: "$type",
+          },
+          amount: { $sum: "$amount" },
+        },
+      },
+    ]),
+    // One aggregation for all-time ledger coverage.
+    LedgerTransaction.aggregate<{ _id: null; earliest: Date; latest: Date; count: number }>([
+      { $match: { userId: objectId } },
+      {
+        $group: {
+          _id: null,
+          earliest: { $min: "$date" },
+          latest: { $max: "$date" },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
   ]);
 
-  const monthlyActuals = new Map<string, { spent: number; received: number }>();
-  const categoryActuals = new Map<string, number>();
-  for (const item of recentTransactions) {
-    const date = new Date(item.date);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    const current = monthlyActuals.get(key) ?? { spent: 0, received: 0 };
-    if (item.category === "Transfer") continue;
-    if (item.type === "debit") {
-      current.spent += item.amount;
-      categoryActuals.set(item.category, (categoryActuals.get(item.category) ?? 0) + item.amount);
+  const monthBuckets = new Map<string, MonthBucket>();
+  for (const row of monthlyRows) {
+    const { month, category, type } = row._id;
+    const bucket = monthBuckets.get(month) ?? { spent: 0, received: 0, transfers: 0, byCategory: new Map() };
+    if (category === "Transfer") {
+      bucket.transfers += row.amount;
+    } else if (type === "debit") {
+      bucket.spent += row.amount;
+      bucket.byCategory.set(category, (bucket.byCategory.get(category) ?? 0) + row.amount);
     } else {
-      current.received += item.amount;
+      bucket.received += row.amount;
     }
-    monthlyActuals.set(key, current);
+    monthBuckets.set(month, bucket);
   }
+
+  const recentMonths = recentMonthKeys.map((month) => {
+    const bucket = monthBuckets.get(month) ?? { spent: 0, received: 0, transfers: 0, byCategory: new Map() };
+    return {
+      month,
+      spent: round2(bucket.spent),
+      received: round2(bucket.received),
+      transfers: round2(bucket.transfers),
+      byCategory: [...bucket.byCategory.entries()]
+        .map(([category, amount]) => ({ category, amount: round2(amount) }))
+        .sort((a, b) => b.amount - a.amount),
+    };
+  });
+
+  const coverage = coverageRows[0];
 
   const essentialMonthly = expenses
     .filter((item) => item.isEssential)
@@ -82,6 +142,9 @@ export async function buildFinanceAssistantContext(userId: string) {
 
   return {
     asOf: new Date().toISOString(),
+    today: todayIST(),
+    timezone: ASSISTANT_TIMEZONE,
+    currentMonth: currentMonthIST(),
     currency: profile?.currency ?? "INR",
     profile: {
       householdEnabled: profile?.householdEnabled ?? false,
@@ -159,12 +222,19 @@ export async function buildFinanceAssistantContext(userId: string) {
       emi: item.emi,
       interestRatePct: item.interestRate,
     })),
-    recentActuals: {
-      byMonth: [...monthlyActuals.entries()].map(([month, value]) => ({ month, ...value })),
-      debitByCategoryLastSixMonths: [...categoryActuals.entries()]
-        .map(([category, amount]) => ({ category, amount }))
-        .sort((a, b) => b.amount - a.amount),
-      transactionCount: recentTransactions.length,
+    ledgerCoverage: {
+      earliestTransaction: coverage ? formatDateIST(coverage.earliest) : null,
+      latestTransaction: coverage ? formatDateIST(coverage.latest) : null,
+      transactionCount: coverage?.count ?? 0,
+    },
+    recentMonths,
+    categories: {
+      all: LEDGER_CATEGORIES,
+      budgetTracked: LEDGER_BUDGET_CATEGORIES,
+      notes:
+        "'Investment' debits are investment contributions (SIPs, lump sums), not spending. 'Income' credits are salary/other income, not expenses. 'Transfer' (movement between the user's own accounts) is excluded from spend/income totals everywhere in this snapshot and in the spending_summary/list_transactions tools unless include_transfers is requested.",
     },
   };
 }
+
+export type FinanceAssistantContext = Awaited<ReturnType<typeof buildFinanceAssistantContext>>;

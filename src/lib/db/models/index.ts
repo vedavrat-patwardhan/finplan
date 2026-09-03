@@ -14,3 +14,4 @@ export { MessageIngestion } from "./message-ingestion";
 export { CategoryRule } from "./category-rule";
 export { ObligationEvent, OBLIGATION_SOURCE_TYPES } from "./obligation-event";
 export { LedgerCategoryModel } from "./ledger-category";
+export { AssistantConversation } from "./assistant-conversation";
