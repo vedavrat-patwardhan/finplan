@@ -3,9 +3,11 @@
 import { useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { plunkClass } from "@/components/ui/plunk";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR } from "@/lib/format";
 import { scenarioSurplusChange } from "@/lib/finance/engine";
+import { cn } from "@/lib/utils";
 
 interface ScenarioModelerProps {
   baseSurplus: number;
@@ -32,7 +34,7 @@ export function ScenarioModeler({ baseSurplus }: ScenarioModelerProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-lg">What-if scenario</CardTitle>
+        <CardTitle>What-if scenario</CardTitle>
         <p className="text-sm text-muted-foreground">
           Adjust income, expenses, or investments to see impact on surplus
         </p>
@@ -71,16 +73,21 @@ export function ScenarioModeler({ baseSurplus }: ScenarioModelerProps) {
           </div>
         </div>
 
-        <div className="rounded-lg bg-muted/50 px-4 py-4">
-          <p className="text-sm text-muted-foreground">Projected monthly surplus</p>
-          <p className="font-heading mt-1 text-2xl font-semibold tabular-nums">
+        <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+          <p className="np-caps text-brand-foreground/70">Projected monthly surplus</p>
+          <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums md:text-4xl">
             {formatINR(newSurplus, { compact: true })}
           </p>
-          <p className={`mt-1 text-sm ${delta >= 0 ? "text-success" : "text-destructive"}`}>
-            {delta >= 0 ? "+" : ""}
-            {formatINR(delta, { compact: true })} vs current
-          </p>
         </div>
+        <p
+          className={cn(
+            "text-xs font-semibold",
+            delta >= 0 ? "text-success-text" : "text-destructive"
+          )}
+        >
+          {delta >= 0 ? "+" : ""}
+          {formatINR(delta, { compact: true })} vs current
+        </p>
       </CardContent>
     </Card>
   );

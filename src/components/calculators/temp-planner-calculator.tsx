@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { plunkClass } from "@/components/ui/plunk";
 import { MoneyInput } from "@/components/finance/money-input";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type VariableKey = "a" | "b" | "c" | "d";
 
@@ -158,7 +160,7 @@ export function TempPlannerCalculator({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Variables</CardTitle>
+          <CardTitle>Variables</CardTitle>
           <p className="text-sm text-muted-foreground">
             Use A, B, C, D in your formulas. Nothing is saved — scratch pad only.
           </p>
@@ -188,7 +190,7 @@ export function TempPlannerCalculator({
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Custom formula</CardTitle>
+          <CardTitle>Custom formula</CardTitle>
           <p className="text-sm text-muted-foreground">
             Operators: + − × ÷ and parentheses. Reference variables as a, b, c, d.
           </p>
@@ -219,16 +221,19 @@ export function TempPlannerCalculator({
             />
           </div>
 
-          <div className="rounded-lg bg-muted/50 px-4 py-4">
-            <p className="text-sm text-muted-foreground">Result</p>
-            {result.error ? (
-              <p className="mt-1 text-sm text-destructive">{result.error}</p>
-            ) : (
-              <p className="font-heading mt-1 text-2xl font-semibold tabular-nums">
+          {result.error ? (
+            <div className="border border-destructive/40 bg-destructive/5 p-5">
+              <p className="np-caps text-muted-foreground">Result</p>
+              <p className="mt-1 text-sm font-semibold text-destructive">{result.error}</p>
+            </div>
+          ) : (
+            <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+              <p className="np-caps text-brand-foreground/70">Result</p>
+              <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums">
                 {formatINR(result.value ?? 0)}
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
             <div className="min-w-[200px] flex-1 space-y-2">

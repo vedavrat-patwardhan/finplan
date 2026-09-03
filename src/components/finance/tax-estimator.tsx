@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { plunkClass } from "@/components/ui/plunk";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   breakdownSalaryPackage,
   compareTaxRegimes,
@@ -51,7 +54,7 @@ export function TaxEstimator({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-lg">Tax estimator (FY 2025-26)</CardTitle>
+        <CardTitle>Tax estimator (FY 2025-26)</CardTitle>
         <p className="text-sm text-muted-foreground">
           Enter in-hand amounts to see estimated gross and tax under Indian tax law
         </p>
@@ -81,47 +84,50 @@ export function TaxEstimator({
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {(["new", "old"] as const).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRegime(r)}
-              className={`rounded-full px-4 py-1.5 text-sm capitalize ${
-                regime === r
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {r} regime
-            </button>
-          ))}
+        <div className="space-y-2">
+          <Label>Tax regime</Label>
+          <Tabs value={regime} onValueChange={(value) => value && setRegime(value as TaxRegime)}>
+            <TabsList>
+              <TabsTrigger value="new">New regime</TabsTrigger>
+              <TabsTrigger value="old">Old regime</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {breakdown && (
-          <div className="rounded-xl bg-muted/40 p-4 space-y-3 text-sm">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <p className="text-muted-foreground">Monthly salary in-hand</p>
-                <p className="font-medium tabular-nums">
+          <div className="space-y-4">
+            <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+              <p className="np-caps text-brand-foreground/70">Est. total tax</p>
+              <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums md:text-4xl">
+                {formatINR(breakdown.estimatedTotalTax, { compact: true })}
+              </p>
+              <p className="mt-2 text-xs text-brand-foreground/70">
+                Effective rate {formatPercent(breakdown.combinedTaxDetail.effectiveRate)}
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="border border-border bg-card p-4">
+                <p className="np-caps text-muted-foreground">Monthly salary in-hand</p>
+                <p className="mt-1 text-sm font-bold tabular-nums">
                   {formatINR(breakdown.monthlyInHandSalary, { compact: true })}
                 </p>
               </div>
               {bonusNum > 0 && (
-                <div>
-                  <p className="text-muted-foreground">
+                <div className="border border-border bg-card p-4">
+                  <p className="np-caps text-muted-foreground">
                     Bonus {bonusSpreadMonthly ? "(spread monthly)" : "(lump-sum yearly)"}
                   </p>
-                  <p className="font-medium tabular-nums">
+                  <p className="mt-1 text-sm font-bold tabular-nums">
                     {bonusSpreadMonthly
                       ? formatINR(bonusNum / 12, { compact: true })
                       : formatINR(bonusNum, { compact: true })}
                   </p>
                 </div>
               )}
-              <div>
-                <p className="text-muted-foreground">Total monthly in-hand</p>
-                <p className="font-medium tabular-nums">
+              <div className="border border-border bg-card p-4">
+                <p className="np-caps text-muted-foreground">Total monthly in-hand</p>
+                <p className="mt-1 text-sm font-bold tabular-nums">
                   {formatINR(
                     breakdown.monthlyInHandSalary +
                       (bonusSpreadMonthly ? bonusNum / 12 : 0),
@@ -129,22 +135,10 @@ export function TaxEstimator({
                   )}
                 </p>
               </div>
-              <div>
-                <p className="text-muted-foreground">Est. gross package</p>
-                <p className="font-medium tabular-nums">
+              <div className="border border-border bg-card p-4">
+                <p className="np-caps text-muted-foreground">Est. gross package</p>
+                <p className="mt-1 text-sm font-bold tabular-nums">
                   {formatINR(breakdown.estimatedTotalGross, { compact: true })}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Est. total tax</p>
-                <p className="font-medium tabular-nums text-destructive">
-                  {formatINR(breakdown.estimatedTotalTax, { compact: true })}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Effective rate</p>
-                <p className="font-medium">
-                  {formatPercent(breakdown.combinedTaxDetail.effectiveRate)}
                 </p>
               </div>
             </div>
@@ -155,7 +149,7 @@ export function TaxEstimator({
                 {formatINR(regimeCompare.newRegime.totalTax, { compact: true })} vs Old regime{" "}
                 {formatINR(regimeCompare.oldRegime.totalTax, { compact: true })} (without
                 deductions). Lower tax:{" "}
-                <span className="font-medium capitalize">{regimeCompare.recommended} regime</span>.
+                <span className="font-bold capitalize">{regimeCompare.recommended} regime</span>.
               </p>
             )}
           </div>

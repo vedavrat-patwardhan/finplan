@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { plunkClass } from "@/components/ui/plunk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { SURPLUS_UTILIZATION_TIERS } from "@/lib/finance/constants";
 import {
   buildSurplusBudgetTiers,
@@ -147,111 +149,107 @@ export function RetirementCalculator({ defaults }: RetirementCalculatorProps) {
       </TabsList>
 
       <TabsContent value="forward" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Monthly expenses at retirement (₹)</Label>
-            <MoneyInput
-              value={monthlyExpenses}
-              onChange={(e) =>
-                startTransition(() => setMonthlyExpenses(Number(e.target.value)))
-              }
-              placeholder="e.g. 50000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Corpus multiplier</Label>
-            <Input
-              type="number"
-              value={multiplier}
-              onChange={(e) =>
-                startTransition(() => setMultiplier(Number(e.target.value)))
-              }
-              placeholder="e.g. 25"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Years to retirement</Label>
-            <Input
-              type="number"
-              value={yearsToRetire}
-              onChange={(e) =>
-                startTransition(() => setYearsToRetire(Number(e.target.value)))
-              }
-              placeholder="e.g. 25"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base">
-                Retirement corpus needed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="font-heading text-3xl font-semibold tabular-nums">
+            <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Monthly expenses at retirement (₹)</Label>
+                <MoneyInput
+                  value={monthlyExpenses}
+                  onChange={(e) =>
+                    startTransition(() => setMonthlyExpenses(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 50000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Corpus multiplier</Label>
+                <Input
+                  type="number"
+                  value={multiplier}
+                  onChange={(e) =>
+                    startTransition(() => setMultiplier(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 25"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Years to retirement</Label>
+                <Input
+                  type="number"
+                  value={yearsToRetire}
+                  onChange={(e) =>
+                    startTransition(() => setYearsToRetire(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 25"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+              <p className="np-caps text-brand-foreground/70">Retirement corpus needed</p>
+              <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums md:text-4xl">
                 {formatINR(corpus, { compact: true })}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-xs text-brand-foreground/70">
                 {multiplier}× annual expenses rule · save{" "}
                 {formatINR(monthlySaveNeeded, { compact: true })}/mo if starting now
               </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base">Term insurance gap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="font-heading text-3xl font-semibold tabular-nums">
+            </div>
+            <div className="border border-border bg-card p-5">
+              <p className="np-caps text-muted-foreground">Term insurance gap</p>
+              <p className="mt-1 text-xl font-extrabold tabular-nums">
                 {formatINR(insuranceGap, { compact: true })}
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Recommended cover minus existing coverage (12× income heuristic)
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </TabsContent>
 
       <TabsContent value="reverse" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Years to retirement</Label>
-            <Input
-              type="number"
-              value={yearsToRetire}
-              onChange={(e) =>
-                startTransition(() => setYearsToRetire(Number(e.target.value)))
-              }
-              placeholder="e.g. 25"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Corpus multiplier</Label>
-            <Input
-              type="number"
-              value={multiplier}
-              onChange={(e) =>
-                startTransition(() => setMultiplier(Number(e.target.value)))
-              }
-              placeholder="e.g. 25"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Expected return while saving (% p.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={expectedReturn}
-              onChange={(e) =>
-                startTransition(() => setExpectedReturn(Number(e.target.value)))
-              }
-              placeholder="e.g. 10"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardContent className="grid gap-4 pt-5 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Years to retirement</Label>
+              <Input
+                type="number"
+                value={yearsToRetire}
+                onChange={(e) =>
+                  startTransition(() => setYearsToRetire(Number(e.target.value)))
+                }
+                placeholder="e.g. 25"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Corpus multiplier</Label>
+              <Input
+                type="number"
+                value={multiplier}
+                onChange={(e) =>
+                  startTransition(() => setMultiplier(Number(e.target.value)))
+                }
+                placeholder="e.g. 25"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Expected return while saving (% p.a.)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={expectedReturn}
+                onChange={(e) =>
+                  startTransition(() => setExpectedReturn(Number(e.target.value)))
+                }
+                placeholder="e.g. 10"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {monthlySurplus > 0 ? (
           <>
@@ -260,7 +258,7 @@ export function RetirementCalculator({ defaults }: RetirementCalculatorProps) {
               options={reverseOptions}
             />
             <div className="space-y-3">
-              <p className="text-sm font-medium">Term insurance premium budget</p>
+              <p className="text-sm font-bold">Term insurance premium budget</p>
               <p className="text-xs text-muted-foreground">
                 Rough estimate: ₹100 of annual premium ≈ ₹1 lakh cover (varies by age and
                 health).

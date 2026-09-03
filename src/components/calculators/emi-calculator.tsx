@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { plunkClass } from "@/components/ui/plunk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { SURPLUS_UTILIZATION_TIERS } from "@/lib/finance/constants";
 import {
   buildSurplusBudgetTiers,
@@ -83,111 +85,110 @@ export function EMICalculator({ defaults }: EMICalculatorProps) {
       </TabsList>
 
       <TabsContent value="forward" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Loan amount (₹)</Label>
-            <MoneyInput
-              value={principal}
-              onChange={(e) =>
-                startTransition(() => setPrincipal(Number(e.target.value)))
-              }
-              placeholder="e.g. 5000000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Interest rate (% p.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={rate}
-              onChange={(e) =>
-                startTransition(() => setRate(Number(e.target.value)))
-              }
-              placeholder="e.g. 7.3"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Tenure (years)</Label>
-            <Input
-              type="number"
-              value={tenureYears}
-              onChange={(e) =>
-                startTransition(() => setTenureYears(Number(e.target.value)))
-              }
-              placeholder="e.g. 20"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base">Monthly EMI</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="font-heading text-3xl font-semibold tabular-nums">
+            <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Loan amount (₹)</Label>
+                <MoneyInput
+                  value={principal}
+                  onChange={(e) =>
+                    startTransition(() => setPrincipal(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 5000000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Interest rate (% p.a.)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={rate}
+                  onChange={(e) =>
+                    startTransition(() => setRate(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 7.3"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tenure (years)</Label>
+                <Input
+                  type="number"
+                  value={tenureYears}
+                  onChange={(e) =>
+                    startTransition(() => setTenureYears(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 20"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-4">
+            <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+              <p className="np-caps text-brand-foreground/70">Monthly EMI</p>
+              <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums md:text-4xl">
                 {formatINR(emi)}
               </p>
-              {affordable !== null ? (
-                <p
-                  className={`mt-2 text-sm ${affordable ? "text-success" : "text-destructive"}`}
-                >
-                  {affordable
-                    ? "Within 40% of your surplus — likely affordable"
-                    : "Exceeds 40% of surplus — consider lower loan or longer tenure"}
+            </div>
+            {affordable !== null ? (
+              <p
+                className={cn(
+                  "text-xs font-semibold",
+                  affordable ? "text-success-text" : "text-destructive"
+                )}
+              >
+                {affordable
+                  ? "Within 40% of your surplus — likely affordable"
+                  : "Exceeds 40% of surplus — consider lower loan or longer tenure"}
+              </p>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="border border-border bg-card p-5">
+                <p className="np-caps text-muted-foreground">Total interest</p>
+                <p className="mt-1 text-xl font-extrabold tabular-nums">
+                  {formatINR(totalInterest, { compact: true })}
                 </p>
-              ) : null}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base">Total interest</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatINR(totalInterest, { compact: true })}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-heading text-base">Total payment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatINR(totalPayment, { compact: true })}
-              </p>
-            </CardContent>
-          </Card>
+              </div>
+              <div className="border border-border bg-card p-5">
+                <p className="np-caps text-muted-foreground">Total payment</p>
+                <p className="mt-1 text-xl font-extrabold tabular-nums">
+                  {formatINR(totalPayment, { compact: true })}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </TabsContent>
 
       <TabsContent value="reverse" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Interest rate (% p.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={rate}
-              onChange={(e) =>
-                startTransition(() => setRate(Number(e.target.value)))
-              }
-              placeholder="e.g. 7.3"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Tenure (years)</Label>
-            <Input
-              type="number"
-              value={tenureYears}
-              onChange={(e) =>
-                startTransition(() => setTenureYears(Number(e.target.value)))
-              }
-              placeholder="e.g. 20"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Interest rate (% p.a.)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={rate}
+                onChange={(e) =>
+                  startTransition(() => setRate(Number(e.target.value)))
+                }
+                placeholder="e.g. 7.3"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tenure (years)</Label>
+              <Input
+                type="number"
+                value={tenureYears}
+                onChange={(e) =>
+                  startTransition(() => setTenureYears(Number(e.target.value)))
+                }
+                placeholder="e.g. 20"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {monthlySurplus > 0 ? (
           <ReverseBudgetOptions

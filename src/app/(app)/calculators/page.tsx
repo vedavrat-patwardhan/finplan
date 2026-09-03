@@ -67,15 +67,15 @@ export default async function CalculatorsPage() {
             <Link
               key={calc.href}
               href={calc.href}
-              className="group flex min-h-11 items-start justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-muted/25"
+              className="group np-plunk np-plunk-press flex min-h-11 items-start justify-between gap-4 border border-border bg-card px-5 py-4 transition-colors hover:bg-accent"
             >
               <div className="min-w-0">
-                <p className="font-heading text-base font-semibold">{calc.title}</p>
+                <p className="text-base font-bold">{calc.title}</p>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                   {calc.description}
                 </p>
               </div>
-              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-text" />
             </Link>
           ))}
         </div>
@@ -84,22 +84,22 @@ export default async function CalculatorsPage() {
       <ScenarioModeler baseSurplus={snapshot.netSurplus} />
 
       <PageSection title="Pre-fill data" description="Pulled from your income, expenses, and investments">
-        <div className="grid gap-4 rounded-xl border border-border bg-muted/20 px-5 py-4 text-sm sm:grid-cols-2">
+        <div className="grid gap-4 border border-border bg-card px-5 py-4 sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground">Monthly income</p>
-            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.monthlyIncome)}</p>
+            <p className="np-caps text-muted-foreground">Monthly income</p>
+            <p className="mt-1 font-bold tabular-nums">{formatINR(prefill.monthlyIncome)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Monthly surplus</p>
-            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.monthlySurplus)}</p>
+            <p className="np-caps text-muted-foreground">Monthly surplus</p>
+            <p className="mt-1 font-bold tabular-nums">{formatINR(prefill.monthlySurplus)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Total SIP</p>
-            <p className="mt-0.5 font-medium tabular-nums">{formatINR(prefill.totalSIP)}/mo</p>
+            <p className="np-caps text-muted-foreground">Total SIP</p>
+            <p className="mt-1 font-bold tabular-nums">{formatINR(prefill.totalSIP)}/mo</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Insurance coverage</p>
-            <p className="mt-0.5 font-medium tabular-nums">
+            <p className="np-caps text-muted-foreground">Insurance coverage</p>
+            <p className="mt-1 font-bold tabular-nums">
               {formatINR(prefill.totalCoverage)}
             </p>
           </div>

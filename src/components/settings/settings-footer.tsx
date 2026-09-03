@@ -8,10 +8,10 @@ import { ThemeSelector } from "@/components/theme-toggle";
 export function SettingsFooter() {
   return (
     <div className="space-y-3 border-t border-border pt-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border border-border bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium">Appearance</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="np-caps text-muted-foreground">Appearance</p>
+          <p className="mt-1 text-xs text-muted-foreground">
             Light, dark, or match your system
           </p>
         </div>

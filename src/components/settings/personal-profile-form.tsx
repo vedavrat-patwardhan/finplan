@@ -11,13 +11,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { updatePersonalProfileAction } from "@/actions/finance";
 import type { ActionResult } from "@/actions/auth";
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const initialState: ActionResult = { success: false };
 
@@ -110,7 +110,7 @@ export function PersonalProfileForm({ profile }: PersonalProfileFormProps) {
             maxLength={30}
           />
           {state.fieldErrors?.username ? (
-            <p className="text-xs text-destructive">{state.fieldErrors.username}</p>
+            <p className="text-xs font-semibold text-destructive">{state.fieldErrors.username}</p>
           ) : (
             <p className="text-xs text-muted-foreground">Used to sign in. Letters, numbers, underscores.</p>
           )}
@@ -154,51 +154,43 @@ export function PersonalProfileForm({ profile }: PersonalProfileFormProps) {
 
       <div className="space-y-2">
         <Label>Tax regime (FY 2025-26)</Label>
-        <div className="flex flex-wrap gap-2">
-          {(["new", "old"] as const).map((regime) => (
-            <button
-              key={regime}
-              type="button"
-              onClick={() => setTaxRegime(regime)}
-              className={cn(
-                "min-h-11 rounded-full px-4 py-2 text-sm capitalize transition-colors",
-                taxRegime === regime
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {regime} regime
-            </button>
-          ))}
-        </div>
+        <Tabs
+          value={taxRegime}
+          onValueChange={(value) => value && setTaxRegime(value as "new" | "old")}
+        >
+          <TabsList>
+            <TabsTrigger value="new">New regime</TabsTrigger>
+            <TabsTrigger value="old">Old regime</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <input type="hidden" name="taxRegime" value={taxRegime} />
       </div>
 
       {taxPreview ? (
-        <div className="space-y-3 rounded-xl bg-muted/40 p-4">
-          <p className="text-sm font-medium">Estimated tax breakdown</p>
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
+        <div className="space-y-3 border border-border bg-muted px-5 py-4">
+          <p className="text-sm font-bold">Estimated tax breakdown</p>
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground">Total in-hand</p>
-              <p className="font-medium tabular-nums">
+              <p className="np-caps text-muted-foreground">Total in-hand</p>
+              <p className="mt-1 text-sm font-bold tabular-nums">
                 {formatINR(taxPreview.totalInHandAnnual, { compact: true })}/yr
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Est. gross package</p>
-              <p className="font-medium tabular-nums">
+              <p className="np-caps text-muted-foreground">Est. gross package</p>
+              <p className="mt-1 text-sm font-bold tabular-nums">
                 {formatINR(taxPreview.estimatedTotalGross, { compact: true })}/yr
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Est. total tax + cess</p>
-              <p className="font-medium tabular-nums text-destructive">
+              <p className="np-caps text-muted-foreground">Est. total tax + cess</p>
+              <p className="mt-1 text-sm font-bold tabular-nums text-destructive">
                 {formatINR(taxPreview.estimatedTotalTax, { compact: true })}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Effective tax rate</p>
-              <p className="font-medium tabular-nums">
+              <p className="np-caps text-muted-foreground">Effective tax rate</p>
+              <p className="mt-1 text-sm font-bold tabular-nums">
                 {formatPercent(taxPreview.combinedTaxDetail.effectiveRate)}
               </p>
             </div>

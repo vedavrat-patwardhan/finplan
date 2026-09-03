@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DatePickerField } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { plunkClass } from "@/components/ui/plunk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { SURPLUS_UTILIZATION_TIERS } from "@/lib/finance/constants";
 import {
   buildSurplusBudgetTiers,
@@ -107,130 +109,130 @@ export function GoalPlannerCalculator({ defaults }: GoalPlannerCalculatorProps) 
       </TabsList>
 
       <TabsContent value="forward" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-2">
-            <Label>Target amount today (₹)</Label>
-            <MoneyInput
-              value={target}
-              onChange={(e) =>
-                startTransition(() => setTarget(Number(e.target.value)))
-              }
-              placeholder="e.g. 1500000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Already saved (₹)</Label>
-            <MoneyInput
-              value={saved}
-              onChange={(e) =>
-                startTransition(() => setSaved(Number(e.target.value)))
-              }
-              placeholder="e.g. 200000"
-            />
-          </div>
-          <DatePickerField
-            id="goal-target-date"
-            label="Target date"
-            value={targetDate}
-            onChange={(value) => startTransition(() => setTargetDate(value))}
-            placeholder="Select target date"
-            required
-            fromYear={new Date().getFullYear()}
-          />
-          <div className="space-y-2">
-            <Label>Inflation (% p.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={inflation}
-              onChange={(e) =>
-                startTransition(() => setInflation(Number(e.target.value)))
-              }
-              placeholder="e.g. 6"
-            />
-          </div>
-        </div>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <Card>
+            <CardContent className="grid gap-4 pt-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Target amount today (₹)</Label>
+                <MoneyInput
+                  value={target}
+                  onChange={(e) =>
+                    startTransition(() => setTarget(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 1500000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Already saved (₹)</Label>
+                <MoneyInput
+                  value={saved}
+                  onChange={(e) =>
+                    startTransition(() => setSaved(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 200000"
+                />
+              </div>
+              <DatePickerField
+                id="goal-target-date"
+                label="Target date"
+                value={targetDate}
+                onChange={(value) => startTransition(() => setTargetDate(value))}
+                placeholder="Select target date"
+                required
+                fromYear={new Date().getFullYear()}
+              />
+              <div className="space-y-2">
+                <Label>Inflation (% p.a.)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={inflation}
+                  onChange={(e) =>
+                    startTransition(() => setInflation(Number(e.target.value)))
+                  }
+                  placeholder="e.g. 6"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-        {result ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">
-                  Inflation-adjusted target
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-heading text-3xl font-semibold tabular-nums">
+          {result ? (
+            <div className="space-y-4">
+              <div className={cn(plunkClass({ edge: "brand" }), "bg-brand p-6 text-brand-foreground")}>
+                <p className="np-caps text-brand-foreground/70">Required monthly save</p>
+                <p className="mt-1 text-3xl font-extrabold tracking-tight tabular-nums md:text-4xl">
+                  {formatINR(result.requiredMonthly)}
+                </p>
+              </div>
+              {result.onTrack !== null ? (
+                <p
+                  className={cn(
+                    "text-xs font-semibold",
+                    result.onTrack ? "text-success-text" : "text-destructive"
+                  )}
+                >
+                  {result.onTrack
+                    ? "Fits within your current monthly surplus"
+                    : "Exceeds your current surplus — adjust timeline or target"}
+                </p>
+              ) : null}
+              <div className="border border-border bg-card p-5">
+                <p className="np-caps text-muted-foreground">Inflation-adjusted target</p>
+                <p className="mt-1 text-xl font-extrabold tabular-nums">
                   {formatINR(result.inflatedTarget, { compact: true })}
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-2 text-xs text-muted-foreground">
                   In {result.months} months · today&apos;s equivalent{" "}
                   {formatINR(result.todayValue, { compact: true })}
                 </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-heading text-base">
-                  Required monthly save
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="font-heading text-3xl font-semibold tabular-nums">
-                  {formatINR(result.requiredMonthly)}
+              </div>
+              <div className="border border-border bg-card p-5">
+                <p className="np-caps text-muted-foreground">Gap remaining</p>
+                <p className="mt-1 text-xl font-extrabold tabular-nums">
+                  {formatINR(result.gap, { compact: true })}
                 </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Gap: {formatINR(result.gap, { compact: true })}
-                </p>
-                {result.onTrack !== null ? (
-                  <p
-                    className={`mt-2 text-sm ${result.onTrack ? "text-success" : "text-destructive"}`}
-                  >
-                    {result.onTrack
-                      ? "Fits within your current monthly surplus"
-                      : "Exceeds your current surplus — adjust timeline or target"}
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
-          </div>
-        ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </TabsContent>
 
       <TabsContent value="reverse" className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Already saved (₹)</Label>
-            <MoneyInput
-              value={saved}
-              onChange={(e) =>
-                startTransition(() => setSaved(Number(e.target.value)))
-              }
-              placeholder="e.g. 200000"
+        <Card>
+          <CardContent className="grid gap-4 pt-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Already saved (₹)</Label>
+              <MoneyInput
+                value={saved}
+                onChange={(e) =>
+                  startTransition(() => setSaved(Number(e.target.value)))
+                }
+                placeholder="e.g. 200000"
+              />
+            </div>
+            <DatePickerField
+              id="goal-reverse-target-date"
+              label="Target date"
+              value={targetDate}
+              onChange={(value) => startTransition(() => setTargetDate(value))}
+              placeholder="Select target date"
+              required
+              fromYear={new Date().getFullYear()}
             />
-          </div>
-          <DatePickerField
-            id="goal-reverse-target-date"
-            label="Target date"
-            value={targetDate}
-            onChange={(value) => startTransition(() => setTargetDate(value))}
-            placeholder="Select target date"
-            required
-            fromYear={new Date().getFullYear()}
-          />
-          <div className="space-y-2">
-            <Label>Inflation (% p.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={inflation}
-              onChange={(e) =>
-                startTransition(() => setInflation(Number(e.target.value)))
-              }
-              placeholder="e.g. 6"
-            />
-          </div>
-        </div>
+            <div className="space-y-2">
+              <Label>Inflation (% p.a.)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={inflation}
+                onChange={(e) =>
+                  startTransition(() => setInflation(Number(e.target.value)))
+                }
+                placeholder="e.g. 6"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {monthlySurplus > 0 && targetDate ? (
           <ReverseBudgetOptions

@@ -12,13 +12,14 @@ import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MoneyInput } from "@/components/finance/money-input";
 import { updateHouseholdAction } from "@/actions/finance";
 import type { ActionResult } from "@/actions/auth";
 import { breakdownSalaryPackage } from "@/lib/finance/tax";
 import { formatINR, formatPercent } from "@/lib/format";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const initialState: ActionResult = { success: false };
 
@@ -83,24 +84,24 @@ export function HouseholdForm({ household }: HouseholdFormProps) {
       }}
       className="space-y-5"
     >
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-4 py-4 transition-colors hover:bg-muted/30">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => setEnabled(event.target.checked)}
-          className="mt-0.5 size-4"
-        />
+      <div className="flex items-start justify-between gap-4 border border-border bg-card px-5 py-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Users className="size-4 text-chart-1" />
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <Users className="size-4" />
             Plan together as a household
-          </div>
+          </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Combine your income and expenses in one plan. Tag items as yours, your
             partner&apos;s, or shared — no second account needed.
           </p>
         </div>
-      </label>
+        <Switch
+          checked={enabled}
+          onCheckedChange={setEnabled}
+          aria-label="Plan together as a household"
+          className="mt-1 shrink-0"
+        />
+      </div>
 
       {enabled ? (
         <>
@@ -115,7 +116,7 @@ export function HouseholdForm({ household }: HouseholdFormProps) {
               required
             />
             {state.fieldErrors?.spouseName ? (
-              <p className="text-xs text-destructive">{state.fieldErrors.spouseName}</p>
+              <p className="text-xs font-semibold text-destructive">{state.fieldErrors.spouseName}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Used on income and expense labels throughout the app.
@@ -161,39 +162,31 @@ export function HouseholdForm({ household }: HouseholdFormProps) {
 
           <div className="space-y-2">
             <Label>Partner tax regime (FY 2025-26)</Label>
-            <div className="flex flex-wrap gap-2">
-              {(["new", "old"] as const).map((regime) => (
-                <button
-                  key={regime}
-                  type="button"
-                  onClick={() => setTaxRegime(regime)}
-                  className={cn(
-                    "min-h-11 rounded-full px-4 py-2 text-sm capitalize transition-colors",
-                    taxRegime === regime
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  )}
-                >
-                  {regime} regime
-                </button>
-              ))}
-            </div>
+            <Tabs
+              value={taxRegime}
+              onValueChange={(value) => value && setTaxRegime(value as "new" | "old")}
+            >
+              <TabsList>
+                <TabsTrigger value="new">New regime</TabsTrigger>
+                <TabsTrigger value="old">Old regime</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <input type="hidden" name="spouseTaxRegime" value={taxRegime} />
           </div>
 
           {taxPreview ? (
-            <div className="space-y-3 rounded-xl bg-muted/40 p-4">
-              <p className="text-sm font-medium">Partner estimated tax breakdown</p>
-              <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <div className="space-y-3 border border-border bg-muted px-5 py-4">
+              <p className="text-sm font-bold">Partner estimated tax breakdown</p>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-muted-foreground">Total in-hand</p>
-                  <p className="font-medium tabular-nums">
+                  <p className="np-caps text-muted-foreground">Total in-hand</p>
+                  <p className="mt-1 text-sm font-bold tabular-nums">
                     {formatINR(taxPreview.totalInHandAnnual, { compact: true })}/yr
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Effective tax rate</p>
-                  <p className="font-medium tabular-nums">
+                  <p className="np-caps text-muted-foreground">Effective tax rate</p>
+                  <p className="mt-1 text-sm font-bold tabular-nums">
                     {formatPercent(taxPreview.combinedTaxDetail.effectiveRate)}
                   </p>
                 </div>

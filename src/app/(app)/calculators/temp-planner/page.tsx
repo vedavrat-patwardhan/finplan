@@ -14,6 +14,8 @@ export default async function TempPlannerPage() {
       <PageHeader
         title="Temp planner"
         description="Quick scratch-pad with custom formulas — nothing is stored in your plan."
+        backHref="/calculators"
+        backLabel="All calculators"
       />
 
       <TempPlannerCalculator

@@ -90,7 +90,7 @@ export function AccountSecurity({ email }: { email: string }) {
                 required
               />
               {state.fieldErrors?.currentPassword ? (
-                <p className="text-xs text-destructive">{state.fieldErrors.currentPassword}</p>
+                <p className="text-xs font-semibold text-destructive">{state.fieldErrors.currentPassword}</p>
               ) : null}
             </div>
             <div className="space-y-2">
@@ -103,7 +103,7 @@ export function AccountSecurity({ email }: { email: string }) {
                 required
               />
               {state.fieldErrors?.newPassword ? (
-                <p className="text-xs text-destructive">{state.fieldErrors.newPassword}</p>
+                <p className="text-xs font-semibold text-destructive">{state.fieldErrors.newPassword}</p>
               ) : null}
             </div>
             <div className="space-y-2">
@@ -115,7 +115,7 @@ export function AccountSecurity({ email }: { email: string }) {
                 required
               />
               {state.fieldErrors?.confirmPassword ? (
-                <p className="text-xs text-destructive">{state.fieldErrors.confirmPassword}</p>
+                <p className="text-xs font-semibold text-destructive">{state.fieldErrors.confirmPassword}</p>
               ) : null}
             </div>
             <DialogFooter className="gap-2 sm:gap-0">

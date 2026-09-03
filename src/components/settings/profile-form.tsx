@@ -4,6 +4,7 @@ import { useActionState, useEffect, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { updateProfileAction } from "@/actions/finance";
 import type { ActionResult } from "@/actions/auth";
 import { toast } from "sonner";
@@ -33,26 +34,19 @@ function CheckboxField({
   defaultChecked?: boolean;
 }) {
   return (
-    <label
-      htmlFor={id}
-      className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40"
-    >
-      <input
-        type="checkbox"
-        id={id}
-        name={name}
-        defaultChecked={defaultChecked}
-        className="mt-0.5 size-4 shrink-0 rounded border-border accent-primary"
-      />
-      <span className="space-y-0.5">
-        <span className="block text-sm font-medium">{label}</span>
+    <div className="flex items-start justify-between gap-4 border border-border bg-card px-5 py-4">
+      <div className="space-y-1">
+        <label htmlFor={id} className="block cursor-pointer text-sm font-bold">
+          {label}
+        </label>
         {description ? (
-          <span className="block text-xs leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {description}
-          </span>
+          </p>
         ) : null}
-      </span>
-    </label>
+      </div>
+      <Switch id={id} name={name} defaultChecked={defaultChecked} className="mt-1 shrink-0" />
+    </div>
   );
 }
 
