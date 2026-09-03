@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 /** Months of essential spend an emergency fund should cover. */
 const EMERGENCY_MONTHS = 6;
@@ -24,7 +25,7 @@ export function CashBufferPanel({
 
   if (monthlyEssential <= 0) {
     return (
-      <div className="rounded-xl border border-border border-l-[3px] border-l-chart-1 bg-card px-5 py-4">
+      <div className="border border-border border-l-[3px] border-l-brand bg-card px-5 py-4">
         <p className="text-sm text-muted-foreground">
           Mark expenses as essential to see the ideal amount to keep on hand.
         </p>
@@ -43,25 +44,23 @@ export function CashBufferPanel({
       : 100;
 
   return (
-    <div className="space-y-4 rounded-xl border border-border border-l-[3px] border-l-chart-1 bg-card px-5 py-4">
+    <div className="space-y-4 border border-border border-l-[3px] border-l-brand bg-card px-5 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <div>
-          <p className="text-sm text-muted-foreground">Ideal amount to keep available</p>
-          <p className="font-heading text-2xl font-semibold tabular-nums">
-            {fmt(idealAmount)}
-          </p>
+          <p className="np-caps text-muted-foreground">Ideal amount to keep available</p>
+          <p className="text-3xl font-extrabold tabular-nums tracking-tight">{fmt(idealAmount)}</p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">You have</p>
-          <p className="font-medium tabular-nums">{fmt(availableBalance)}</p>
+          <p className="np-caps text-muted-foreground">You have</p>
+          <p className="font-bold tabular-nums">{fmt(availableBalance)}</p>
         </div>
       </div>
 
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+      <div className="h-2 w-full bg-muted">
         <div
           className={cn(
-            "h-full rounded-full transition-all",
-            covered ? "bg-success" : coveredPct > 50 ? "bg-chart-2" : "bg-chart-3"
+            "h-full transition-all",
+            covered ? "bg-success" : coveredPct > 50 ? "bg-warning" : "bg-destructive"
           )}
           style={{ width: `${coveredPct}%` }}
         />
@@ -69,7 +68,7 @@ export function CashBufferPanel({
 
       <p className="text-sm">
         {covered ? (
-          <span className="text-success">
+          <span className="text-success-text">
             {fmt(delta)} above your ideal buffer — you&apos;re covered.
           </span>
         ) : (
@@ -94,16 +93,15 @@ export function CashBufferPanel({
         ) : null}
       </div>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40">
-        <input
-          type="checkbox"
-          checked={includeEmergency}
-          onChange={(e) => setIncludeEmergency(e.target.checked)}
-          className="size-4 rounded border-border accent-primary"
-        />
+      <label className="flex cursor-pointer items-center justify-between gap-3 border border-border bg-muted/20 px-4 py-3 transition-colors hover:bg-muted/40">
         <span className="text-sm leading-snug">
           Include an emergency fund ({EMERGENCY_MONTHS} months of essentials)
         </span>
+        <Switch
+          checked={includeEmergency}
+          onCheckedChange={setIncludeEmergency}
+          aria-label="Include an emergency fund"
+        />
       </label>
     </div>
   );

@@ -10,22 +10,31 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartArea } from "@/components/ui/chart-area";
 import { ColoredBarRectangle, ColoredPieSector } from "@/components/finance/chart-shapes";
 import { formatINR } from "@/lib/format";
-import { chartColorAt, withChartFill } from "@/lib/finance/chart-colors";
+import { useChartPalette } from "@/lib/finance/use-chart-palette";
+
+/** Fixed semantic slots for the cashflow-allocation slices — see chart-colors.ts. */
+const ALLOCATION_COLOR_INDEX: Record<string, number> = {
+  Investments: 0,
+  Expenses: 2,
+  Surplus: 3,
+  Insurance: 4,
+};
+
+const axisTick = { fill: "var(--muted-foreground)", fontSize: 10 };
 
 function ChartLegend({ items }: { items: Array<{ name: string; color: string }> }) {
   return (
     <ul className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1">
       {items.map((item) => (
-        <li key={item.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span
-            className="size-2 shrink-0 rounded-full"
-            style={{ backgroundColor: item.color }}
-            aria-hidden
-          />
+        <li
+          key={item.name}
+          className="np-caps flex items-center gap-1.5 text-[10px] text-muted-foreground"
+        >
+          <span className="size-2 shrink-0" style={{ backgroundColor: item.color }} aria-hidden />
           {item.name}
         </li>
       ))}
@@ -62,43 +71,51 @@ function ChartTooltip({
   if (!active || !payload?.length) return null;
   const item = payload[0];
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      <p className="font-medium">{item.name}</p>
-      <p className="tabular-nums text-muted-foreground">
-        {formatINR(item.value, { compact: true })}
-      </p>
+    <div className="border border-border bg-popover p-3">
+      <p className="np-caps text-muted-foreground">{item.name}</p>
+      <p className="mt-1 font-bold tabular-nums">{formatINR(item.value, { compact: true })}</p>
     </div>
   );
 }
 
 export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
+  const { colorAt } = useChartPalette();
   const hasExpenses = data.expenseByCategory.length > 0;
   const hasGoals = data.goalProgress.length > 0;
-  const cashflowAllocation = withChartFill(data.cashflowAllocation);
-  const incomeBreakdown = withChartFill(data.incomeBreakdown);
-  const expenseByCategory = withChartFill(data.expenseByCategory);
+
+  // Colours are re-derived from the theme-aware palette on the client, so
+  // light mode gets the 600-shade palette instead of whatever hex the server
+  // query attached to each item.
+  const cashflowAllocation = data.cashflowAllocation.map((item) => {
+    const fill = colorAt(ALLOCATION_COLOR_INDEX[item.name] ?? 0);
+    return { ...item, fill, color: fill };
+  });
+  const incomeBreakdown = data.incomeBreakdown.map((item, i) => {
+    const fill = colorAt(i);
+    return { ...item, fill, color: fill };
+  });
+  const expenseByCategory = data.expenseByCategory.map((item, i) => {
+    const fill = colorAt(i);
+    return { ...item, fill, color: fill };
+  });
   const goalProgress = data.goalProgress.map((entry, i) => ({
     ...entry,
-    fill: entry.fill ?? entry.color ?? chartColorAt(i),
-    targetFill: entry.targetFill ?? chartColorAt(i + 3),
+    fill: colorAt(i),
+    targetFill: colorAt(i + 3),
   }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card className="overflow-hidden border-t-[3px] border-t-chart-1">
+      <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Monthly allocation</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Where your in-hand income goes each month
-          </p>
+          <CardTitle>Monthly allocation</CardTitle>
+          <CardDescription>Where your in-hand income goes each month</CardDescription>
         </CardHeader>
         <CardContent>
           {cashflowAllocation.length === 1 ? (
             <div className="flex h-64 flex-col items-center justify-center text-center">
-              <p className="text-sm text-muted-foreground">
-                {cashflowAllocation[0].name}
-              </p>
-              <p className="font-heading mt-1 text-3xl font-semibold tabular-nums">
+              <p className="text-sm text-muted-foreground">{cashflowAllocation[0].name}</p>
+              <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight">
                 {formatINR(cashflowAllocation[0].value, { compact: true })}
               </p>
               <p className="mt-2 max-w-xs text-xs text-muted-foreground">
@@ -118,8 +135,9 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                     cy="50%"
                     innerRadius={55}
                     outerRadius={90}
-                    paddingAngle={2}
-                    stroke="var(--card)"
+                    paddingAngle={0}
+                    stroke="var(--background)"
+                    strokeWidth={2}
                     shape={ColoredPieSector}
                   />
                   <Tooltip content={<ChartTooltip />} />
@@ -136,10 +154,10 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-t-[3px] border-t-chart-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-lg">Income sources</CardTitle>
-          <p className="text-sm text-muted-foreground">In-hand amounts by source</p>
+          <CardTitle>Income sources</CardTitle>
+          <CardDescription>In-hand amounts by source</CardDescription>
         </CardHeader>
         <CardContent>
           {incomeBreakdown.length === 0 ? (
@@ -152,15 +170,11 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                   <XAxis
                     type="number"
                     tickFormatter={(v) => formatINR(v, { compact: true })}
-                    tick={{ fontSize: 11 }}
+                    tick={axisTick}
                   />
-                  <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" width={100} tick={axisTick} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Bar
-                    dataKey="value"
-                    radius={[0, 4, 4, 0]}
-                    shape={ColoredBarRectangle}
-                  />
+                  <Bar dataKey="value" radius={0} shape={ColoredBarRectangle} />
                 </BarChart>
               </ChartArea>
               <ChartLegend
@@ -175,10 +189,10 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
       </Card>
 
       {hasExpenses && (
-        <Card className="overflow-hidden border-t-[3px] border-t-chart-2">
+        <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Expenses by category</CardTitle>
-            <p className="text-sm text-muted-foreground">Planned budget breakdown — edit in Expenses</p>
+            <CardTitle>Expenses by category</CardTitle>
+            <CardDescription>Planned budget breakdown — edit in Expenses</CardDescription>
           </CardHeader>
           <CardContent>
             <>
@@ -191,8 +205,9 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
-                    paddingAngle={1}
-                    stroke="var(--card)"
+                    paddingAngle={0}
+                    stroke="var(--background)"
+                    strokeWidth={2}
                     shape={ColoredPieSector}
                   />
                   <Tooltip content={<ChartTooltip />} />
@@ -210,37 +225,39 @@ export function PortfolioCharts({ data }: { data: PortfolioChartData }) {
       )}
 
       {hasGoals && (
-        <Card className="overflow-hidden border-t-[3px] border-t-chart-4">
+        <Card>
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Goal funding progress</CardTitle>
-            <p className="text-sm text-muted-foreground">Saved vs target for active goals</p>
+            <CardTitle>Goal funding progress</CardTitle>
+            <CardDescription>Saved vs target for active goals</CardDescription>
           </CardHeader>
           <CardContent>
             <>
               <ChartArea>
                 <BarChart data={goalProgress} margin={{ bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={60} />
-                  <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} tick={{ fontSize: 11 }} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Bar
-                    dataKey="saved"
-                    name="Saved"
-                    radius={[4, 4, 0, 0]}
-                    shape={ColoredBarRectangle}
+                  <XAxis
+                    dataKey="name"
+                    tick={{ ...axisTick }}
+                    interval={0}
+                    angle={-20}
+                    textAnchor="end"
+                    height={60}
                   />
+                  <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} tick={axisTick} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="saved" name="Saved" radius={0} shape={ColoredBarRectangle} />
                   <Bar
                     dataKey="target"
                     name="Target"
-                    radius={[4, 4, 0, 0]}
+                    radius={0}
                     shape={(props) => <ColoredBarRectangle {...props} fillKey="targetFill" />}
                   />
                 </BarChart>
               </ChartArea>
               <ChartLegend
                 items={[
-                  { name: "Saved", color: chartColorAt(0) },
-                  { name: "Target", color: chartColorAt(3) },
+                  { name: "Saved", color: colorAt(0) },
+                  { name: "Target", color: colorAt(3) },
                 ]}
               />
             </>

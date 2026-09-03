@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import {
   getDashboardData,
@@ -15,11 +16,13 @@ import {
 import { sumAvailableBalance } from "@/lib/finance/ledger";
 import { formatINR, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { GoalTimeline } from "@/components/finance/goal-timeline";
 import { CashBufferPanel } from "@/components/finance/cash-buffer-panel";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { PortfolioChartsSection } from "@/components/finance/portfolio-charts-section";
-import { chartColorAt } from "@/lib/finance/chart-colors";
+import { chartCssVar } from "@/lib/finance/chart-colors";
 import {
   PageShell,
   PageHeader,
@@ -31,9 +34,10 @@ import { ObligationList } from "@/components/finance/upcoming-obligations";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 
 const summaryCardTones = {
-  default: "border-border/70 bg-card",
-  positive: "border-success/25 bg-success/[0.06]",
-  info: "border-chart-4/25 bg-chart-4/[0.06]",
+  default: "border-border bg-card",
+  positive: "border-border bg-card",
+  info: "border-border bg-card",
+  hero: "border-transparent bg-brand np-edge-brand",
 } as const;
 
 function SummaryBreakdownCard({
@@ -49,36 +53,48 @@ function SummaryBreakdownCard({
   tone?: keyof typeof summaryCardTones;
   note?: string;
 }) {
+  const isHero = tone === "hero";
   return (
-    <section
-      className={cn(
-        "min-w-0 rounded-xl border px-4 py-3.5 shadow-sm",
-        summaryCardTones[tone]
-      )}
-    >
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+    <section className={cn("np-plunk min-w-0 border px-5 py-4", summaryCardTones[tone])}>
+      <p className={cn("np-caps", isHero ? "text-brand-foreground/70" : "text-muted-foreground")}>
         {label}
       </p>
       <p
         className={cn(
-          "mt-1 font-heading text-xl font-semibold tabular-nums",
-          tone === "positive" && "text-success",
-          tone === "info" && "text-chart-4"
+          "mt-2 text-2xl font-extrabold tabular-nums tracking-tight",
+          tone === "positive" && "text-success-text",
+          tone === "info" && "text-info-text",
+          isHero && "text-brand-foreground"
         )}
       >
         {value}
       </p>
-      <div className="mt-3 divide-y divide-border/50 border-t border-border/60">
+      <div
+        className={cn(
+          "mt-3 divide-y border-t text-xs",
+          isHero ? "divide-brand-foreground/15 border-brand-foreground/15" : "divide-border border-border"
+        )}
+      >
         {items.map((item) => (
-          <div key={item.label} className="flex items-start justify-between gap-3 py-2 text-xs">
-            <span className="min-w-0 truncate text-muted-foreground" title={item.label}>
+          <div key={item.label} className="flex items-start justify-between gap-3 py-2">
+            <span
+              className={cn("min-w-0 truncate", isHero ? "text-brand-foreground/70" : "text-muted-foreground")}
+              title={item.label}
+            >
               {item.label}
             </span>
             <span
               className={cn(
-                "shrink-0 font-medium tabular-nums text-foreground",
-                item.valueTone === "positive" && "text-success",
-                item.valueTone === "negative" && "text-destructive"
+                "shrink-0 font-medium tabular-nums",
+                isHero
+                  ? item.valueTone === "negative"
+                    ? "text-destructive"
+                    : "text-brand-foreground"
+                  : item.valueTone === "positive"
+                    ? "text-success-text"
+                    : item.valueTone === "negative"
+                      ? "text-destructive"
+                      : "text-foreground"
               )}
             >
               {item.value}
@@ -86,7 +102,16 @@ function SummaryBreakdownCard({
           </div>
         ))}
       </div>
-      {note ? <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">{note}</p> : null}
+      {note ? (
+        <p
+          className={cn(
+            "mt-1 text-[11px] leading-relaxed",
+            isHero ? "text-brand-foreground/70" : "text-muted-foreground"
+          )}
+        >
+          {note}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -148,7 +173,7 @@ export default async function DashboardPage() {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
-              tone={availableBalance >= 0 ? "positive" : "default"}
+              tone="hero"
               items={liquidAccounts.map((account) => ({
                 label: `${account.name}${account.lastFour ? ` · •••• ${account.lastFour}` : ""}`,
                 value: formatINR(account.currentBalance, {
@@ -220,13 +245,13 @@ export default async function DashboardPage() {
             {formatINR(snapshot.investments + snapshot.insurance, { compact: true })}
           </span>{" "}
           committed. Edit these in{" "}
-          <Link href="/expenses" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Button variant="link" render={<Link href="/expenses" />}>
             Expenses
-          </Link>{" "}
+          </Button>{" "}
           and{" "}
-          <Link href="/investments" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Button variant="link" render={<Link href="/investments" />}>
             Investments
-          </Link>
+          </Button>
           .
         </p>
       </InsightPanel>
@@ -235,7 +260,7 @@ export default async function DashboardPage() {
         title="Ledger spending"
         description="Actual amounts from transactions you logged — not your editable expense budgets"
       >
-        <div className="rounded-xl border border-border border-l-[3px] border-l-chart-4 bg-card px-5 py-4">
+        <div className="border border-border border-l-[3px] border-l-brand bg-card px-5 py-4">
           <p className="text-sm text-muted-foreground">
             <span className="font-medium text-foreground tabular-nums">
               {formatINR(ledger.totalDebits, { compact: profile?.useCompactNumbers })}
@@ -248,7 +273,7 @@ export default async function DashboardPage() {
               <>
                 {" "}
                 ·{" "}
-                <span className="tabular-nums text-success">
+                <span className="tabular-nums text-success-text">
                   {formatINR(ledger.totalCredits, { compact: true })}
                 </span>{" "}
                 received
@@ -270,7 +295,7 @@ export default async function DashboardPage() {
                   {" "}(Shopping, Entertainment, Food & Subscriptions)
                 </span>
                 {budgetDelta >= 0 ? (
-                  <span className="text-success">
+                  <span className="text-success-text">
                     {" "}
                     · {formatINR(budgetDelta, { compact: true })} under budget
                   </span>
@@ -281,11 +306,15 @@ export default async function DashboardPage() {
                   </span>
                 )}
               </p>
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="mt-4 h-2 bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all",
-                    budgetUsedPct > 90 ? "bg-chart-3" : budgetUsedPct > 70 ? "bg-chart-2" : "bg-chart-1"
+                    "h-full transition-all",
+                    budgetUsedPct > 90
+                      ? "bg-destructive"
+                      : budgetUsedPct > 70
+                        ? "bg-warning"
+                        : "bg-success"
                   )}
                   style={{ width: `${budgetUsedPct}%` }}
                 />
@@ -303,30 +332,23 @@ export default async function DashboardPage() {
           {ledger.byCategory.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {ledger.byCategory.slice(0, 5).map((item, i) => (
-                <span
-                  key={item.category}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-3 py-1 text-xs"
-                  style={{ backgroundColor: `${chartColorAt(i)}18` }}
-                >
+                <Badge key={item.category} variant="outline" className="gap-1.5">
                   <span
-                    className="size-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: chartColorAt(i) }}
+                    className="size-2 shrink-0"
+                    style={{ backgroundColor: chartCssVar(i) }}
                     aria-hidden
                   />
-                  <span className="text-muted-foreground">{item.category}</span>
-                  <span className="font-medium tabular-nums">
+                  {item.category}
+                  <span className="font-bold tabular-nums">
                     {formatINR(item.amount, { compact: true })}
                   </span>
-                </span>
+                </Badge>
               ))}
             </div>
           ) : null}
-          <Link
-            href="/transactions"
-            className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
-          >
+          <Button variant="link" render={<Link href="/transactions" />} className="mt-4">
             Open ledger →
-          </Link>
+          </Button>
         </div>
       </PageSection>
 
@@ -343,12 +365,10 @@ export default async function DashboardPage() {
         {completedGoals.length > 0 ? (
           <div className="mb-4 flex flex-wrap gap-2">
             {completedGoals.map((g) => (
-              <span
-                key={g.id}
-                className="inline-flex items-center rounded-full bg-success/15 px-3 py-1 text-sm text-success"
-              >
-                ✓ {g.title}
-              </span>
+              <Badge key={g.id} variant="success" className="gap-1">
+                <Check className="size-3" />
+                {g.title}
+              </Badge>
             ))}
           </div>
         ) : null}

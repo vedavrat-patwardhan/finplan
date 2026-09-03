@@ -8,12 +8,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartArea } from "@/components/ui/chart-area";
 import { ColoredBarRectangle } from "@/components/finance/chart-shapes";
 import { formatINR, formatPercent } from "@/lib/format";
 import type { PortfolioReturnSummary } from "@/lib/finance/investment-metrics";
-import { chartColorAt } from "@/lib/finance/chart-colors";
+import { useChartPalette } from "@/lib/finance/use-chart-palette";
+import { cn } from "@/lib/utils";
 
 interface PortfolioReturnsPanelProps {
   summary: PortfolioReturnSummary;
@@ -25,6 +26,8 @@ interface PortfolioReturnsPanelProps {
   }>;
 }
 
+const axisTick = { fill: "var(--muted-foreground)", fontSize: 10 };
+
 function ReturnsTooltip({
   active,
   payload,
@@ -34,11 +37,13 @@ function ReturnsTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-md">
+    <div className="border border-border bg-popover p-3">
       {payload.map((item) => (
-        <p key={item.name} className="tabular-nums">
-          <span className="text-muted-foreground">{item.name}: </span>
-          {formatINR(item.value, { compact: true })}
+        <p key={item.name} className="flex items-baseline justify-between gap-4">
+          <span className="np-caps text-muted-foreground">{item.name}</span>
+          <span className="font-bold tabular-nums">
+            {formatINR(item.value, { compact: true })}
+          </span>
         </p>
       ))}
     </div>
@@ -46,23 +51,25 @@ function ReturnsTooltip({
 }
 
 export function PortfolioReturnsPanel({ summary, byInvestment }: PortfolioReturnsPanelProps) {
+  const { colorAt } = useChartPalette();
   const chartData = byInvestment
     .filter((item) => item.invested > 0)
     .map((item, i) => ({
       name: item.name,
       invested: item.invested,
       fundValue: item.fundValue,
-      color: chartColorAt(i),
-      fill: chartColorAt(i),
+      color: colorAt(i),
+      fill: colorAt(i),
     }));
 
   return (
-    <Card className="overflow-hidden border-t-[3px] border-t-chart-1">
+    <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-lg">Portfolio returns</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Historical performance from invested amounts and current fund values across your holdings.
-        </p>
+        <CardTitle>Portfolio returns</CardTitle>
+        <CardDescription>
+          Historical performance from invested amounts and current fund values across your
+          holdings.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -96,14 +103,21 @@ export function PortfolioReturnsPanel({ summary, byInvestment }: PortfolioReturn
           <ChartArea className="h-64">
             <BarChart data={chartData} margin={{ bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={50} />
-              <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} tick={{ fontSize: 10 }} />
+              <XAxis
+                dataKey="name"
+                tick={axisTick}
+                interval={0}
+                angle={-15}
+                textAnchor="end"
+                height={50}
+              />
+              <YAxis tickFormatter={(v) => formatINR(v, { compact: true })} tick={axisTick} />
               <Tooltip content={<ReturnsTooltip />} />
-              <Bar dataKey="invested" name="Invested" radius={[4, 4, 0, 0]} shape={ColoredBarRectangle} />
+              <Bar dataKey="invested" name="Invested" radius={0} shape={ColoredBarRectangle} />
               <Bar
                 dataKey="fundValue"
                 name="Fund value"
-                radius={[4, 4, 0, 0]}
+                radius={0}
                 shape={(props) => <ColoredBarRectangle {...props} fillKey="fill" opacity={0.65} />}
               />
             </BarChart>
@@ -126,18 +140,19 @@ function Stat({
   muted?: boolean;
 }) {
   return (
-    <div className="rounded-lg bg-muted/40 px-4 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
+    <div className="border border-border bg-muted px-4 py-3">
+      <p className="np-caps text-muted-foreground">{label}</p>
       <p
-        className={`mt-0.5 font-heading text-lg font-semibold tabular-nums ${
+        className={cn(
+          "mt-1 text-xl font-extrabold tabular-nums tracking-tight",
           muted
             ? "text-muted-foreground"
             : tone === "positive"
-              ? "text-success"
+              ? "text-success-text"
               : tone === "negative"
                 ? "text-destructive"
                 : ""
-        }`}
+        )}
       >
         {value}
       </p>

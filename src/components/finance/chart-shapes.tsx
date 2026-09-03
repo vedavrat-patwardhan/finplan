@@ -21,6 +21,12 @@ function resolveFill(
   );
 }
 
+/**
+ * Square pie/donut sector. NeoPop's seam between slices (paddingAngle={0},
+ * stroke="var(--background)", strokeWidth={2}) is set on the owning <Pie>
+ * element — Recharts merges those shared props into what this shape
+ * receives, so this only needs to resolve the per-slice fill.
+ */
 export function ColoredPieSector(
   props: ComponentProps<typeof Sector> & {
     index?: number;
@@ -31,6 +37,7 @@ export function ColoredPieSector(
   return <Sector {...props} fill={resolveFill(props, index)} />;
 }
 
+/** Square bar rectangle — radius is always forced to 0, no rounded corners. */
 export function ColoredBarRectangle(
   props: ComponentProps<typeof Rectangle> & {
     index?: number;
@@ -48,6 +55,7 @@ export function ColoredBarRectangle(
   return (
     <Rectangle
       {...props}
+      radius={0}
       fill={props.fill ?? payloadFill}
       fillOpacity={fillKey === "targetFill" ? 0.35 : props.fillOpacity}
     />

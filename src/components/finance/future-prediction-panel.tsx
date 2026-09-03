@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatINR, formatPercent } from "@/lib/format";
 import {
   projectPortfolioAtYears,
@@ -33,17 +33,17 @@ function ProjectionBreakdown({
   const invested = projection.startingValue + projection.newContributions;
 
   return (
-    <div className={cn("rounded-xl border border-border px-4 py-4", accentClass)}>
-      <p className="text-sm font-medium">{title}</p>
+    <div className={cn("border border-border px-4 py-4", accentClass)}>
+      <p className="text-sm font-bold">{title}</p>
       <p className="text-xs text-muted-foreground">{subtitle}</p>
 
-      <p className="font-heading mt-4 text-2xl font-semibold tabular-nums">
+      <p className="mt-4 text-2xl font-extrabold tabular-nums tracking-tight">
         {formatINR(projection.futureValue)}
       </p>
       <p className="mt-0.5 text-xs text-muted-foreground">Future value in {years} years</p>
 
       <dl className="mt-5 space-y-0 text-sm">
-        <div className="flex items-baseline justify-between gap-3 border-b border-border/60 py-2.5">
+        <div className="flex items-baseline justify-between gap-3 border-b border-border py-2.5">
           <dt className="text-muted-foreground">Invested</dt>
           <dd className="font-medium tabular-nums">{formatINR(invested)}</dd>
         </div>
@@ -51,7 +51,7 @@ function ProjectionBreakdown({
           <dt className="text-muted-foreground">Current portfolio</dt>
           <dd className="tabular-nums">{formatINR(projection.startingValue)}</dd>
         </div>
-        <div className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 pl-2 pb-2.5 text-xs">
+        <div className="flex items-baseline justify-between gap-3 border-b border-border py-1.5 pl-2 pb-2.5 text-xs">
           <dt className="text-muted-foreground">Future SIP ({years} yr)</dt>
           <dd className="tabular-nums">{formatINR(projection.newContributions)}</dd>
         </div>
@@ -60,14 +60,14 @@ function ProjectionBreakdown({
           <dd
             className={cn(
               "font-medium tabular-nums",
-              projection.gain >= 0 ? "text-success" : "text-destructive"
+              projection.gain >= 0 ? "text-success-text" : "text-destructive"
             )}
           >
             {projection.gain >= 0 ? "+" : ""}
             {formatINR(projection.gain)}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-3 border-t border-border py-2.5 font-medium">
+        <div className="flex items-baseline justify-between gap-3 border-t border-border py-2.5 font-bold">
           <dt>Total</dt>
           <dd className="tabular-nums">{formatINR(projection.futureValue)}</dd>
         </div>
@@ -95,8 +95,8 @@ function InflationStat({
     futureValue > 0 ? ((futureValue - todayValue) / futureValue) * 100 : 0;
 
   return (
-    <div className="rounded-lg bg-background/80 px-3 py-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="bg-background/80 px-3 py-3">
+      <p className="np-caps text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm tabular-nums">
         <span className="font-medium">{formatINR(futureValue)}</span>
         <span className="text-muted-foreground"> in {years} yr → </span>
@@ -143,10 +143,10 @@ export function FuturePredictionPanel({
   const yearLabel = years === 1 ? "1 year" : `${years} years`;
 
   return (
-    <Card className="overflow-hidden border-t-[3px] border-t-chart-5">
+    <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-lg">Future value breakdown</CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <CardTitle>Future value breakdown</CardTitle>
+        <CardDescription>
           Exact invested capital vs interest at your chosen horizon. Assumes monthly SIP of{" "}
           <span className="font-medium tabular-nums text-foreground">
             {formatINR(inputs.monthlyInvestments)}
@@ -156,14 +156,14 @@ export function FuturePredictionPanel({
             {formatINR(inputs.currentPortfolioValue)}
           </span>
           .
-        </p>
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-medium">Time horizon</p>
-              <p className="font-heading text-2xl font-semibold tabular-nums">{yearLabel}</p>
+              <p className="text-sm font-bold">Time horizon</p>
+              <p className="text-2xl font-extrabold tabular-nums tracking-tight">{yearLabel}</p>
             </div>
             <p className="text-right text-xs text-muted-foreground">
               Inflation assumption: {formatPercent(inputs.inflationRate)} p.a.
@@ -176,7 +176,7 @@ export function FuturePredictionPanel({
             step={1}
             value={years}
             onChange={(e) => setYears(Number(e.target.value))}
-            className="h-2 w-full cursor-pointer accent-primary"
+            className="h-1 w-full cursor-pointer appearance-none bg-muted accent-brand [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-foreground"
             aria-label="Projection time horizon in years"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -192,19 +192,19 @@ export function FuturePredictionPanel({
             subtitle={`${formatPercent(inputs.expectedReturnPct)} p.a. from your investment plan`}
             projection={expectedAtHorizon}
             years={years}
-            accentClass="border-l-[3px] border-l-chart-1 bg-chart-1/5"
+            accentClass="border-l-[3px] border-l-brand bg-brand/5"
           />
           <ProjectionBreakdown
             title="Current returns"
             subtitle={`${formatPercent(inputs.currentReturnPct)} p.a. based on actual portfolio performance`}
             projection={currentAtHorizon}
             years={years}
-            accentClass="border-l-[3px] border-l-chart-2 bg-chart-2/5"
+            accentClass="border-l-[3px] border-l-foreground/30 bg-muted/30"
           />
         </div>
 
-        <div className="rounded-xl border border-border bg-muted/30 px-4 py-4">
-          <p className="text-sm font-medium">Purchasing power in today&apos;s terms</p>
+        <div className="border border-border bg-muted/30 px-4 py-4">
+          <p className="text-sm font-bold">Purchasing power in today&apos;s terms</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             Future amounts feel larger, but inflation erodes what they can buy. At{" "}
             {formatPercent(inputs.inflationRate)} inflation, this is what each projection is worth

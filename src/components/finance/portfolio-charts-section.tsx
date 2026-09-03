@@ -14,7 +14,7 @@ const PortfolioCharts = dynamic(
     loading: () => (
       <div className="grid gap-6 lg:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-80 w-full rounded-xl" />
+          <Skeleton key={i} className="h-80 w-full" />
         ))}
       </div>
     ),
