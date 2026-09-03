@@ -15,6 +15,15 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_TO_YEAR = 2150;
 
+function getCalendarRange(fromYear?: number, toYear?: number) {
+  const today = new Date();
+  return {
+    today,
+    start: new Date(fromYear ?? today.getFullYear() - 35, 0, 1),
+    end: new Date(toYear ?? DEFAULT_TO_YEAR, 11, 31),
+  };
+}
+
 interface DatePickerProps {
   id?: string;
   name?: string;
@@ -48,9 +57,9 @@ export function DatePicker({
 
   const dateValue = isControlled ? (value ?? "") : internalValue;
   const selectedDate = parseDateInputValue(dateValue);
-  const currentYear = new Date().getFullYear();
-  const rangeStart = new Date(fromYear ?? currentYear - 35, 0, 1);
-  const rangeEnd = new Date(toYear ?? DEFAULT_TO_YEAR, 11, 31);
+  // The calendar only mounts while the popover is open, so the clock is read
+  // lazily on interaction instead of during prerendering.
+  const calendarRange = open ? getCalendarRange(fromYear, toYear) : null;
 
   useEffect(() => {
     if (!isControlled) {
@@ -157,10 +166,10 @@ export function DatePicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            defaultMonth={selectedDate ?? new Date()}
+            defaultMonth={selectedDate ?? calendarRange?.today}
             captionLayout="dropdown"
-            startMonth={rangeStart}
-            endMonth={rangeEnd}
+            startMonth={calendarRange?.start}
+            endMonth={calendarRange?.end}
             disabled={disabled}
           />
           <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2.5">

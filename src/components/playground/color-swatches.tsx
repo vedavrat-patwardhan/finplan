@@ -36,9 +36,9 @@ export function ColorSwatches() {
     <div className="space-y-8">
       <div className="flex flex-wrap gap-x-5 gap-y-4">
         {SWATCHES.map((swatch) => (
-          <div key={swatch.name} className="w-20 space-y-1.5">
+          <div key={swatch.name} className="w-24 space-y-1.5">
             <div className={cn("size-16 border border-border", swatch.cls)} />
-            <p className="np-caps text-[9px] break-all text-muted-foreground">
+            <p className="np-caps text-[9px] tracking-[1px] text-muted-foreground">
               {swatch.name}
             </p>
           </div>

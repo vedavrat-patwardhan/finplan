@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -43,11 +44,19 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // `render={<Link />}` and similar non-button renders need Base UI to add the
+  // button semantics itself; a plain <button> (or no render) keeps the native path.
+  const rendersNativeButton =
+    props.render === undefined ||
+    (React.isValidElement(props.render) && props.render.type === "button")
+
   return (
     <ButtonPrimitive
       data-slot="button"
+      nativeButton={nativeButton ?? rendersNativeButton}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
