@@ -128,7 +128,9 @@ export async function POST(request: Request) {
       message: parsed.data.message,
       occurredAt,
     });
-    return Response.json(result, { status: result.status === "duplicate" ? 200 : 201 });
+    const status =
+      result.status === "duplicate" ? 200 : result.status === "needs_review" ? 202 : 201;
+    return Response.json(result, { status });
   } catch (error) {
     console.error("SMS ingestion failed", error);
     return Response.json({ error: "Unable to process this message" }, { status: 500 });

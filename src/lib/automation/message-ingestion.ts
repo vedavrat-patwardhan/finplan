@@ -81,11 +81,22 @@ export async function ingestFinanceMessage(input: IngestInput) {
           item.cardLastFour === parsed.accountLastFour
       )
     : undefined;
+  let matchedByUniqueSender = false;
 
   if (!account && sender) {
     const senderMatches = accounts.filter((item) => senderMatchesInstitution(sender, item.institution ?? ""));
-    if (senderMatches.length === 1) account = senderMatches[0];
+    if (senderMatches.length === 1) {
+      account = senderMatches[0];
+      matchedByUniqueSender = true;
+    }
   }
+
+  // A unique bank-sender match is as strong an account signal as matching the
+  // final four digits in the message. Some valid bank credits omit account digits.
+  const confidence = Math.min(
+    0.99,
+    parsed.confidence + (matchedByUniqueSender ? 0.18 : 0)
+  );
 
   const canImportTransaction =
     parsed.kind === "transaction" &&
@@ -93,13 +104,13 @@ export async function ingestFinanceMessage(input: IngestInput) {
     parsed.amount !== undefined &&
     parsed.amount > 0 &&
     account &&
-    parsed.confidence >= 0.8;
+    confidence >= 0.8;
   const canImportBill =
     parsed.kind === "bill" &&
     account?.type === "credit_card" &&
     parsed.billTotalDue !== undefined &&
     parsed.billDueDate &&
-    parsed.confidence >= 0.8;
+    confidence >= 0.8;
   const canImportBalance =
     parsed.kind === "balance" &&
     parsed.availableBalance !== undefined &&
@@ -122,7 +133,7 @@ export async function ingestFinanceMessage(input: IngestInput) {
             historical: input.historical ?? false,
             kind: parsed.kind,
             status: canImportTransaction || canImportBill || canImportBalance ? "imported" : "needs_review",
-            confidence: parsed.confidence,
+            confidence,
             accountId: account?._id,
             parsed,
           },
