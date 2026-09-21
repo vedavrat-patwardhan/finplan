@@ -1,8 +1,6 @@
-import { createHash, timingSafeEqual } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { connectDB } from "@/lib/db/mongoose";
-import { IntegrationSetting } from "@/lib/db/models";
+import { authenticateIngestionRequest } from "@/lib/automation/ingestion-auth";
 import { ingestFinanceMessage } from "@/lib/automation/message-ingestion";
 
 const payloadSchema = z.object({
@@ -69,16 +67,6 @@ async function readPayload(request: Request): Promise<unknown> {
   }
 }
 
-function tokenHash(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function secureHashMatch(actual: string, expected: string) {
-  const actualBuffer = Buffer.from(actual);
-  const expectedBuffer = Buffer.from(expected);
-  return actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer);
-}
-
 function parseTimestamp(value: string | number | undefined): Date | undefined {
   if (value === undefined) return undefined;
   const numeric = typeof value === "number" ? value : /^\d+$/.test(value) ? Number(value) : NaN;
@@ -90,18 +78,8 @@ function parseTimestamp(value: string | number | undefined): Date | undefined {
 }
 
 export async function POST(request: Request) {
-  const authorization = request.headers.get("authorization") ?? "";
-  const token = authorization.startsWith("Bearer ")
-    ? authorization.slice(7).trim()
-    : request.headers.get("x-finplan-token")?.trim() ?? "";
-  if (!token || token.length < 24) {
-    return Response.json({ error: "Invalid ingestion token" }, { status: 401 });
-  }
-
-  await connectDB();
-  const hash = tokenHash(token);
-  const integration = await IntegrationSetting.findOne({ smsEnabled: true, smsTokenHash: hash }).lean();
-  if (!integration || !secureHashMatch(hash, integration.smsTokenHash)) {
+  const integration = await authenticateIngestionRequest(request);
+  if (!integration) {
     return Response.json({ error: "Invalid ingestion token" }, { status: 401 });
   }
 
@@ -126,7 +104,7 @@ export async function POST(request: Request) {
   const occurredAt = parseTimestamp(parsed.data.timestamp);
   try {
     const result = await ingestFinanceMessage({
-      userId: integration.userId.toString(),
+      userId: integration.userId,
       sender: parsed.data.sender,
       message: parsed.data.message,
       occurredAt,
