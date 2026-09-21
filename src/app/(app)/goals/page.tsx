@@ -37,6 +37,7 @@ export default async function GoalsPage() {
     (sum, g) => sum + g.feasibility.requiredMonthlySave,
     0
   );
+  const surplusAfterGoals = snapshot.netSurplus - totalRequiredMonthly;
 
   return (
     <PageShell>
@@ -46,13 +47,19 @@ export default async function GoalsPage() {
         meta={
           <>
             <MetaStat
-              label="Monthly surplus"
+              label="Surplus before goals"
               value={`${formatINR(snapshot.netSurplus, { compact: true })}/mo`}
             />
             {activeGoals.length > 0 ? (
               <MetaStat
                 label="Saving needed"
                 value={`${formatINR(totalRequiredMonthly, { compact: true })}/mo`}
+              />
+            ) : null}
+            {activeGoals.length > 0 ? (
+              <MetaStat
+                label="After goal savings"
+                value={`${formatINR(surplusAfterGoals, { compact: true })}/mo`}
               />
             ) : null}
             {needsAttention > 0 ? (

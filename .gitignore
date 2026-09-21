@@ -43,3 +43,6 @@ next-env.d.ts
 # Serwist
 public/sw.js
 public/swe-worker-*
+
+# Separate native mobile repository kept beside the web app source.
+/mobile-repo/

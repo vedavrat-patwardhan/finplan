@@ -275,6 +275,42 @@ export const getGoalsWithFeasibility = cache(async (userId: string) => {
   });
 });
 
+function buildGoalSavingPlan(
+  snapshot: Awaited<ReturnType<typeof getMonthlySnapshot>>,
+  goals: Awaited<ReturnType<typeof getGoalsWithFeasibility>>
+) {
+  const goalObligations = goals
+    .filter(
+      (goal) =>
+        goal.status !== "completed" &&
+        goal.feasibility.requiredMonthlySave > 0
+    )
+    .map((goal) => ({
+      sourceId: goal.id,
+      name: goal.title,
+      amount: goal.feasibility.requiredMonthlySave,
+      targetAmount: goal.targetAmount,
+      currentSaved: goal.currentSaved,
+      targetDate: goal.targetDate ? new Date(goal.targetDate) : undefined,
+      status: goal.feasibility.status,
+    }));
+  const goalSavings = goalObligations.reduce(
+    (sum, obligation) => sum + obligation.amount,
+    0
+  );
+
+  return {
+    goalObligations,
+    snapshot: {
+      ...snapshot,
+      goalSavings,
+      netSurplusBeforeGoals: snapshot.netSurplus,
+      totalOutflow: snapshot.totalOutflow + goalSavings,
+      netSurplus: snapshot.netSurplus - goalSavings,
+    },
+  };
+}
+
 async function removeHandledObligations(
   userId: string,
   candidates: UpcomingObligation[]
@@ -495,25 +531,38 @@ export const getDashboardData = cache(async (userId: string) => {
     getPastDueObligationsForUser(userId),
   ]);
 
-  return { profile, snapshot, goals, obligations, pastDueObligations };
+  const goalPlan = buildGoalSavingPlan(snapshot, goals);
+
+  return {
+    profile,
+    snapshot: goalPlan.snapshot,
+    goals,
+    goalObligations: goalPlan.goalObligations,
+    obligations,
+    pastDueObligations,
+  };
 });
 
 export const getCashflowBreakdown = cache(async (userId: string) => {
-  const [income, expenses, investments, insurance, snapshot] =
+  const [income, expenses, investments, insurance, snapshot, goals] =
     await Promise.all([
       getIncomeSources(userId),
       getExpenses(userId),
       getInvestments(userId),
       getInsurancePolicies(userId),
       getMonthlySnapshot(userId),
+      getGoalsWithFeasibility(userId),
     ]);
+  const goalPlan = buildGoalSavingPlan(snapshot, goals);
 
   return {
     income,
     expenses,
     investments,
     insurance,
-    snapshot,
+    goals,
+    goalObligations: goalPlan.goalObligations,
+    snapshot: goalPlan.snapshot,
   };
 });
 
@@ -523,8 +572,9 @@ export const getCalculatorPrefill = cache(async (userId: string) => {
     getMonthlySnapshot(userId),
     getInvestments(userId),
     getInsurancePolicies(userId),
-    getLifeGoals(userId),
+    getGoalsWithFeasibility(userId),
   ]);
+  const goalPlan = buildGoalSavingPlan(snapshot, goals);
 
   const totalSIP = investments
     .filter((i) => i.frequency === "monthly")
@@ -534,7 +584,7 @@ export const getCalculatorPrefill = cache(async (userId: string) => {
 
   return {
     monthlyIncome: snapshot.grossIncome,
-    monthlySurplus: snapshot.netSurplus,
+    monthlySurplus: goalPlan.snapshot.netSurplus,
     monthlyExpenses: snapshot.fixedExpenses + snapshot.insurance,
     totalSIP,
     totalCoverage,
@@ -550,13 +600,14 @@ export const getPortfolioChartData = cache(async (userId: string) => {
       getIncomeSources(userId),
       getExpenses(userId),
       getMonthlySnapshot(userId),
-      getLifeGoals(userId),
+      getGoalsWithFeasibility(userId),
       getUserProfile(userId),
     ]);
 
   const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
 
-  const surplus = Math.max(0, snapshot.netSurplus);
+  const goalPlan = buildGoalSavingPlan(snapshot, goals);
+  const surplus = Math.max(0, goalPlan.snapshot.netSurplus);
 
   const cashflowAllocation = withChartFill(
     [
@@ -574,6 +625,11 @@ export const getPortfolioChartData = cache(async (userId: string) => {
         name: "Insurance",
         value: snapshot.insurance,
         color: CASHFLOW_ALLOCATION_COLORS.Insurance,
+      },
+      {
+        name: "Goals",
+        value: goalPlan.snapshot.goalSavings,
+        color: CASHFLOW_ALLOCATION_COLORS.Goals,
       },
       { name: "Surplus", value: surplus, color: CASHFLOW_ALLOCATION_COLORS.Surplus },
     ].filter((d) => d.value > 0),
@@ -627,7 +683,9 @@ export const getPortfolioChartData = cache(async (userId: string) => {
     goalProgress,
     snapshot: {
       grossIncome: snapshot.grossIncome,
-      netSurplus: snapshot.netSurplus,
+      goalSavings: goalPlan.snapshot.goalSavings,
+      netSurplusBeforeGoals: goalPlan.snapshot.netSurplusBeforeGoals,
+      netSurplus: goalPlan.snapshot.netSurplus,
       savingsRate: snapshot.savingsRate,
     },
   };

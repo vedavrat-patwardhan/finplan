@@ -91,6 +91,25 @@ export async function ingestFinanceMessage(input: IngestInput) {
     }
   }
 
+  // The same payment can arrive through an SMS and a bank/Gmail notification
+  // with different wording and sender labels. Treat the bank reference as the
+  // canonical identity so multiple mobile sources cannot create two ledger rows.
+  if (account && parsed.reference) {
+    const existingTransaction = await LedgerTransaction.findOne({
+      userId,
+      accountId: account._id,
+      type: parsed.type,
+      sourceReference: parsed.reference,
+    }).lean();
+    if (existingTransaction) {
+      return {
+        id: existingTransaction.ingestionId?.toString() ?? existingTransaction._id.toString(),
+        status: "duplicate" as const,
+        parsed,
+      };
+    }
+  }
+
   // A unique bank-sender match is as strong an account signal as matching the
   // final four digits in the message. Some valid bank credits omit account digits.
   const confidence = Math.min(

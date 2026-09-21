@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "crypto";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { connectDB } from "@/lib/db/mongoose";
 import { IntegrationSetting } from "@/lib/db/models";
@@ -8,6 +9,8 @@ const payloadSchema = z.object({
   sender: z.string().trim().max(80).default(""),
   message: z.string().trim().min(1).max(3000),
   timestamp: z.union([z.string(), z.number()]).optional(),
+  source: z.enum(["sms", "notification", "history"]).optional(),
+  historical: z.boolean().default(false),
 });
 
 function decodeLooseJsonString(value: string): string {
@@ -127,7 +130,14 @@ export async function POST(request: Request) {
       sender: parsed.data.sender,
       message: parsed.data.message,
       occurredAt,
+      historical: parsed.data.historical,
     });
+    if (result.status !== "duplicate") {
+      revalidatePath("/automations");
+      revalidatePath("/dashboard");
+      revalidatePath("/transactions");
+      revalidatePath("/accounts");
+    }
     const status =
       result.status === "duplicate" ? 200 : result.status === "needs_review" ? 202 : 201;
     return Response.json(result, { status });

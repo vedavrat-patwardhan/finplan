@@ -139,6 +139,10 @@ export async function buildFinanceAssistantContext(userId: string) {
     (sum, item) => sum + (item.metrics.fundValue ?? item.metrics.totalInvested),
     0
   );
+  const monthlyGoalSavings = goals
+    .filter((item) => item.status !== "completed")
+    .reduce((sum, item) => sum + item.feasibility.requiredMonthlySave, 0);
+  const monthlySurplusAfterGoals = snapshot.netSurplus - monthlyGoalSavings;
 
   return {
     asOf: new Date().toISOString(),
@@ -155,12 +159,20 @@ export async function buildFinanceAssistantContext(userId: string) {
       creditCardOutstanding: creditCardDue,
       essentialMonthly,
       suggestedThreeMonthCashFloor: essentialMonthly * 3,
-      monthlySurplusAfterPlans: snapshot.netSurplus,
+      monthlySurplusBeforeGoals: snapshot.netSurplus,
+      monthlyGoalSavings,
+      monthlySurplusAfterPlans: monthlySurplusAfterGoals,
       monthlyCommittedInvestments: snapshot.investments,
       monthlyInsurance: snapshot.insurance,
       estimatedPortfolioValue: investmentValue,
     },
-    monthlyPlan: snapshot,
+    monthlyPlan: {
+      ...snapshot,
+      goalSavings: monthlyGoalSavings,
+      netSurplusBeforeGoals: snapshot.netSurplus,
+      netSurplus: monthlySurplusAfterGoals,
+      totalOutflow: snapshot.totalOutflow + monthlyGoalSavings,
+    },
     accounts: accounts.map((item) => ({
       name: item.name,
       type: item.type,
@@ -208,6 +220,14 @@ export async function buildFinanceAssistantContext(userId: string) {
       priorityTier: item.priorityTier,
       feasibility: item.feasibility,
     })),
+    goalSavingObligations: goals
+      .filter((item) => item.status !== "completed")
+      .map((item) => ({
+        name: item.title,
+        amount: item.feasibility.requiredMonthlySave,
+        targetDate: item.targetDate,
+        type: "goal_saving" as const,
+      })),
     upcomingObligations: obligations.map((item) => ({
       name: item.name,
       amount: item.amount,

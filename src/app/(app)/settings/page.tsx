@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { getUserProfile, getMonthlySnapshot } from "@/lib/db/queries/finance";
+import { getUserProfile, getCashflowBreakdown } from "@/lib/db/queries/finance";
 import { PersonalProfileForm } from "@/components/settings/personal-profile-form";
 import { HouseholdForm } from "@/components/settings/household-form";
 import { ProfileForm } from "@/components/settings/profile-form";
@@ -15,10 +15,11 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [profile, snapshot] = await Promise.all([
+  const [profile, cashflow] = await Promise.all([
     getUserProfile(session.userId),
-    getMonthlySnapshot(session.userId),
+    getCashflowBreakdown(session.userId),
   ]);
+  const { snapshot } = cashflow;
 
   if (!profile) return null;
 

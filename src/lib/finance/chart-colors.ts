@@ -36,12 +36,14 @@ export const CHART_PALETTE = DARK_CHART_PALETTE;
 export const PORTFOLIO_CHART_COLORS = CHART_PALETTE;
 
 // Semantic mapping: Income → 1 (green), Expenses → 2 (orange),
-// Investments → 0 (lime), Insurance → 4 (pink), Surplus → 3 (purple).
+// Investments → 0 (lime), Insurance → 4 (pink), Goals → 5 (yellow),
+// Surplus → 3 (purple).
 export const CASHFLOW_ALLOCATION_COLORS: Record<string, string> = {
   Surplus: CHART_PALETTE[3],
   Expenses: CHART_PALETTE[2],
   Investments: CHART_PALETTE[0],
   Insurance: CHART_PALETTE[4],
+  Goals: CHART_PALETTE[5],
 };
 
 export const CASHFLOW_WATERFALL_COLORS: Record<string, string> = {
@@ -49,6 +51,7 @@ export const CASHFLOW_WATERFALL_COLORS: Record<string, string> = {
   Expenses: CHART_PALETTE[2],
   Investments: CHART_PALETTE[0],
   Insurance: CHART_PALETTE[4],
+  Goals: CHART_PALETTE[5],
   Surplus: CHART_PALETTE[3],
 };
 

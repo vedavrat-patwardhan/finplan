@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
-import { getCalculatorPrefill, getMonthlySnapshot } from "@/lib/db/queries/finance";
+import { getCalculatorPrefill } from "@/lib/db/queries/finance";
 import { formatINR } from "@/lib/format";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
 import { PageShell, PageHeader, PageSection, MetaStat } from "@/components/layout/page-chrome";
@@ -43,10 +43,7 @@ export default async function CalculatorsPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [prefill, snapshot] = await Promise.all([
-    getCalculatorPrefill(session.userId),
-    getMonthlySnapshot(session.userId),
-  ]);
+  const prefill = await getCalculatorPrefill(session.userId);
 
   return (
     <PageShell>
@@ -81,7 +78,7 @@ export default async function CalculatorsPage() {
         </div>
       </PageSection>
 
-      <ScenarioModeler baseSurplus={snapshot.netSurplus} />
+      <ScenarioModeler baseSurplus={prefill.monthlySurplus} />
 
       <PageSection title="Pre-fill data" description="Pulled from your income, expenses, and investments">
         <div className="grid gap-4 border border-border bg-card px-5 py-4 sm:grid-cols-2">

@@ -14,7 +14,7 @@ export default async function CashflowPage() {
     <PageShell>
       <PageHeader
         title="Cashflow"
-        description="How in-hand income flows through expenses, investments, and insurance to what's left."
+        description="How in-hand income flows through expenses, investments, insurance, and goal savings to what's left."
         meta={
           <MetaStat
             label="Net surplus"
@@ -28,6 +28,7 @@ export default async function CashflowPage() {
         fixedExpenses={snapshot.fixedExpenses}
         investments={snapshot.investments}
         insurance={snapshot.insurance}
+        goalSavings={snapshot.goalSavings}
         netSurplus={snapshot.netSurplus}
       />
     </PageShell>

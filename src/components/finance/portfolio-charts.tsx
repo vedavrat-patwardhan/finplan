@@ -22,6 +22,7 @@ const ALLOCATION_COLOR_INDEX: Record<string, number> = {
   Expenses: 2,
   Surplus: 3,
   Insurance: 4,
+  Goals: 5,
 };
 
 const axisTick = { fill: "var(--muted-foreground)", fontSize: 10 };
@@ -56,6 +57,8 @@ export interface PortfolioChartData {
   }>;
   snapshot: {
     grossIncome: number;
+    goalSavings: number;
+    netSurplusBeforeGoals: number;
     netSurplus: number;
     savingsRate: number;
   };

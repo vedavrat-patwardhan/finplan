@@ -1033,6 +1033,8 @@ export async function exportSummaryAction(): Promise<string> {
     ["Metric", "Value"],
     ["Gross Income (monthly)", dashboard.snapshot.grossIncome],
     ["Total Outflow (monthly)", dashboard.snapshot.totalOutflow],
+    ["Goal Savings (monthly)", dashboard.snapshot.goalSavings],
+    ["Surplus Before Goals (monthly)", dashboard.snapshot.netSurplusBeforeGoals],
     ["Net Surplus (monthly)", dashboard.snapshot.netSurplus],
     ["Savings Rate", `${dashboard.snapshot.savingsRate.toFixed(1)}%`],
     [],

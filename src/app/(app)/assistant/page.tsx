@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getIntegrationSettings } from "@/lib/db/queries/integrations";
-import { getMonthlySnapshot } from "@/lib/db/queries/finance";
+import { getCashflowBreakdown } from "@/lib/db/queries/finance";
 import { getPaymentAccounts } from "@/lib/db/queries/ledger";
 import { listConversations } from "@/lib/db/queries/assistant";
 import { sumAvailableBalance } from "@/lib/finance/ledger";
@@ -13,12 +13,13 @@ export default async function AssistantPage() {
   if (!session) return null;
   if (session.username.trim().toLowerCase() !== "vedavrat") redirect("/dashboard");
 
-  const [settings, snapshot, accounts, conversations] = await Promise.all([
+  const [settings, cashflow, accounts, conversations] = await Promise.all([
     getIntegrationSettings(session.userId),
-    getMonthlySnapshot(session.userId),
+    getCashflowBreakdown(session.userId),
     getPaymentAccounts(session.userId),
     listConversations(session.userId),
   ]);
+  const { snapshot } = cashflow;
 
   return (
     <PageShell>

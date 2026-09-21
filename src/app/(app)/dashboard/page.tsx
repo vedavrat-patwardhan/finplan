@@ -31,6 +31,7 @@ import {
 } from "@/components/layout/page-chrome";
 import { GetStartedBanner } from "@/components/finance/get-started-banner";
 import { ObligationList } from "@/components/finance/upcoming-obligations";
+import { GoalSavingObligations } from "@/components/finance/goal-saving-obligations";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
 
 const summaryCardTones = {
@@ -131,7 +132,14 @@ export default async function DashboardPage() {
       getTransactions(session.userId, { limit: 250 }),
       getCustomLedgerCategories(session.userId),
     ]);
-  const { profile, snapshot, goals, obligations, pastDueObligations } = dashboard;
+  const {
+    profile,
+    snapshot,
+    goals,
+    goalObligations,
+    obligations,
+    pastDueObligations,
+  } = dashboard;
   const ledgerCategories = [...LEDGER_CATEGORIES, ...customCategories.map((item) => item.name)];
 
   const availableBalance = sumAvailableBalance(accounts);
@@ -201,7 +209,9 @@ export default async function DashboardPage() {
                 { label: "Expenses", value: `−${formatINR(snapshot.fixedExpenses)}` },
                 { label: "Investments", value: `−${formatINR(snapshot.investments)}` },
                 { label: "Insurance", value: `−${formatINR(snapshot.insurance)}` },
+                { label: "Goal savings", value: `−${formatINR(snapshot.goalSavings)}` },
               ]}
+              note={`Before goal savings: ${formatINR(snapshot.netSurplusBeforeGoals)}/month.`}
             />
             <SummaryBreakdownCard
               label="Savings rate"
@@ -242,7 +252,7 @@ export default async function DashboardPage() {
           </span>{" "}
           expense budgets ·{" "}
           <span className="tabular-nums">
-            {formatINR(snapshot.investments + snapshot.insurance, { compact: true })}
+            {formatINR(snapshot.investments + snapshot.insurance + snapshot.goalSavings, { compact: true })}
           </span>{" "}
           committed. Edit these in{" "}
           <Button variant="link" render={<Link href="/expenses" />}>
@@ -374,7 +384,7 @@ export default async function DashboardPage() {
         ) : null}
         <GoalTimeline
           goals={activeGoals.length > 0 ? activeGoals : goals}
-          monthlySurplus={snapshot.netSurplus}
+          monthlySurplus={snapshot.netSurplusBeforeGoals}
           defaultMonthlyExpenses={snapshot.fixedExpenses}
           compact
         />
@@ -392,6 +402,19 @@ export default async function DashboardPage() {
           transactions={recentTransactions}
           accounts={accounts}
           categories={ledgerCategories}
+        />
+      </PageSection>
+
+      <PageSection
+        title="Goal saving obligations"
+        description="Monthly amounts reserved for active goals, deducted from your available surplus"
+      >
+        <GoalSavingObligations
+          obligations={goalObligations.map((item) => ({
+            ...item,
+            targetDate: item.targetDate?.toISOString(),
+          }))}
+          compactNumbers={profile?.useCompactNumbers}
         />
       </PageSection>
 

@@ -12,6 +12,7 @@ interface CashflowWaterfallProps {
   fixedExpenses: number;
   investments: number;
   insurance: number;
+  goalSavings: number;
   netSurplus: number;
 }
 
@@ -21,6 +22,7 @@ const WATERFALL_COLOR_INDEX: Record<string, number> = {
   Expenses: 2,
   Investments: 0,
   Insurance: 4,
+  Goals: 5,
   Surplus: 3,
 };
 
@@ -50,6 +52,7 @@ export function CashflowWaterfall({
   fixedExpenses,
   investments,
   insurance,
+  goalSavings,
   netSurplus,
 }: CashflowWaterfallProps) {
   const { colorAt } = useChartPalette();
@@ -58,6 +61,7 @@ export function CashflowWaterfall({
     { name: "Expenses", value: -fixedExpenses },
     { name: "Investments", value: -investments },
     { name: "Insurance", value: -insurance },
+    { name: "Goals", value: -goalSavings },
     { name: "Surplus", value: netSurplus },
   ].map((entry) => ({
     ...entry,
@@ -88,7 +92,7 @@ export function CashflowWaterfall({
           </BarChart>
         </ChartArea>
 
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
           {data.map((item) => (
             <div key={item.name} className="text-center sm:text-left">
               <p className="np-caps flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground sm:justify-start">
