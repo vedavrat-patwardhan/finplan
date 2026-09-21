@@ -109,6 +109,7 @@ export async function POST(request: Request) {
       message: parsed.data.message,
       occurredAt,
       historical: parsed.data.historical,
+      source: parsed.data.source ?? "sms",
     });
     if (result.status !== "duplicate") {
       revalidatePath("/automations");

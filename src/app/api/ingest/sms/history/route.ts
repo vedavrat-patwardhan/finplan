@@ -51,6 +51,7 @@ export async function POST(request: Request) {
         message: item.message,
         occurredAt: parseTimestamp(item.timestamp),
         historical: true,
+        source: "history",
       });
       if (result.status === "imported") totals.imported += 1;
       else if (result.status === "duplicate") totals.duplicates += 1;

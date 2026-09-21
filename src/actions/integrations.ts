@@ -140,7 +140,11 @@ export async function ingestManualMessageAction(
   if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message };
 
   try {
-    const result = await ingestFinanceMessage({ userId: session.userId, ...parsed.data });
+    const result = await ingestFinanceMessage({
+      userId: session.userId,
+      ...parsed.data,
+      source: "manual",
+    });
     refreshAutomationPages();
     return {
       success: true,

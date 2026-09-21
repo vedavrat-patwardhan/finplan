@@ -10,6 +10,12 @@ const MessageIngestionSchema = new Schema(
     occurredAt: { type: Date, required: true, index: true },
     receivedAt: { type: Date, default: Date.now },
     historical: { type: Boolean, default: false, index: true },
+    sourceChannel: {
+      type: String,
+      enum: ["sms", "notification", "history", "manual"],
+      default: "sms",
+      index: true,
+    },
     kind: {
       type: String,
       enum: ["transaction", "bill", "balance", "unknown"],
@@ -44,6 +50,7 @@ const MessageIngestionSchema = new Schema(
 
 MessageIngestionSchema.index({ userId: 1, messageHash: 1 }, { unique: true });
 MessageIngestionSchema.index({ userId: 1, status: 1, occurredAt: -1 });
+MessageIngestionSchema.index({ userId: 1, accountId: 1, sourceChannel: 1, occurredAt: -1 });
 
 export type IMessageIngestion = InferSchemaType<typeof MessageIngestionSchema> & {
   _id: mongoose.Types.ObjectId;

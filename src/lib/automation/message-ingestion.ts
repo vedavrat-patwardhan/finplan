@@ -21,6 +21,7 @@ interface IngestInput {
   message: string;
   occurredAt?: Date;
   historical?: boolean;
+  source?: "sms" | "notification" | "history" | "manual";
 }
 
 function senderMatchesInstitution(sender: string, institution: string): boolean {
@@ -47,6 +48,7 @@ export async function ingestFinanceMessage(input: IngestInput) {
   const occurredAt = input.occurredAt && !Number.isNaN(input.occurredAt.getTime())
     ? input.occurredAt
     : new Date();
+  const sourceChannel = input.source ?? (input.historical ? "history" : "sms");
 
   if (!message) throw new Error("Message is required");
 
@@ -110,6 +112,46 @@ export async function ingestFinanceMessage(input: IngestInput) {
     }
   }
 
+  // Bank apps commonly emit a notification and an SMS for the same payment.
+  // When neither version carries a reference number, deduplicate only across
+  // those two capture channels, on the same account/amount/type, in a narrow
+  // time window. This avoids collapsing two legitimate repeated payments.
+  if (
+    account &&
+    !parsed.reference &&
+    parsed.kind === "transaction" &&
+    parsed.type &&
+    parsed.amount !== undefined &&
+    (sourceChannel === "sms" || sourceChannel === "notification")
+  ) {
+    const timeWindowMs = 3 * 60 * 1000;
+    const sourceFilter = sourceChannel === "notification"
+      ? [{ sourceChannel: "sms" as const }, { sourceChannel: { $exists: false } }]
+      : [{ sourceChannel: "notification" as const }];
+    const existingEvent = await MessageIngestion.findOne({
+      userId,
+      accountId: account._id,
+      status: "imported",
+      transactionId: { $exists: true },
+      occurredAt: {
+        $gte: new Date(occurredAt.getTime() - timeWindowMs),
+        $lte: new Date(occurredAt.getTime() + timeWindowMs),
+      },
+      "parsed.type": parsed.type,
+      "parsed.amount": parsed.amount,
+      $or: sourceFilter,
+    })
+      .sort({ occurredAt: -1 })
+      .lean();
+    if (existingEvent) {
+      return {
+        id: existingEvent._id.toString(),
+        status: "duplicate" as const,
+        parsed,
+      };
+    }
+  }
+
   // A unique bank-sender match is as strong an account signal as matching the
   // final four digits in the message. Some valid bank credits omit account digits.
   const confidence = Math.min(
@@ -150,6 +192,7 @@ export async function ingestFinanceMessage(input: IngestInput) {
             messageHash,
             occurredAt,
             historical: input.historical ?? false,
+            sourceChannel,
             kind: parsed.kind,
             status: canImportTransaction || canImportBill || canImportBalance ? "imported" : "needs_review",
             confidence,
