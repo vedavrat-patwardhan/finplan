@@ -19,7 +19,7 @@ export interface ParsedFinanceMessage {
 }
 
 const MONEY = String.raw`(?:₹|INR|INR\.|Rs\.?|RS\.?)\s*([\d,]+(?:\.\d{1,2})?)`;
-const DEBIT_WORDS = /\b(debited|spent|paid|sent|withdrawn|purchase|dr\.?|transferred to)\b/i;
+const DEBIT_WORDS = /\b(debited|spent|paid|sent|withdrawn|purchase|used|charged|dr\.?|transferred to)\b/i;
 const CREDIT_WORDS = /\b(credited|received|deposited|refund(?:ed)?|cr\.?)\b/i;
 const BILL_WORDS = /\b(total (?:amount )?due|minimum (?:amount )?due|payment due|bill due|statement amount)\b/i;
 
@@ -77,6 +77,7 @@ function extractReference(text: string): string {
 
 function cleanMerchant(value: string): string {
   return value
+    .replace(/\s+for\s+(?:₹|INR\.?|Rs\.?|RS\.?)\s*[\d,]+(?:\.\d{1,2})?\b.*$/i, "")
     .replace(/\s+(?:on|via|using|UPI|ref|reference|txn|avl|available|balance)\b.*$/i, "")
     .replace(/[.,;:\-\s]+$/, "")
     .trim()
@@ -122,7 +123,7 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
     ? matchMoneyAfter(text, /minimum (?:amount )?due/i)
     : undefined;
   const billDueDate = hasBill ? parseDate(text) : undefined;
-  const availableBalance = matchMoneyAfter(text, /(?:avl\.?|available|current)\s*(?:bal(?:ance)?\.?)?/i);
+  const availableBalance = matchMoneyAfter(text, /(?:avl\.?|available|current)\s*bal(?:ance)?\.?/i);
   const amount = type ? firstTransactionAmount(text, type) : undefined;
   const merchant = extractMerchant(text, type);
   const category = type ? suggestCategory(`${merchant} ${text}`, type) : undefined;
