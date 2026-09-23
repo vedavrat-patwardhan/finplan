@@ -209,7 +209,15 @@ export function StatementImport({
         setAutoMatched(Boolean(match));
         setBillData({ totalAmountDue: result.totalAmountDue, paymentDueDate: result.paymentDueDate });
         setClosingBalance(result.closingBalance);
-        setSyncClosingBalance(result.closingBalance !== undefined);
+        const today = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+        setSyncClosingBalance(
+          result.closingBalance !== undefined && Boolean(result.periodEnd && result.periodEnd >= today)
+        );
         toast.success(`Found ${result.transactions.length} transactions`);
       } else {
         if (result.needsPassword === "missing" && savedPasswords.length > 0) {
@@ -232,6 +240,7 @@ export function StatementImport({
     const fd = new FormData();
     fd.set("accountId", accountId);
     fd.set("statementBank", bank);
+    if (period.end) fd.set("statementPeriodEnd", period.end);
     if (billData.totalAmountDue != null) fd.set("billTotalDue", String(billData.totalAmountDue));
     if (billData.paymentDueDate) fd.set("billDueDate", billData.paymentDueDate);
     if (syncClosingBalance && closingBalance !== undefined && selectedAccount?.type === "bank") {
@@ -525,8 +534,15 @@ export function StatementImport({
                   </span>
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
-                  Recommended for a complete bank statement. This sets the balance once instead of replaying every transaction against the balance already in FinPlan.
+                  Recommended only when the statement is current. Older statements import history without changing your current balance.
                 </span>
+                {period.end && period.end < new Intl.DateTimeFormat("en-CA", {
+                  timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+                }).format(new Date()) ? (
+                  <span className="mt-1 block text-xs text-warning-text">
+                    This statement ended {period.end}; balance sync is off because newer payments may exist.
+                  </span>
+                ) : null}
                 {selectedAccount && selectedAccount.type !== "bank" ? (
                   <span className="mt-1 block text-xs text-warning-text">Choose a bank account to enable balance reconciliation.</span>
                 ) : null}

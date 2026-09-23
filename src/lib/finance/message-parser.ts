@@ -12,6 +12,7 @@ export interface ParsedFinanceMessage {
   accountLastFour: string;
   reference: string;
   availableBalance?: number;
+  availableLimit?: number;
   billTotalDue?: number;
   billMinimumDue?: number;
   billDueDate?: Date;
@@ -85,9 +86,21 @@ function cleanMerchant(value: string): string {
 }
 
 function extractMerchant(text: string, type?: TransactionType): string {
-  const direction = type === "credit" ? "from" : "(?:to|at)";
-  const match = text.match(new RegExp(`\\b${direction}\\s+([^.;]{2,100})`, "i"));
-  return match?.[1] ? cleanMerchant(match[1]) : "";
+  const patterns = type === "credit"
+    ? [/\bfrom\s+([^.;]{2,100})/i]
+    : [
+        /\bused\s+at\s+([^.;]{2,100})/i,
+        new RegExp(`${MONEY}[^.]{0,50}\\bat\\s+([^.;]{2,100})`, "i"),
+        /\bat\s+([^.;]{2,100})/i,
+        /\bto\s+([^.;]{2,100})/i,
+      ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    // MONEY has a capture group, so the merchant is the final capture.
+    const value = match?.at(-1);
+    if (value) return cleanMerchant(value);
+  }
+  return "";
 }
 
 function firstTransactionAmount(text: string, type?: TransactionType): number | undefined {
@@ -114,7 +127,12 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
   const hasBill = BILL_WORDS.test(text);
   const hasDebit = DEBIT_WORDS.test(text);
   const hasCredit = CREDIT_WORDS.test(text);
-  const type: TransactionType | undefined = hasDebit && !hasCredit ? "debit" : hasCredit && !hasDebit ? "credit" : undefined;
+  // Email notification previews may contain unrelated footer text such as
+  // "received". A specific card-use alert is still a debit in that case.
+  const isCardUse = /\bcard\b.{0,35}\bused\b.{0,65}\btransaction\b/i.test(text);
+  const type: TransactionType | undefined = hasDebit && (!hasCredit || isCardUse)
+    ? "debit"
+    : hasCredit && !hasDebit ? "credit" : undefined;
 
   const billTotalDue = hasBill
     ? matchMoneyAfter(text, /(?:total (?:amount )?due|statement amount|bill (?:amount|due))/i)
@@ -124,6 +142,7 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
     : undefined;
   const billDueDate = hasBill ? parseDate(text) : undefined;
   const availableBalance = matchMoneyAfter(text, /(?:avl\.?|available|current)\s*bal(?:ance)?\.?/i);
+  const availableLimit = matchMoneyAfter(text, /(?:avl\.?|available)\s+limit/i);
   const amount = type ? firstTransactionAmount(text, type) : undefined;
   const merchant = extractMerchant(text, type);
   const category = type ? suggestCategory(`${merchant} ${text}`, type) : undefined;
@@ -151,6 +170,7 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
     accountLastFour,
     reference,
     availableBalance,
+    availableLimit,
     billTotalDue,
     billMinimumDue,
     billDueDate,

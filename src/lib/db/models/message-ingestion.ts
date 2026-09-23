@@ -39,6 +39,7 @@ const MessageIngestionSchema = new Schema(
       accountLastFour: { type: String, default: "" },
       reference: { type: String, default: "" },
       availableBalance: { type: Number, min: 0 },
+      availableLimit: { type: Number, min: 0 },
       billTotalDue: { type: Number, min: 0 },
       billMinimumDue: { type: Number, min: 0 },
       billDueDate: { type: Date },

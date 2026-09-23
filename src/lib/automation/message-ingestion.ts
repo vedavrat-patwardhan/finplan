@@ -112,10 +112,11 @@ export async function ingestFinanceMessage(input: IngestInput) {
     }
   }
 
-  // Bank apps commonly emit a notification and an SMS for the same payment.
-  // When neither version carries a reference number, deduplicate only across
-  // those two capture channels, on the same account/amount/type, in a narrow
-  // time window. This avoids collapsing two legitimate repeated payments.
+  // A bank can send SMS, Messaging notifications and delayed email alerts for
+  // the same card charge. Android reports both Messaging and Gmail as the
+  // notification channel, so sourceChannel alone does not identify a copy.
+  // A matching available card limit corroborates delayed copies; otherwise
+  // keep the window narrow to protect legitimate repeated purchases.
   if (
     account &&
     !parsed.reference &&
@@ -124,25 +125,35 @@ export async function ingestFinanceMessage(input: IngestInput) {
     parsed.amount !== undefined &&
     (sourceChannel === "sms" || sourceChannel === "notification")
   ) {
-    const timeWindowMs = 3 * 60 * 1000;
-    const sourceFilter = sourceChannel === "notification"
-      ? [{ sourceChannel: "sms" as const }, { sourceChannel: { $exists: false } }]
-      : [{ sourceChannel: "notification" as const }];
-    const existingEvent = await MessageIngestion.findOne({
+    const timeWindowMs = 60 * 60 * 1000;
+    const normalizeMerchant = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const merchantKey = normalizeMerchant(parsed.merchant);
+    const candidates = await MessageIngestion.find({
       userId,
       accountId: account._id,
       status: "imported",
       transactionId: { $exists: true },
+      sender: { $ne: sender },
+      sourceChannel: { $in: ["sms", "notification"] },
       occurredAt: {
         $gte: new Date(occurredAt.getTime() - timeWindowMs),
         $lte: new Date(occurredAt.getTime() + timeWindowMs),
       },
       "parsed.type": parsed.type,
       "parsed.amount": parsed.amount,
-      $or: sourceFilter,
     })
       .sort({ occurredAt: -1 })
+      .limit(20)
       .lean();
+    const existingEvent = candidates.find((event) => {
+      const previousMerchant = normalizeMerchant(event.parsed?.merchant ?? "");
+      if (!merchantKey || merchantKey !== previousMerchant) return false;
+      const previousLimit = event.parsed?.availableLimit;
+      if (parsed.availableLimit !== undefined && typeof previousLimit === "number") {
+        return Math.abs(parsed.availableLimit - previousLimit) < 0.005;
+      }
+      return Math.abs(occurredAt.getTime() - event.occurredAt.getTime()) <= 3 * 60 * 1000;
+    });
     if (existingEvent) {
       return {
         id: existingEvent._id.toString(),

@@ -205,8 +205,12 @@ export async function importStatementTransactionsAction(
   const billDueDate = String(formData.get("billDueDate") ?? "");
   const rawClosingBalance = String(formData.get("statementClosingBalance") ?? "").trim();
   const statementClosingBalance = rawClosingBalance ? Number(rawClosingBalance) : undefined;
+  const statementPeriodEnd = String(formData.get("statementPeriodEnd") ?? "").trim();
   if (statementClosingBalance !== undefined && !Number.isFinite(statementClosingBalance)) {
     return { success: false, error: "Invalid statement closing balance" };
+  }
+  if (statementClosingBalance !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(statementPeriodEnd)) {
+    return { success: false, error: "Statement end date is missing. Extract the PDF again." };
   }
 
   let rows: ImportTxnInput[];
@@ -244,10 +248,9 @@ export async function importStatementTransactionsAction(
   try {
     await withTransaction(async (dbSession) => {
       const userId = userObjectId(session.userId);
-      const [categoryRules, allowedCategories] = await Promise.all([
-        CategoryRule.find({ userId }).session(dbSession).lean(),
-        getAllowedLedgerCategoryNames(userId, dbSession),
-      ]);
+      // MongoDB does not support parallel operations on one transaction session.
+      const categoryRules = await CategoryRule.find({ userId }).session(dbSession).lean();
+      const allowedCategories = await getAllowedLedgerCategoryNames(userId, dbSession);
       for (const row of clean) {
         const submittedCategory =
           resolveAllowedLedgerCategory(row.category, allowedCategories) ?? "Miscellaneous";
@@ -377,13 +380,27 @@ export async function importStatementTransactionsAction(
       }
 
       if (account.type === "bank" && statementClosingBalance !== undefined) {
+        const endOfStatement = new Date(`${statementPeriodEnd}T23:59:59.999+05:30`);
+        if (Number.isNaN(endOfStatement.getTime())) {
+          throw new Error("Invalid statement end date");
+        }
+        const newerTransaction = await LedgerTransaction.exists({
+          userId,
+          accountId: account._id,
+          date: { $gt: endOfStatement },
+        }).session(dbSession);
+        if (newerTransaction) {
+          throw new Error(
+            "This account has newer transactions than the statement. Turn off closing balance sync to import its history without changing today's balance."
+          );
+        }
         await PaymentAccount.findByIdAndUpdate(
           account._id,
           { $set: { currentBalance: statementClosingBalance } },
           { session: dbSession }
         );
         balanceUpdated = true;
-      } else if (fresh.length > 0) {
+      } else if (fresh.length > 0 && account.type !== "bank") {
         const netDelta = fresh.reduce(
           (sum, r) =>
             sum +
@@ -412,9 +429,14 @@ export async function importStatementTransactionsAction(
       }
     });
   } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Select a ")) {
+    if (error instanceof Error && (
+      error.message.startsWith("Select a ") ||
+      error.message.startsWith("This account has newer transactions") ||
+      error.message === "Invalid statement end date"
+    )) {
       return { success: false, error: error.message };
     }
+    console.error("Statement import failed", error);
     return { success: false, error: transactionErrorMessage(error) };
   }
 
