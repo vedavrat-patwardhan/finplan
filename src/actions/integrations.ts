@@ -166,6 +166,7 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
     eventId: z.string().trim().min(1),
     accountId: z.string().trim().min(1),
     category: z.string().trim().min(1).max(40),
+    amount: z.coerce.number().positive().optional(),
   }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
 
@@ -213,7 +214,7 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
   }
 
   const transactionType = message?.type ?? undefined;
-  const transactionAmount = message?.amount ?? undefined;
+  const transactionAmount = message?.amount ?? (message?.foreignAmount ? parsed.data.amount : undefined);
   if (!transactionType || !transactionAmount || event.kind !== "transaction") return;
   const merchant = message?.merchant ?? "";
   const description = message?.description ?? "";
@@ -230,6 +231,7 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
           category,
           merchant,
           description,
+          isEmi: message?.isEmi ?? false,
           date: event.occurredAt,
           source: "sms",
           sourceReference,

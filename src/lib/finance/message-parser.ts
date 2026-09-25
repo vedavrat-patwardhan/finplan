@@ -13,6 +13,9 @@ export interface ParsedFinanceMessage {
   reference: string;
   availableBalance?: number;
   availableLimit?: number;
+  foreignCurrency?: string;
+  foreignAmount?: number;
+  isEmi?: boolean;
   billTotalDue?: number;
   billMinimumDue?: number;
   billDueDate?: Date;
@@ -20,6 +23,7 @@ export interface ParsedFinanceMessage {
 }
 
 const MONEY = String.raw`(?:₹|INR|INR\.|Rs\.?|RS\.?)\s*([\d,]+(?:\.\d{1,2})?)`;
+const CURRENCY_SPEND = /\b(?:spent|paid|charged|debited)\s+([A-Z]{3})\s*([\d,]+(?:\.\d{1,2})?)/i;
 const DEBIT_WORDS = /\b(debited|spent|paid|sent|withdrawn|purchase|used|charged|dr\.?|transferred to)\b/i;
 const CREDIT_WORDS = /\b(credited|received|deposited|refund(?:ed)?|cr\.?)\b/i;
 const BILL_WORDS = /\b(total (?:amount )?due|minimum (?:amount )?due|payment due|bill due|statement amount)\b/i;
@@ -89,6 +93,7 @@ function extractMerchant(text: string, type?: TransactionType): string {
   const patterns = type === "credit"
     ? [/\bfrom\s+([^.;]{2,100})/i]
     : [
+        /\b\d{2}-\d{2}-\d{2,4}\s+\d{2}:\d{2}:\d{2}\s+IST\s+(.+?)\s+Avl\.?\s+Limit\b/i,
         /\bused\s+at\s+([^.;]{2,100})/i,
         new RegExp(`${MONEY}[^.]{0,50}\\bat\\s+([^.;]{2,100})`, "i"),
         /\bat\s+([^.;]{2,100})/i,
@@ -127,12 +132,13 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
   const hasBill = BILL_WORDS.test(text);
   const hasDebit = DEBIT_WORDS.test(text);
   const hasCredit = CREDIT_WORDS.test(text);
+  const declined = /\b(?:declined|failed|unsuccessful)\b/i.test(text);
   // Email notification previews may contain unrelated footer text such as
   // "received". A specific card-use alert is still a debit in that case.
   const isCardUse = /\bcard\b.{0,35}\bused\b.{0,65}\btransaction\b/i.test(text);
-  const type: TransactionType | undefined = hasDebit && (!hasCredit || isCardUse)
+  const type: TransactionType | undefined = !declined && hasDebit && (!hasCredit || isCardUse)
     ? "debit"
-    : hasCredit && !hasDebit ? "credit" : undefined;
+    : !declined && hasCredit && !hasDebit ? "credit" : undefined;
 
   const billTotalDue = hasBill
     ? matchMoneyAfter(text, /(?:total (?:amount )?due|statement amount|bill (?:amount|due))/i)
@@ -143,13 +149,20 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
   const billDueDate = hasBill ? parseDate(text) : undefined;
   const availableBalance = matchMoneyAfter(text, /(?:avl\.?|available|current)\s*bal(?:ance)?\.?/i);
   const availableLimit = matchMoneyAfter(text, /(?:avl\.?|available)\s+limit/i);
-  const amount = type ? firstTransactionAmount(text, type) : undefined;
+  const currencySpend = type === "debit" ? text.match(CURRENCY_SPEND) : null;
+  const foreignSpend = currencySpend?.[1]?.toUpperCase() === "INR" ? null : currencySpend;
+  const foreignCurrency = foreignSpend?.[1]?.toUpperCase();
+  const foreignAmount = numberFrom(foreignSpend?.[2]);
+  // An Axis foreign-currency alert also quotes the INR available credit limit.
+  // That limit is not the transaction amount; wait for an INR posting or review.
+  const amount = type && !foreignSpend ? firstTransactionAmount(text, type) : undefined;
   const merchant = extractMerchant(text, type);
   const category = type ? suggestCategory(`${merchant} ${text}`, type) : undefined;
+  const isEmi = type === "debit" && /\b(?:EMI|instalments?|installments?)\b/i.test(text);
 
   let kind: ParsedFinanceMessage["kind"] = "unknown";
   if (hasBill && (billTotalDue !== undefined || billMinimumDue !== undefined)) kind = "bill";
-  else if (type && amount !== undefined) kind = "transaction";
+  else if (type && (amount !== undefined || foreignAmount !== undefined)) kind = "transaction";
   else if (availableBalance !== undefined) kind = "balance";
 
   let confidence = 0.15;
@@ -171,6 +184,9 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
     reference,
     availableBalance,
     availableLimit,
+    foreignCurrency,
+    foreignAmount,
+    isEmi,
     billTotalDue,
     billMinimumDue,
     billDueDate,

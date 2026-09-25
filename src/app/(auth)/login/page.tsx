@@ -1,9 +1,24 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthCard, LoginForm } from "@/components/auth/auth-forms";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLogo } from "@/components/brand/app-logo";
 
-export default function LoginPage() {
+async function LoginFormForInvitation({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
+  const from = (await searchParams).from;
+  const redirectTo = from && /^\/family\?invite=[A-Za-z0-9_-]{16}$/.test(from) ? from : undefined;
+  return <LoginForm redirectTo={redirectTo} />;
+}
+
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="absolute right-4 top-4">
@@ -18,7 +33,9 @@ export default function LoginPage() {
         alternateHref="/register"
         alternateLabel="create an account"
       >
-        <LoginForm />
+        <Suspense fallback={<LoginForm />}>
+          <LoginFormForInvitation searchParams={searchParams} />
+        </Suspense>
       </AuthCard>
       <Link href="/" className="np-caps mt-6 text-muted-foreground hover:text-foreground">
         back to home

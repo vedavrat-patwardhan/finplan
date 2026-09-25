@@ -168,6 +168,7 @@ interface CleanImportTxn {
   category: string;
   merchant: string;
   description: string;
+  isEmi: boolean;
 }
 
 /** Exact identity for a statement row. */
@@ -239,6 +240,7 @@ export async function importStatementTransactionsAction(
     ...row,
     type: row.type as TransactionType,
     category: row.category || "Miscellaneous",
+    isEmi: /\b(?:EMI|instalments?|installments?)\b/i.test(`${row.merchant} ${row.description}`),
   }));
 
   let imported = 0;
@@ -354,6 +356,7 @@ export async function importStatementTransactionsAction(
                   description: row.description,
                   date: row.date,
                   source: "statement",
+                  ...(row.isEmi ? { isEmi: true } : {}),
                 },
               },
             },
@@ -374,6 +377,7 @@ export async function importStatementTransactionsAction(
             description: r.description,
             date: r.date,
             source: "statement",
+            isEmi: r.isEmi,
           })),
           { session: dbSession }
         );

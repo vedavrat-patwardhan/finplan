@@ -14,7 +14,6 @@ import {
 import { requireSession, refreshSession } from "@/lib/auth/session";
 import {
   personalProfileSchema,
-  householdSchema,
   profileSchema,
   incomeSchema,
   expenseSchema,
@@ -114,70 +113,6 @@ function revalidateFinance() {
 
 function userObjectId(userId: string) {
   return new mongoose.Types.ObjectId(userId);
-}
-
-const SPOUSE_SALARY_NAME = "Spouse Salary (in-hand)";
-const SPOUSE_BONUS_NAME = "Spouse Annual Bonus (in-hand)";
-
-async function syncSpouseIncomeSources(
-  userId: mongoose.Types.ObjectId,
-  annualInHandSalary: number,
-  annualInHandBonus: number,
-  taxRegime: "new" | "old",
-  dbSession: mongoose.ClientSession
-) {
-  await IncomeSource.deleteMany({
-    userId,
-    name: { $in: [SPOUSE_SALARY_NAME, SPOUSE_BONUS_NAME] },
-  }).session(dbSession);
-
-  if (annualInHandSalary <= 0 && annualInHandBonus <= 0) return;
-
-  const packageBreakdown = breakdownSalaryPackage({
-    annualInHandSalary,
-    annualInHandBonus,
-    taxRegime,
-  });
-
-  if (annualInHandSalary > 0) {
-    await IncomeSource.create(
-      [
-        {
-          userId,
-          name: SPOUSE_SALARY_NAME,
-          type: "salary",
-          amount: packageBreakdown.monthlyInHandSalary,
-          frequency: "monthly",
-          isNetAmount: true,
-          grossAmount: packageBreakdown.estimatedGrossSalary / 12,
-          estimatedTax: packageBreakdown.estimatedSalaryTax / 12,
-          owner: "spouse",
-          notes: `Annual in-hand ₹${annualInHandSalary.toLocaleString("en-IN")} · FY 2025-26 ${taxRegime} regime`,
-        },
-      ],
-      { session: dbSession }
-    );
-  }
-
-  if (annualInHandBonus > 0) {
-    await IncomeSource.create(
-      [
-        {
-          userId,
-          name: SPOUSE_BONUS_NAME,
-          type: "bonus",
-          amount: annualInHandBonus,
-          frequency: "yearly",
-          isNetAmount: true,
-          grossAmount: packageBreakdown.estimatedGrossBonus,
-          estimatedTax: packageBreakdown.estimatedBonusTax,
-          owner: "spouse",
-          notes: "After TDS at payment · not spread monthly",
-        },
-      ],
-      { session: dbSession }
-    );
-  }
 }
 
 export async function updatePersonalProfileAction(
@@ -290,74 +225,6 @@ export async function updatePersonalProfileAction(
   }
 
   await refreshSession({ username });
-
-  revalidateFinance();
-  revalidatePath("/settings");
-  revalidatePath("/income");
-  revalidatePath("/dashboard");
-  return { success: true };
-}
-
-export async function updateHouseholdAction(
-  _prev: ActionResult,
-  formData: FormData
-): Promise<ActionResult> {
-  const session = await requireSession();
-
-  const parsed = householdSchema.safeParse({
-    householdEnabled: formData.get("householdEnabled") === "true",
-    spouseName: formData.get("spouseName"),
-    spouseMonthlyInHandSalary: formData.get("spouseMonthlyInHandSalary"),
-    spouseAnnualInHandBonus: formData.get("spouseAnnualInHandBonus"),
-    spouseTaxRegime: formData.get("spouseTaxRegime") ?? "new",
-  });
-
-  if (!parsed.success) {
-    return { success: false, fieldErrors: zodFieldErrors(parsed.error) };
-  }
-
-  const {
-    householdEnabled,
-    spouseName,
-    spouseMonthlyInHandSalary,
-    spouseAnnualInHandBonus,
-    spouseTaxRegime,
-  } = parsed.data;
-  const spouseAnnualInHandSalary = spouseMonthlyInHandSalary * 12;
-  const userId = userObjectId(session.userId);
-
-  try {
-    await withTransaction(async (dbSession) => {
-      await User.findByIdAndUpdate(
-        session.userId,
-        {
-          householdEnabled,
-          spouseName: householdEnabled ? spouseName.trim() : "",
-          spouseAnnualInHandSalary: householdEnabled ? spouseAnnualInHandSalary : 0,
-          spouseAnnualInHandBonus: householdEnabled ? spouseAnnualInHandBonus : 0,
-          spouseTaxRegime,
-        },
-        { session: dbSession }
-      );
-
-      if (householdEnabled) {
-        await syncSpouseIncomeSources(
-          userId,
-          spouseAnnualInHandSalary,
-          spouseAnnualInHandBonus,
-          spouseTaxRegime,
-          dbSession
-        );
-      } else {
-        await IncomeSource.deleteMany({
-          userId,
-          name: { $in: [SPOUSE_SALARY_NAME, SPOUSE_BONUS_NAME] },
-        }).session(dbSession);
-      }
-    });
-  } catch (error) {
-    return { success: false, error: transactionErrorMessage(error) };
-  }
 
   revalidateFinance();
   revalidatePath("/settings");
@@ -836,11 +703,11 @@ export async function completeOnboardingAction(
     annualInHandBonus: formData.get("annualInHandBonus"),
     taxRegime: formData.get("taxRegime") ?? "new",
     skipIncome,
-    householdEnabled: formData.get("householdEnabled") === "true",
-    spouseName: formData.get("spouseName"),
-    spouseAnnualInHandSalary: formData.get("spouseAnnualInHandSalary"),
-    spouseAnnualInHandBonus: formData.get("spouseAnnualInHandBonus"),
-    spouseTaxRegime: formData.get("spouseTaxRegime") ?? "new",
+    householdEnabled: false,
+    spouseName: "",
+    spouseAnnualInHandSalary: 0,
+    spouseAnnualInHandBonus: 0,
+    spouseTaxRegime: "new",
     selectedExpenseTemplates: expenseTemplates,
     selectedInvestmentTemplates: investmentTemplates,
     selectedGoalOptions: goalOptions,
@@ -855,11 +722,6 @@ export async function completeOnboardingAction(
     annualInHandSalary = 0,
     annualInHandBonus = 0,
     taxRegime,
-    householdEnabled = false,
-    spouseName = "",
-    spouseAnnualInHandSalary = 0,
-    spouseAnnualInHandBonus = 0,
-    spouseTaxRegime = "new",
     selectedExpenseTemplates,
     selectedInvestmentTemplates,
     selectedGoalOptions,
@@ -889,11 +751,11 @@ export async function completeOnboardingAction(
             annualInHandSalary,
             annualInHandBonus,
             taxRegime,
-            householdEnabled,
-            spouseName: householdEnabled ? spouseName?.trim() ?? "" : "",
-            spouseAnnualInHandSalary: householdEnabled ? spouseAnnualInHandSalary : 0,
-            spouseAnnualInHandBonus: householdEnabled ? spouseAnnualInHandBonus : 0,
-            spouseTaxRegime: householdEnabled ? spouseTaxRegime : "new",
+            householdEnabled: false,
+            spouseName: "",
+            spouseAnnualInHandSalary: 0,
+            spouseAnnualInHandBonus: 0,
+            spouseTaxRegime: "new",
             onboardingCompleted: true,
           },
           { session: dbSession }
@@ -940,15 +802,6 @@ export async function completeOnboardingAction(
           }
         }
 
-        if (householdEnabled) {
-          await syncSpouseIncomeSources(
-            userId,
-            spouseAnnualInHandSalary,
-            spouseAnnualInHandBonus,
-            spouseTaxRegime,
-            dbSession
-          );
-        }
       }
 
       for (const key of selectedExpenseTemplates) {

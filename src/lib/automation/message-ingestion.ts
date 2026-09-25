@@ -225,6 +225,7 @@ export async function ingestFinanceMessage(input: IngestInput) {
               category: parsed.category,
               merchant: parsed.merchant,
               description: parsed.description,
+              isEmi: parsed.isEmi ?? false,
               date: occurredAt,
               source: "sms",
               sourceReference: parsed.reference,

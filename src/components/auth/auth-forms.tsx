@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useState, startTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,20 +31,22 @@ function AuthForm({
   action,
   fields,
   submitLabel,
+  redirectTo,
 }: {
   action: (prev: ActionResult, payload: Record<string, string>) => Promise<ActionResult>;
   fields: AuthField[];
   submitLabel: string;
+  redirectTo?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const fieldErrors = state.fieldErrors ?? {};
-  const [dismissedErrors, setDismissedErrors] = useState<Set<string>>(new Set());
-  const [dismissedGeneralError, setDismissedGeneralError] = useState(false);
-
-  useEffect(() => {
-    setDismissedErrors(new Set());
-    setDismissedGeneralError(false);
-  }, [state.fieldErrors, state.error]);
+  const [dismissed, setDismissed] = useState<{
+    forState: ActionResult;
+    fields: Set<string>;
+    general: boolean;
+  }>(() => ({ forState: state, fields: new Set(), general: false }));
+  const dismissedErrors = dismissed.forState === state ? dismissed.fields : new Set<string>();
+  const dismissedGeneralError = dismissed.forState === state && dismissed.general;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -52,14 +54,18 @@ function AuthForm({
     const payload = Object.fromEntries(
       fields.map((field) => [field.name, getFieldValue(form, field.name)])
     );
+    if (redirectTo) payload.redirectTo = redirectTo;
     startTransition(() => {
       formAction(payload);
     });
   }
 
   function dismissFieldError(fieldName: string) {
-    setDismissedErrors((prev) => new Set(prev).add(fieldName));
-    setDismissedGeneralError(true);
+    setDismissed({
+      forState: state,
+      fields: new Set(dismissedErrors).add(fieldName),
+      general: true,
+    });
   }
 
   const showGeneralError =
@@ -100,10 +106,11 @@ function AuthForm({
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   return (
     <AuthForm
       action={loginAction}
+      redirectTo={redirectTo}
       submitLabel="Sign in"
       fields={[
         { name: "identifier", label: "Email or username", type: "text", autoComplete: "username", placeholder: "you@example.com" },

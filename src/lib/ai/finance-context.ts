@@ -130,11 +130,14 @@ export async function buildFinanceAssistantContext(userId: string) {
   const coverage = coverageRows[0];
 
   const essentialMonthly = expenses
-    .filter((item) => item.isEssential)
+    .filter((item) => item.isEssential && item.owner !== "spouse")
     .reduce((sum, item) => sum + toMonthlyEquivalent(item.amount, item.frequency), 0);
-  const creditCardDue = accounts
+  const creditCardOutstanding = accounts
     .filter((item) => item.type === "credit_card")
     .reduce((sum, item) => sum + (item.currentBalance > 0 ? item.currentBalance : 0), 0);
+  const creditCardBillDue = accounts
+    .filter((item) => item.type === "credit_card")
+    .reduce((sum, item) => sum + (item.billTotalDue > 0 ? item.billTotalDue : 0), 0);
   const investmentValue = investments.reduce(
     (sum, item) => sum + (item.metrics.fundValue ?? item.metrics.totalInvested),
     0
@@ -151,12 +154,13 @@ export async function buildFinanceAssistantContext(userId: string) {
     currentMonth: currentMonthIST(),
     currency: profile?.currency ?? "INR",
     profile: {
-      householdEnabled: profile?.householdEnabled ?? false,
+      familyMode: false,
       inflationRatePct: profile?.inflationRate ?? 6,
     },
     decisionMetrics: {
       liquidBalance: sumAvailableBalance(accounts),
-      creditCardOutstanding: creditCardDue,
+      creditCardOutstanding,
+      creditCardBillDue,
       essentialMonthly,
       suggestedThreeMonthCashFloor: essentialMonthly * 3,
       monthlySurplusBeforeGoals: snapshot.netSurplus,
@@ -181,13 +185,13 @@ export async function buildFinanceAssistantContext(userId: string) {
       billTotalDue: item.billTotalDue,
       billDueDate: item.billDueDate,
     })),
-    income: income.map((item) => ({
+    income: income.filter((item) => item.owner !== "spouse").map((item) => ({
       name: item.name,
       type: item.type,
       amount: item.amount,
       frequency: item.frequency,
     })),
-    expenses: expenses.map((item) => ({
+    expenses: expenses.filter((item) => item.owner !== "spouse").map((item) => ({
       name: item.name,
       category: item.category,
       class: item.expenseClass,

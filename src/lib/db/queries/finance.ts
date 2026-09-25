@@ -221,12 +221,15 @@ export const getMonthlySnapshot = cache(async (userId: string) => {
   const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
 
   return calculateMonthlySnapshot({
-    income: income.map((i) => ({
+    // Legacy spouse proxy records are preserved for review, but no longer
+    // counted as the signed-in person's income in the account-based family model.
+    income: income.filter((i) => i.owner !== "spouse").map((i) => ({
       amount: i.amount,
       frequency: i.frequency,
       type: i.type,
     })),
-    expenses: expenses.map((e) => ({ amount: e.amount, frequency: e.frequency })),
+    expenses: expenses.filter((e) => e.owner !== "spouse")
+      .map((e) => ({ amount: e.amount, frequency: e.frequency })),
     investments: investments.map((i) => ({ amount: i.amount, frequency: i.frequency })),
     insurance: insurance.map((i) => ({ amount: i.premium, frequency: i.frequency })),
     bonusSpreadMonthly,
@@ -389,7 +392,7 @@ export const getUpcomingObligationsForUser = cache(
         type: "insurance" as const,
       })),
       ...expenses
-        .filter((e) => e.frequency !== "monthly")
+        .filter((e) => e.owner !== "spouse" && e.frequency !== "monthly")
         .map((e) => ({
           sourceId: e.id,
           name: e.name,
@@ -398,7 +401,7 @@ export const getUpcomingObligationsForUser = cache(
           type: "expense" as const,
         })),
       ...income
-        .filter((i) => i.type === "bonus")
+        .filter((i) => i.owner !== "spouse" && i.type === "bonus")
         .map((i) => ({
           sourceId: i.id,
           name: i.name,
@@ -556,8 +559,8 @@ export const getCashflowBreakdown = cache(async (userId: string) => {
   const goalPlan = buildGoalSavingPlan(snapshot, goals);
 
   return {
-    income,
-    expenses,
+    income: income.filter((item) => item.owner !== "spouse"),
+    expenses: expenses.filter((item) => item.owner !== "spouse"),
     investments,
     insurance,
     goals,
@@ -637,7 +640,7 @@ export const getPortfolioChartData = cache(async (userId: string) => {
   );
 
   const categoryMap = new Map<string, number>();
-  for (const expense of expenses) {
+  for (const expense of expenses.filter((item) => item.owner !== "spouse")) {
     const monthly = toMonthlyEquivalent(expense.amount, expense.frequency);
     categoryMap.set(expense.category, (categoryMap.get(expense.category) ?? 0) + monthly);
   }
@@ -652,7 +655,7 @@ export const getPortfolioChartData = cache(async (userId: string) => {
   );
 
   const incomeBreakdown = withChartFill(
-    income.map((item, i) => ({
+    income.filter((item) => item.owner !== "spouse").map((item, i) => ({
       name: item.name,
       value: toMonthlyEquivalent(item.amount, item.frequency, {
         type: item.type,

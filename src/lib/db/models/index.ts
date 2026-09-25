@@ -11,6 +11,7 @@ export { Document } from "./document";
 export { SavedPassword } from "./saved-password";
 export { IntegrationSetting } from "./integration-setting";
 export { MessageIngestion } from "./message-ingestion";
+export { FamilyGroup, FamilyMembership } from "./family-group";
 export { CategoryRule } from "./category-rule";
 export { ObligationEvent, OBLIGATION_SOURCE_TYPES } from "./obligation-event";
 export { LedgerCategoryModel } from "./ledger-category";

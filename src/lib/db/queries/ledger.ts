@@ -63,6 +63,7 @@ export interface LedgerTransactionDTO {
   description: string;
   date: string;
   notes: string;
+  isEmi: boolean;
   documentId?: string;
 }
 
@@ -230,6 +231,7 @@ export const getTransactions = cache(
         description: t.description ?? "",
         date: t.date.toISOString(),
         notes: t.notes ?? "",
+        isEmi: t.isEmi ?? false,
         documentId: t.documentId?.toString(),
       };
     });

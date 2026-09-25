@@ -155,7 +155,8 @@ export async function loginAction(
     redirect("/onboarding");
   }
 
-  redirect("/dashboard");
+  const redirectTo = readField(payload, "redirectTo");
+  redirect(/^\/family\?invite=[A-Za-z0-9_-]{16}$/.test(redirectTo) ? redirectTo : "/dashboard");
 }
 
 export async function changePasswordAction(

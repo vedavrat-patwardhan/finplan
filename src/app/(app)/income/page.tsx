@@ -4,7 +4,6 @@ import { formatINR, formatIncomeType, formatFrequency } from "@/lib/format";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
 import { createIncomeAction, deleteIncomeAction } from "@/actions/finance";
 import { incomeFormFields } from "@/lib/form-fields";
-import { incomeOwnerFormField, formatOwnerLabel } from "@/lib/finance/household";
 import {
   ResourceFormSheet,
   DeleteButton,
@@ -28,13 +27,8 @@ export default async function IncomePage() {
   ]);
 
   const bonusSpreadMonthly = profile?.bonusSpreadMonthly ?? false;
-  const householdEnabled = profile?.householdEnabled ?? false;
-  const spouseName = profile?.spouseName ?? "";
-  const incomeFields = householdEnabled
-    ? [...incomeFormFields, incomeOwnerFormField(spouseName)]
-    : incomeFormFields;
-
-  const monthlyInHand = items.reduce(
+  const incomeFields = incomeFormFields;
+  const monthlyInHand = items.filter((item) => item.owner !== "spouse").reduce(
     (sum, i) =>
       sum +
       toMonthlyEquivalent(i.amount, i.frequency, {
@@ -44,28 +38,11 @@ export default async function IncomePage() {
     0
   );
 
-  const monthlyByOwner = items.reduce(
-    (acc, item) => {
-      const monthly = toMonthlyEquivalent(item.amount, item.frequency, {
-        type: item.type,
-        bonusSpreadMonthly,
-      });
-      const owner = item.owner ?? "self";
-      acc[owner] = (acc[owner] ?? 0) + monthly;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
   return (
     <PageShell>
       <PageHeader
         title="Income"
-        description={
-          householdEnabled
-            ? "Household income in one place — tag each source as yours, your partner's, or shared."
-            : "Plan with in-hand amounts — what actually lands in your account after TDS."
-        }
+        description="Plan with in-hand amounts — what actually lands in your account after TDS."
         meta={<MetaStat label="Monthly equivalent" value={`${formatINR(monthlyInHand, { compact: true })}/mo`} />}
       >
         <ResourceFormSheet
@@ -77,31 +54,10 @@ export default async function IncomePage() {
         />
       </PageHeader>
 
-      {householdEnabled ? (
-        <PageSection title="Household breakdown">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="border border-border bg-card px-5 py-4">
-              <p className="np-caps text-muted-foreground">Your income</p>
-              <p className="mt-1 font-extrabold tabular-nums">
-                {formatINR(monthlyByOwner.self ?? 0, { compact: true })}/mo
-              </p>
-            </div>
-            <div className="border border-border bg-card px-5 py-4">
-              <p className="np-caps text-muted-foreground">
-                {spouseName || "Partner"}&apos;s income
-              </p>
-              <p className="mt-1 font-extrabold tabular-nums">
-                {formatINR(monthlyByOwner.spouse ?? 0, { compact: true })}/mo
-              </p>
-            </div>
-            <div className="border border-border bg-card px-5 py-4">
-              <p className="np-caps text-muted-foreground">Shared / household</p>
-              <p className="mt-1 font-extrabold tabular-nums">
-                {formatINR(monthlyByOwner.joint ?? 0, { compact: true })}/mo
-              </p>
-            </div>
-          </div>
-        </PageSection>
+      {items.some((item) => item.owner === "spouse") ? (
+        <p className="border border-border border-l-[3px] border-l-warning bg-card px-5 py-3 text-sm text-muted-foreground">
+          Legacy partner income is preserved below but excluded from your personal and family totals. The person can add it in their own account after joining your family.
+        </p>
       ) : null}
 
       {profile && profile.monthlyTakeHome > 0 ? (
@@ -158,9 +114,7 @@ export default async function IncomePage() {
                 badges={
                   <>
                     <ResourceBadge>{formatIncomeType(item.type)}</ResourceBadge>
-                    {householdEnabled ? (
-                      <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
-                    ) : null}
+                    {item.owner === "spouse" ? <ResourceBadge>Legacy partner · excluded</ResourceBadge> : null}
                   </>
                 }
                 subtitle={
@@ -175,7 +129,7 @@ export default async function IncomePage() {
                 amount={formatINR(item.amount)}
                 amountSub={
                   <>
-                    {monthlyEq > 0
+                    {item.owner === "spouse" ? "Excluded from totals" : monthlyEq > 0
                       ? `${formatINR(monthlyEq, { compact: true })}/mo`
                       : "Not in monthly total"}
                     {item.estimatedTax ? (

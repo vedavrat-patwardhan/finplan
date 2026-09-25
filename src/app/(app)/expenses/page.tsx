@@ -1,9 +1,8 @@
 import { getSession } from "@/lib/auth/session";
-import { getExpenses, getUserProfile } from "@/lib/db/queries/finance";
+import { getExpenses } from "@/lib/db/queries/finance";
 import { formatINR } from "@/lib/format";
 import { createExpenseAction } from "@/actions/finance";
 import { expenseFormFields } from "@/lib/form-fields";
-import { expenseOwnerFormField } from "@/lib/finance/household";
 import { ResourceFormSheet } from "@/components/finance/resource-form-sheet";
 import { EmptyState } from "@/components/finance/empty-state";
 import { ExpenseClassTabs } from "@/components/finance/expense-class-tabs";
@@ -24,15 +23,7 @@ export default async function ExpensesPage({
   const activeClass = params.class ?? "all";
   const normalizedClass =
     activeClass === "all" ? "all" : normalizeExpenseClass(activeClass) ?? activeClass;
-  const [allItems, profile] = await Promise.all([
-    getExpenses(session.userId),
-    getUserProfile(session.userId),
-  ]);
-  const householdEnabled = profile?.householdEnabled ?? false;
-  const spouseName = profile?.spouseName ?? "";
-  const expenseFields = householdEnabled
-    ? [...expenseFormFields, expenseOwnerFormField(spouseName)]
-    : expenseFormFields;
+  const allItems = await getExpenses(session.userId);
 
   const items =
     normalizedClass === "all"
@@ -41,7 +32,7 @@ export default async function ExpensesPage({
           (e) => (normalizeExpenseClass(e.expenseClass) ?? e.expenseClass) === normalizedClass
         );
 
-  const monthlyTotal = allItems.reduce(
+  const monthlyTotal = allItems.filter((item) => item.owner !== "spouse").reduce(
     (sum, e) => sum + calcMonthly(e.amount, e.frequency),
     0
   );
@@ -62,12 +53,18 @@ export default async function ExpensesPage({
           title="Add expense budget"
           description="Rent, EMIs, subscriptions, and discretionary spending you expect each month."
           triggerLabel="Add budget"
-          fields={expenseFields}
+          fields={expenseFormFields}
           action={createExpenseAction}
         />
       </PageHeader>
 
       <ExpenseClassTabs activeClass={normalizedClass} />
+
+      {allItems.some((item) => item.owner === "spouse") ? (
+        <p className="border border-border border-l-[3px] border-l-warning bg-card px-5 py-3 text-sm text-muted-foreground">
+          Legacy partner budgets are preserved below but excluded from your personal and family totals. Add them under that person&apos;s account instead.
+        </p>
+      ) : null}
 
       {items.length === 0 ? (
         <EmptyState
@@ -83,8 +80,7 @@ export default async function ExpensesPage({
       ) : (
         <ExpensesList
           items={items}
-          householdEnabled={householdEnabled}
-          spouseName={spouseName}
+          householdEnabled={false}
         />
       )}
     </PageShell>

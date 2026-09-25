@@ -20,6 +20,7 @@ import {
   FileText,
   RadioTower,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { AppLogo } from "@/components/brand/app-logo";
 
 const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/family", label: "Family", icon: Users },
   { href: "/transactions", label: "Ledger", icon: ListOrdered },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/documents", label: "Documents", icon: FileText },

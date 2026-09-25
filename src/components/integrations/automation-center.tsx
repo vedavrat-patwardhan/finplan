@@ -56,6 +56,9 @@ type IngestionItem = {
     merchant: string;
     accountLastFour: string;
     availableBalance?: number;
+    foreignCurrency?: string;
+    foreignAmount?: number;
+    isEmi?: boolean;
     billTotalDue?: number;
     billDueDate?: string;
   };
@@ -255,6 +258,10 @@ function MessageRow({
           <p className={cn("shrink-0 font-extrabold tabular-nums", item.parsed.type === "credit" ? "text-success-text" : "text-foreground")}>
             {item.parsed.type === "credit" ? "+" : item.parsed.type === "debit" ? "−" : ""}{formatINR(amount, { compact: true })}
           </p>
+        ) : item.parsed.foreignCurrency && item.parsed.foreignAmount !== undefined ? (
+          <p className="shrink-0 font-extrabold tabular-nums">
+            {item.parsed.foreignCurrency} {item.parsed.foreignAmount}
+          </p>
         ) : null}
       </div>
       <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.message}</p>
@@ -297,6 +304,21 @@ function MessageRow({
               </SelectContent>
             </Select>
           )}
+          {item.kind === "transaction" && item.parsed.foreignAmount !== undefined && item.parsed.amount === undefined ? (
+            <label className="sm:col-span-3 text-xs text-muted-foreground">
+              INR amount posted by the bank (do not use the available limit)
+              <input
+                name="amount"
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                step="0.01"
+                required
+                className="mt-1 h-10 w-full border border-input bg-background px-3 text-sm text-foreground"
+                placeholder="Enter the final INR charge"
+              />
+            </label>
+          ) : null}
           <Button type="submit" size="sm"><Check /> Approve</Button>
         </form>
       ) : null}

@@ -689,6 +689,7 @@ export async function createTransactionAction(
             description: data.description ?? "",
             date: data.date,
             notes: data.notes ?? "",
+            isEmi: account.type === "credit_card" && data.type === "debit" && data.isEmi,
             documentId: data.documentId
               ? new mongoose.Types.ObjectId(data.documentId)
               : undefined,
@@ -772,6 +773,7 @@ export async function updateTransactionAction(
           description: data.description ?? "",
           date: data.date,
           notes: data.notes ?? "",
+          isEmi: newAccount.type === "credit_card" && data.type === "debit" && data.isEmi,
         },
         { session: dbSession }
       );

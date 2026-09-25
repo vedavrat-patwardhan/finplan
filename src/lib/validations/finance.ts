@@ -456,6 +456,7 @@ export const ledgerTransactionSchema = z.object({
   description: z.string().max(200).optional(),
   date: z.coerce.date(),
   notes: z.string().max(500).optional(),
+  isEmi: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
   documentId: z.string().optional(),
 });
 

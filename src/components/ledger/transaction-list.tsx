@@ -181,6 +181,7 @@ export function TransactionList({ transactions }: { transactions: LedgerTransact
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate font-bold">{title}</p>
                       <Badge variant="secondary">{t.category}</Badge>
+                      {t.isEmi ? <Badge variant="outline">EMI purchase</Badge> : null}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{accountLabel}</p>
                     <p className="text-xs text-muted-foreground">

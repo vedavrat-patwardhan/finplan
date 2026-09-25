@@ -159,7 +159,7 @@ export function ExpensesList({
                   </Badge>
                   {householdEnabled && item.owner ? (
                     <ResourceBadge>{formatOwnerLabel(item.owner, spouseName)}</ResourceBadge>
-                  ) : null}
+                  ) : item.owner === "spouse" ? <ResourceBadge>Legacy partner · excluded</ResourceBadge> : null}
                 </>
               }
               subtitle={
@@ -171,7 +171,7 @@ export function ExpensesList({
               amountSub={
                 <span>
                   {formatFrequency(item.frequency)} ·{" "}
-                  {formatINR(calcMonthly(item.amount, item.frequency), { compact: true })}/mo
+                  {item.owner === "spouse" ? "Excluded from totals" : `${formatINR(calcMonthly(item.amount, item.frequency), { compact: true })}/mo`}
                 </span>
               }
               actions={

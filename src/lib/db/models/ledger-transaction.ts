@@ -17,6 +17,7 @@ const LedgerTransactionSchema = new Schema(
     description: { type: String, default: "", trim: true },
     date: { type: Date, required: true, index: true },
     notes: { type: String, default: "" },
+    isEmi: { type: Boolean, default: false },
     documentId: { type: Schema.Types.ObjectId, ref: "Document" },
     tags: { type: [String], default: [] },
     source: {

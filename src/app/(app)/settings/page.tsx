@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { getUserProfile, getCashflowBreakdown } from "@/lib/db/queries/finance";
 import { PersonalProfileForm } from "@/components/settings/personal-profile-form";
-import { HouseholdForm } from "@/components/settings/household-form";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { AccountSecurity } from "@/components/settings/account-security";
 import { SettingsFooter } from "@/components/settings/settings-footer";
@@ -10,6 +10,7 @@ import { TaxEstimator } from "@/components/finance/tax-estimator";
 import { ScenarioModeler } from "@/components/finance/scenario-modeler";
 import { PageShell, PageHeader, PageSection } from "@/components/layout/page-chrome";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -52,20 +53,15 @@ export default async function SettingsPage() {
       </PageSection>
 
       <PageSection
-        title="Household"
-        description="Plan together with a partner — combined income and expenses in one account"
+        title="Family"
+        description="Invite people with their own accounts and see a combined dashboard"
       >
         <Card>
           <CardContent className="pt-6">
-            <HouseholdForm
-              household={{
-                householdEnabled: profile.householdEnabled,
-                spouseName: profile.spouseName,
-                spouseAnnualInHandSalary: profile.spouseAnnualInHandSalary,
-                spouseAnnualInHandBonus: profile.spouseAnnualInHandBonus,
-                spouseTaxRegime: profile.spouseTaxRegime,
-              }}
-            />
+            <p className="mb-4 text-sm text-muted-foreground">
+              Family members keep their own ledgers, accounts, and settings. Only the shared dashboard combines their totals.
+            </p>
+            <Button render={<Link href="/family" />} variant="outline">Manage family</Button>
           </CardContent>
         </Card>
       </PageSection>

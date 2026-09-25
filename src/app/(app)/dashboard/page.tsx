@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Check } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import {
@@ -33,6 +34,9 @@ import { GetStartedBanner } from "@/components/finance/get-started-banner";
 import { ObligationList } from "@/components/finance/upcoming-obligations";
 import { GoalSavingObligations } from "@/components/finance/goal-saving-obligations";
 import { LEDGER_CATEGORIES } from "@/lib/finance/constants";
+import { getFamilyDashboardData, getFamilyForUser } from "@/lib/db/queries/family";
+import { DashboardModeToggle } from "@/components/family/dashboard-mode-toggle";
+import { FamilyDashboard } from "@/components/family/family-dashboard";
 
 const summaryCardTones = {
   default: "border-border bg-card",
@@ -121,6 +125,15 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
+  const [family, cookieStore] = await Promise.all([
+    getFamilyForUser(session.userId),
+    cookies(),
+  ]);
+  if (family && cookieStore.get("finplan_dashboard_view")?.value === "family") {
+    const familyData = await getFamilyDashboardData(session.userId);
+    if (familyData) return <FamilyDashboard data={familyData} />;
+  }
+
   const [dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions, customCategories] =
     await Promise.all([
       getDashboardData(session.userId),
@@ -167,14 +180,14 @@ export default async function DashboardPage() {
       <PageHeader
         title="Dashboard"
         description={
-          profile?.householdEnabled && profile.spouseName
-            ? `Household plan for you and ${profile.spouseName} — planned vs actual spending.`
-            : profile?.name
+          profile?.name
               ? `${profile.name}, here's how your plan and actual spending compare.`
               : "Your monthly plan, actual spending, and goal progress in one place."
         }
         meta={
-          <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="w-full space-y-4">
+            {family ? <DashboardModeToggle mode="personal" /> : null}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <SummaryBreakdownCard
               label="Available balance"
               value={formatINR(availableBalance, {
@@ -223,9 +236,12 @@ export default async function DashboardPage() {
               ]}
               note="Monthly investments ÷ monthly income. Uninvested surplus is not counted."
             />
+            </div>
           </div>
         }
-      />
+      >
+        {!family ? <Button variant="outline" render={<Link href="/family" />}>Set up family</Button> : null}
+      </PageHeader>
 
       {showGetStarted ? <GetStartedBanner /> : null}
 

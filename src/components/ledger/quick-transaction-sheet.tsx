@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { LabeledSelect } from "@/components/ui/labeled-select";
 import { MoneyInput } from "@/components/finance/money-input";
 import {
@@ -83,6 +84,10 @@ export function QuickTransactionSheet({
       : "Food")
   );
   const [txType, setTxType] = useState<"debit" | "credit">(transaction?.type ?? "debit");
+  const [isEmi, setIsEmi] = useState(transaction?.isEmi ?? false);
+  const isCreditCardDebit = txType === "debit" && sortedAccounts.some(
+    (account) => account.id === accountId && account.type === "credit_card"
+  );
   const [showDate, setShowDate] = useState(Boolean(transaction));
   const [dateValue, setDateValue] = useState(() =>
     transaction ? toDatetimeLocalValue(transaction.date) : todayInputValue()
@@ -121,6 +126,7 @@ export function QuickTransactionSheet({
     fd.set("amount", amount);
     fd.set("type", txType);
     fd.set("category", category);
+    fd.set("isEmi", isCreditCardDebit && isEmi ? "true" : "false");
     fd.set("date", selectedDate.toISOString());
     startTransition(() => formAction(fd));
   }
@@ -219,6 +225,22 @@ export function QuickTransactionSheet({
                   placeholder="Choose account"
                 />
               </div>
+
+              {isCreditCardDebit ? (
+                <div className="flex items-start gap-3 border border-border bg-muted p-4">
+                  <Switch
+                    checked={isEmi}
+                    onCheckedChange={setIsEmi}
+                    aria-label="Mark as EMI purchase"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold">EMI purchase</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Keep the full card purchase in the ledger. The amount due remains based on your card statement, not this purchase amount.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label htmlFor="quick-merchant">Merchant / note</Label>

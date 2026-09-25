@@ -125,6 +125,16 @@ function CardWalletItem({
                 of {formatINR(account.creditLimit, { compact: true })} limit
               </p>
             ) : null}
+            {isCredit ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Card utilisation, including EMI purchases — not the current bill.
+              </p>
+            ) : null}
+            {isCredit && account.billTotalDue > 0 ? (
+              <p className="mt-2 text-xs font-semibold tabular-nums text-warning-text">
+                Statement bill due: {formatINR(account.billTotalDue)}
+              </p>
+            ) : null}
           </div>
           <div className="flex items-center gap-1">
             <FavoriteAccountButton accountId={account.id} isFavorite={account.isFavorite} />
