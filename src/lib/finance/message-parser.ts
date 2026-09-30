@@ -27,6 +27,13 @@ const CURRENCY_SPEND = /\b(?:spent|paid|charged|debited)\s+([A-Z]{3})\s*([\d,]+(
 const DEBIT_WORDS = /\b(debited|spent|paid|sent|withdrawn|purchase|used|charged|dr\.?|transferred to)\b/i;
 const CREDIT_WORDS = /\b(credited|received|deposited|refund(?:ed)?|cr\.?)\b/i;
 const BILL_WORDS = /\b(total (?:amount )?due|minimum (?:amount )?due|payment due|bill due|statement amount)\b/i;
+// These alerts describe a future or past purchase, not a new posting. In
+// particular, a loan EMI reminder must never change the current balance.
+const NON_POSTING_WORDS = /\b(?:will be debited|will be deducted|to be debited|scheduled to be debited|due to be debited|keep funds|maintain sufficient balance|upcoming emi|emi is due|due on|can be converted|convert (?:your|the|this|it)|eligible for emi|successfully converted (?:into|to) emi|converted (?:into|to) emi|recent purchase|transaction (?:failed|declined)|payment (?:failed|declined))\b/i;
+
+export function isNonPostingFinanceMessage(message: string): boolean {
+  return NON_POSTING_WORDS.test(message);
+}
 
 function numberFrom(value?: string): number | undefined {
   if (!value) return undefined;
@@ -133,12 +140,13 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
   const hasDebit = DEBIT_WORDS.test(text);
   const hasCredit = CREDIT_WORDS.test(text);
   const declined = /\b(?:declined|failed|unsuccessful)\b/i.test(text);
+  const nonPosting = NON_POSTING_WORDS.test(text);
   // Email notification previews may contain unrelated footer text such as
   // "received". A specific card-use alert is still a debit in that case.
   const isCardUse = /\bcard\b.{0,35}\bused\b.{0,65}\btransaction\b/i.test(text);
-  const type: TransactionType | undefined = !declined && hasDebit && (!hasCredit || isCardUse)
+  const type: TransactionType | undefined = !declined && !nonPosting && hasDebit && (!hasCredit || isCardUse)
     ? "debit"
-    : !declined && hasCredit && !hasDebit ? "credit" : undefined;
+    : !declined && !nonPosting && hasCredit && !hasDebit ? "credit" : undefined;
 
   const billTotalDue = hasBill
     ? matchMoneyAfter(text, /(?:total (?:amount )?due|statement amount|bill (?:amount|due))/i)
@@ -163,7 +171,7 @@ export function parseFinanceMessage(message: string): ParsedFinanceMessage {
   let kind: ParsedFinanceMessage["kind"] = "unknown";
   if (hasBill && (billTotalDue !== undefined || billMinimumDue !== undefined)) kind = "bill";
   else if (type && (amount !== undefined || foreignAmount !== undefined)) kind = "transaction";
-  else if (availableBalance !== undefined) kind = "balance";
+  else if (!nonPosting && availableBalance !== undefined) kind = "balance";
 
   let confidence = 0.15;
   if (kind === "transaction") confidence = 0.62;

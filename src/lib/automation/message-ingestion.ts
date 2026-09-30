@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { createHash } from "crypto";
 import { connectDB } from "@/lib/db/mongoose";
 import {
   CategoryRule,
@@ -7,7 +8,7 @@ import {
   LedgerTransaction,
 } from "@/lib/db/models";
 import { encryptSensitive } from "@/lib/crypto/sensitive";
-import { financeMessageHash, parseFinanceMessage } from "@/lib/finance/message-parser";
+import { financeMessageHash, isNonPostingFinanceMessage, parseFinanceMessage } from "@/lib/finance/message-parser";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
 import type { PaymentAccountType } from "@/lib/finance/constants";
 import {
@@ -59,6 +60,11 @@ export async function ingestFinanceMessage(input: IngestInput) {
   }
 
   const parsedMessage = parseFinanceMessage(message);
+  // Older mobile builds may continue to send Gmail or notification summaries.
+  // Acknowledging without importing drains their retry queue safely.
+  if (sourceChannel === "notification" || isNonPostingFinanceMessage(message)) {
+    return { id: "", status: "duplicate" as const, parsed: parsedMessage };
+  }
   const [accounts, categoryRules] = await Promise.all([
     PaymentAccount.find({ userId, isActive: true }).lean(),
     CategoryRule.find({ userId }).lean(),
@@ -112,18 +118,58 @@ export async function ingestFinanceMessage(input: IngestInput) {
     }
   }
 
-  // A bank can send SMS, Messaging notifications and delayed email alerts for
-  // the same card charge. Android reports both Messaging and Gmail as the
-  // notification channel, so sourceChannel alone does not identify a copy.
-  // A matching available card limit corroborates delayed copies; otherwise
-  // keep the window narrow to protect legitimate repeated purchases.
+  const localDay = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(occurredAt);
+  const identity = parsed.reference
+    ? `ref:${parsed.type}:${parsed.reference.toUpperCase()}`
+    : `body:${localDay}:${message.toUpperCase()}`;
+  const dedupeKey = account ? createHash("sha256")
+    .update(`${account._id}:${identity}`)
+    .digest("hex") : undefined;
+  if (account && dedupeKey) {
+    const existingTransaction = await LedgerTransaction.findOne({ userId, accountId: account._id, dedupeKey }).lean();
+    if (existingTransaction) {
+      return { id: existingTransaction.ingestionId?.toString() ?? existingTransaction._id.toString(), status: "duplicate" as const, parsed };
+    }
+    // Pre-key imports can still be recognized by the exact bank SMS body.
+    const earlier = await MessageIngestion.findOne({
+      userId, accountId: account._id, status: "imported",
+      transactionId: { $exists: true },
+      "parsed.description": message.slice(0, 500),
+      occurredAt: { $gte: new Date(occurredAt.getTime() - 24 * 60 * 60 * 1000), $lte: new Date(occurredAt.getTime() + 24 * 60 * 60 * 1000) },
+    }).lean();
+    if (earlier) return { id: earlier._id.toString(), status: "duplicate" as const, parsed };
+  }
+
+  // History scans often run after a bank statement was imported. A statement
+  // line is authoritative; only a unique same-day amount/account match is
+  // safe to suppress without a shared bank reference.
+  if (account && parsed.kind === "transaction" && parsed.type && parsed.amount !== undefined && account.type !== "credit_card") {
+    const dayStart = new Date(`${localDay}T00:00:00+05:30`);
+    const statementMatches = await LedgerTransaction.find({
+      userId, accountId: account._id, source: "statement", type: parsed.type, amount: parsed.amount,
+      date: { $gte: dayStart, $lt: new Date(dayStart.getTime() + 24 * 60 * 60 * 1000) },
+    }).limit(2).lean();
+    const statement = statementMatches[0];
+    const normalizeReference = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const hasMatchingReference = Boolean(parsed.reference && statement?.description
+      && normalizeReference(statement.description).includes(normalizeReference(parsed.reference)));
+    if (statementMatches.length === 1 && (input.historical || hasMatchingReference)) {
+      return { id: statementMatches[0]._id.toString(), status: "duplicate" as const, parsed };
+    }
+  }
+
+  // Preserve protection against earlier notification imports while new
+  // notification uploads are disabled. A matching available limit corroborates
+  // delayed copies; otherwise keep the time window narrow.
   if (
     account &&
     !parsed.reference &&
     parsed.kind === "transaction" &&
     parsed.type &&
     parsed.amount !== undefined &&
-    (sourceChannel === "sms" || sourceChannel === "notification")
+    sourceChannel === "sms"
   ) {
     const timeWindowMs = 60 * 60 * 1000;
     const normalizeMerchant = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -229,6 +275,7 @@ export async function ingestFinanceMessage(input: IngestInput) {
               date: occurredAt,
               source: "sms",
               sourceReference: parsed.reference,
+              dedupeKey,
               ingestionId: event._id,
             },
           ],
@@ -277,8 +324,10 @@ export async function ingestFinanceMessage(input: IngestInput) {
   } catch (error) {
     if (error instanceof mongoose.mongo.MongoServerError && error.code === 11000) {
       const duplicate = await MessageIngestion.findOne({ userId, messageHash }).lean();
+      const duplicateLedger = !duplicate && dedupeKey
+        ? await LedgerTransaction.findOne({ userId, dedupeKey }).lean() : null;
       return {
-        id: duplicate?._id.toString() ?? "",
+        id: duplicate?._id.toString() ?? duplicateLedger?.ingestionId?.toString() ?? "",
         status: "duplicate" as const,
         parsed: duplicate?.parsed ?? parsed,
       };

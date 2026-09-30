@@ -16,6 +16,7 @@ import { encryptSensitive } from "@/lib/crypto/sensitive";
 import { ingestFinanceMessage } from "@/lib/automation/message-ingestion";
 import { reconcileAccountsFromMessageHistory } from "@/lib/automation/history-reconciliation";
 import { transactionBalanceDelta } from "@/lib/finance/ledger";
+import { isNonPostingFinanceMessage } from "@/lib/finance/message-parser";
 import { type PaymentAccountType } from "@/lib/finance/constants";
 import {
   getAllowedLedgerCategoryNames,
@@ -182,6 +183,15 @@ export async function approveMessageAction(formData: FormData): Promise<void> {
     PaymentAccount.findOne({ _id: oid(parsed.data.accountId), userId, isActive: true }),
   ]);
   if (!event || !account) return;
+
+  // Old notification and reminder events may still sit in the review queue.
+  // They must not be promoted to a ledger posting after the capture policy changed.
+  if (event.sourceChannel === "notification" || isNonPostingFinanceMessage(event.parsed?.description ?? "")) {
+    event.status = "ignored";
+    await event.save();
+    refreshAutomationPages();
+    return;
+  }
 
   const message = event.parsed;
   if (event.kind === "bill" && account.type === "credit_card" && message?.billTotalDue) {

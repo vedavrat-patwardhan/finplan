@@ -27,6 +27,7 @@ const LedgerTransactionSchema = new Schema(
       index: true,
     },
     sourceReference: { type: String, default: "", trim: true },
+    dedupeKey: { type: String },
     ingestionId: { type: Schema.Types.ObjectId, ref: "MessageIngestion" },
   },
   { timestamps: true }
@@ -34,6 +35,10 @@ const LedgerTransactionSchema = new Schema(
 
 LedgerTransactionSchema.index({ userId: 1, date: -1 });
 LedgerTransactionSchema.index({ userId: 1, ingestionId: 1 }, { unique: true, sparse: true });
+LedgerTransactionSchema.index(
+  { userId: 1, dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: "string" } } }
+);
 
 export type ILedgerTransaction = InferSchemaType<typeof LedgerTransactionSchema> & {
   _id: mongoose.Types.ObjectId;
