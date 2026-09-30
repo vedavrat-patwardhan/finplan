@@ -49,6 +49,7 @@ export type GoalListItem = {
   targetDate?: Date | string | null;
   currentSaved: number;
   monthlyContribution: number;
+  isFamilyGoal?: boolean;
   inflationRate?: number | null;
   expectedReturnPct?: number | null;
   stepUpPct?: number | null;
@@ -66,6 +67,7 @@ type FormValues = {
   targetDate: string;
   currentSaved: string;
   monthlyContribution: string;
+  isFamilyGoal: boolean;
   inflationRate: string;
   expectedReturnPct: string;
   stepUpPct: string;
@@ -109,6 +111,7 @@ function buildInitialValues(
     targetDate: formatDateInputValue(goal?.targetDate),
     currentSaved: goal ? String(goal.currentSaved) : "0",
     monthlyContribution: goal ? String(goal.monthlyContribution) : "0",
+    isFamilyGoal: goal?.isFamilyGoal ?? false,
     inflationRate: String(goal?.inflationRate ?? defaults.inflationRate),
     expectedReturnPct: String(goal?.expectedReturnPct ?? defaults.expectedReturnPct),
     stepUpPct: String(goal?.stepUpPct ?? defaults.stepUpPct),
@@ -352,6 +355,7 @@ export function GoalFormSheet({
     if (formValues.includeClosingCosts) {
       fd.set("includeClosingCosts", "true");
     }
+    fd.set("isFamilyGoal", String(formValues.isFamilyGoal));
 
     return fd;
   }
@@ -525,6 +529,20 @@ export function GoalFormSheet({
                     patchForm({ monthlyContribution: e.target.value })
                   }
                   placeholder="e.g. 25000"
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 border border-border bg-muted px-4 py-3">
+                <div>
+                  <Label htmlFor="goal-family-shared">Share this goal with family</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    In family mode, the monthly amount is divided by each member&apos;s income share.
+                  </p>
+                </div>
+                <Switch
+                  id="goal-family-shared"
+                  checked={formValues.isFamilyGoal}
+                  onCheckedChange={(checked) => patchForm({ isFamilyGoal: checked })}
                 />
               </div>
 

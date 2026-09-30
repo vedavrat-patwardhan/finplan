@@ -121,21 +121,25 @@ function SummaryBreakdownCard({
   );
 }
 
-export default async function DashboardPage() {
-  const session = await getSession();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
+  const [session, cookieStore, params] = await Promise.all([getSession(), cookies(), searchParams]);
   if (!session) return null;
 
-  const [family, cookieStore] = await Promise.all([
-    getFamilyForUser(session.userId),
-    cookies(),
-  ]);
-  if (family && cookieStore.get("finplan_dashboard_view")?.value === "family") {
+  const requested = typeof params.view === "string" ? params.view : undefined;
+  const preferred = cookieStore.get("finplan_dashboard_mode")?.value
+    ?? cookieStore.get("finplan_dashboard_view")?.value;
+  if ((requested ?? preferred) === "family") {
     const familyData = await getFamilyDashboardData(session.userId);
     if (familyData) return <FamilyDashboard data={familyData} />;
   }
 
-  const [dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions, customCategories] =
+  const [family, dashboard, chartData, ledger, investments, expenses, accounts, recentTransactions, customCategories] =
     await Promise.all([
+      getFamilyForUser(session.userId),
       getDashboardData(session.userId),
       getPortfolioChartData(session.userId),
       getLedgerSummary(session.userId),

@@ -2,10 +2,11 @@ import { cache } from "react";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db/mongoose";
 import { FamilyGroup, FamilyMembership, User } from "@/lib/db/models";
-import { getDashboardData, getInsurancePolicies, getInvestments } from "@/lib/db/queries/finance";
-import { getLedgerSummary, getPaymentAccounts } from "@/lib/db/queries/ledger";
+import { getFamilyMemberPlanData, getInsurancePolicies, getInvestments } from "@/lib/db/queries/finance";
+import { getMonthlyDebitTotal, getPaymentAccounts } from "@/lib/db/queries/ledger";
 import { sumAvailableBalance } from "@/lib/finance/ledger";
 import { toMonthlyEquivalent } from "@/lib/finance/engine";
+import { allocateFamilyGoal } from "@/lib/finance/family-goal-allocation";
 
 export const getFamilyForUser = cache(async (userId: string) => {
   await connectDB();
@@ -49,35 +50,64 @@ export async function getFamilyDashboardData(userId: string) {
   if (!family) return null;
 
   const memberData = await Promise.all(family.members.map(async (member) => {
-    const [dashboard, accounts, investments, insurance, ledger] = await Promise.all([
-      getDashboardData(member.userId),
+    const [dashboard, accounts, investments, insurance, spentThisMonth] = await Promise.all([
+      getFamilyMemberPlanData(member.userId),
       getPaymentAccounts(member.userId),
       getInvestments(member.userId),
       getInsurancePolicies(member.userId),
-      getLedgerSummary(member.userId),
+      getMonthlyDebitTotal(member.userId),
     ]);
-    return { member, dashboard, accounts, investments, insurance, ledger };
+    return { member, dashboard, accounts, investments, insurance, spentThisMonth };
   }));
 
   const accounts = memberData.flatMap(({ member, accounts: owned }) => owned.map((account) => ({
     owner: member.name,
     ownerUserId: member.userId,
+    id: account.id,
     name: account.name,
     institution: account.institution,
+    holderName: account.holderName,
     lastFour: account.lastFour,
+    cardLastFour: account.cardLastFour,
     type: account.type,
+    accountSubtype: account.accountSubtype,
+    ifscCode: account.ifscCode,
+    upiId: account.upiId,
+    creditLimit: account.creditLimit,
+    billingDay: account.billingDay,
+    billDueDate: account.billDueDate,
     currentBalance: account.currentBalance,
     billTotalDue: account.billTotalDue,
   })));
+  const memberIncomes = memberData.map(({ member, dashboard }) => ({
+    userId: member.userId,
+    monthlyIncome: dashboard.snapshot.grossIncome,
+  }));
+  const totalFamilyIncome = memberIncomes.reduce((sum, member) => sum + Math.max(0, member.monthlyIncome), 0);
   const goals = memberData.flatMap(({ member, dashboard }) => dashboard.goals.map((goal) => ({
+    id: goal.id,
     owner: member.name,
+    ownerUserId: member.userId,
     title: goal.title,
     status: goal.status,
+    isFamilyGoal: goal.isFamilyGoal,
     targetAmount: goal.targetAmount,
     currentSaved: goal.currentSaved,
     targetDate: goal.targetDate?.toISOString(),
     monthlyNeeded: dashboard.goalObligations.find((item) => item.sourceId === goal.id)?.amount ?? 0,
+    shares: goal.isFamilyGoal && goal.status !== "completed"
+      ? allocateFamilyGoal(
+          dashboard.goalObligations.find((item) => item.sourceId === goal.id)?.amount ?? 0,
+          memberIncomes
+        )
+      : [],
   })));
+  const sharedSavingsByMember = new Map(memberIncomes.map((member) => [member.userId, 0]));
+  for (const goal of goals.filter((item) => item.isFamilyGoal)) {
+    for (const share of goal.shares) {
+      sharedSavingsByMember.set(share.userId, (sharedSavingsByMember.get(share.userId) ?? 0) + share.monthlyAmount);
+    }
+  }
   const investments = memberData.flatMap(({ member, investments: owned }) => owned.map((investment) => ({
     owner: member.name,
     name: investment.name,
@@ -101,25 +131,32 @@ export async function getFamilyDashboardData(userId: string) {
     type: obligation.type,
   }))).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
-  const memberSummaries = memberData.map(({ member, dashboard, accounts: owned, investments: ownedInvestments, ledger }) => ({
-    userId: member.userId,
-    name: member.name,
-    availableBalance: sumAvailableBalance(owned),
-    monthlyIncome: dashboard.snapshot.grossIncome,
-    monthlyExpenses: dashboard.snapshot.fixedExpenses,
-    monthlyInvestments: dashboard.snapshot.investments,
-    monthlyInsurance: dashboard.snapshot.insurance,
-    monthlyGoalSavings: dashboard.snapshot.goalSavings,
-    monthlySurplus: dashboard.snapshot.netSurplus,
-    spentThisMonth: ledger.totalDebits,
-    trackedInvestments: ownedInvestments.reduce(
-      (sum, investment) => sum + (investment.metrics.fundValue ?? investment.metrics.totalInvested), 0
-    ),
-    goalCount: dashboard.goals.filter((goal) => goal.status !== "completed").length,
-  }));
+  const memberSummaries = memberData.map(({ member, dashboard, accounts: owned, investments: ownedInvestments, spentThisMonth }) => {
+    const personalGoalSavings = goals.filter((goal) => !goal.isFamilyGoal && goal.ownerUserId === member.userId)
+      .reduce((sum, goal) => sum + goal.monthlyNeeded, 0);
+    const monthlyGoalSavings = personalGoalSavings + (sharedSavingsByMember.get(member.userId) ?? 0);
+    return {
+      userId: member.userId,
+      name: member.name,
+      availableBalance: sumAvailableBalance(owned),
+      monthlyIncome: dashboard.snapshot.grossIncome,
+      monthlyExpenses: dashboard.snapshot.fixedExpenses,
+      monthlyInvestments: dashboard.snapshot.investments,
+      monthlyInsurance: dashboard.snapshot.insurance,
+      monthlyGoalSavings,
+      monthlySurplus: dashboard.snapshot.netSurplusBeforeGoals - monthlyGoalSavings,
+      spentThisMonth,
+      trackedInvestments: ownedInvestments.reduce(
+        (sum, investment) => sum + (investment.metrics.fundValue ?? investment.metrics.totalInvested), 0
+      ),
+      goalCount: dashboard.goals.filter((goal) => goal.status !== "completed").length,
+    };
+  });
 
   return {
     family,
+    viewerUserId: userId,
+    incomeSplitBasis: totalFamilyIncome > 0 ? "income" as const : "equal" as const,
     members: memberSummaries,
     accounts,
     goals,

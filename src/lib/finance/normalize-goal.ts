@@ -86,6 +86,7 @@ export function normalizeGoalPayload(data: GoalSchemaInput) {
     targetDate: base.targetDate as Date,
     currentSaved: base.currentSaved as number,
     monthlyContribution: base.monthlyContribution as number,
+    isFamilyGoal: base.isFamilyGoal as boolean,
     inflationRate,
     expectedReturnPct,
     stepUpPct,

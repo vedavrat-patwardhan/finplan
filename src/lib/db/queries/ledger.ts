@@ -349,6 +349,24 @@ export async function getLedgerSummary(
   };
 }
 
+/** Family dashboard only needs one number, not every transaction and budget. */
+export const getMonthlyDebitTotal = cache(async (userId: string): Promise<number> => {
+  await connectDB();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit",
+  }).formatToParts(new Date());
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  const start = new Date(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+05:30`);
+  const nextMonth = new Date(Date.UTC(year, month, 1));
+  const end = new Date(`${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, "0")}-01T00:00:00+05:30`);
+  const totals = await LedgerTransaction.aggregate<{ amount: number }>([
+    { $match: { userId: oid(userId), type: "debit", date: { $gte: start, $lt: end } } },
+    { $group: { _id: null, amount: { $sum: "$amount" } } },
+  ]);
+  return totals[0]?.amount ?? 0;
+});
+
 /** Debit totals per card account for the current (or given) month. */
 export async function getCardMonthlySpend(
   userId: string,

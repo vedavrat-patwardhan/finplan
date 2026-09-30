@@ -199,6 +199,7 @@ export const getLifeGoals = cache(async (userId: string) => {
     targetDate: item.targetDate,
     currentSaved: item.currentSaved,
     monthlyContribution: item.monthlyContribution,
+    isFamilyGoal: item.isFamilyGoal ?? false,
     inflationRate: item.inflationRate,
     expectedReturnPct: item.expectedReturnPct,
     stepUpPct: item.stepUpPct,
@@ -544,6 +545,17 @@ export const getDashboardData = cache(async (userId: string) => {
     obligations,
     pastDueObligations,
   };
+});
+
+// Family mode does not render past-due obligations or a member's full profile.
+// Avoid fetching those extra collections every time the dashboard is toggled.
+export const getFamilyMemberPlanData = cache(async (userId: string) => {
+  const [snapshot, goals, obligations] = await Promise.all([
+    getMonthlySnapshot(userId),
+    getGoalsWithFeasibility(userId),
+    getUpcomingObligationsForUser(userId),
+  ]);
+  return { ...buildGoalSavingPlan(snapshot, goals), goals, obligations };
 });
 
 export const getCashflowBreakdown = cache(async (userId: string) => {

@@ -218,6 +218,7 @@ export const goalSchema = z.object({
   targetDate: z.coerce.date(),
   currentSaved: z.coerce.number().min(0),
   monthlyContribution: z.coerce.number().min(0),
+  isFamilyGoal: z.preprocess((value) => value === "true" || value === true || value === "on", z.boolean()),
   inflationRate: optionalPct,
   expectedReturnPct: optionalPct,
   stepUpPct: optionalPct,

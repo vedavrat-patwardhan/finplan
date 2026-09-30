@@ -39,6 +39,7 @@ const LifeGoalSchema = new Schema(
     targetDate: { type: Date },
     currentSaved: { type: Number, default: 0, min: 0 },
     monthlyContribution: { type: Number, default: 0, min: 0 },
+    isFamilyGoal: { type: Boolean, default: false },
     inflationRate: { type: Number, min: 0, max: 30 },
     expectedReturnPct: { type: Number, min: 0, max: 30 },
     stepUpPct: { type: Number, min: 0, max: 50 },

@@ -100,6 +100,9 @@ export function GoalTimeline({
                   <h3 className="mt-1 text-[22px] font-extrabold tracking-tight">
                     {goal.title}
                   </h3>
+                  {goal.isFamilyGoal ? (
+                    <p className="np-caps mt-1 text-brand-text">Shared with family · monthly split by income</p>
+                  ) : null}
                   {tierLabel ? (
                     <p className="mt-1 text-xs text-muted-foreground">{tierLabel}</p>
                   ) : null}
